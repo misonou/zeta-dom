@@ -240,6 +240,7 @@ domReady.then(function () {
     var modifiedKeyCode;
     var mouseInitialPoint;
     var mousedownFocus;
+    var normalizeTouchEvents;
     var pressTimeout;
     var imeNode;
     var imeOffset;
@@ -497,10 +498,13 @@ domReady.then(function () {
             }
         },
         touchstart: function (e) {
+            // @ts-ignore: e.target is Element
+            var container = getContainer(e.target);
+            normalizeTouchEvents = container.normalizeTouchEvents;
             mouseInitialPoint = extend({}, e.touches[0]);
             if (!e.touches[1]) {
                 // @ts-ignore: e.target is Element
-                if (focused(getContainer(e.target).element)) {
+                if (normalizeTouchEvents && focused(container.element)) {
                     triggerMouseEvent('mousedown', e);
                 }
                 pressTimeout = setTimeout(function () {
@@ -527,7 +531,7 @@ domReady.then(function () {
         },
         touchend: function (e) {
             clearTimeout(pressTimeout);
-            if (mouseInitialPoint && pressTimeout) {
+            if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
                 setFocus(e.target);
                 triggerMouseEvent('click', e);
                 dispatchDOMMouseEvent('click', mouseInitialPoint, e);

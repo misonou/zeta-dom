@@ -239,19 +239,19 @@ definePrototype(ZetaEvent, {
  * ZetaContainer
  * -------------------------------------- */
 
-function ZetaContainer(element, context) {
+function ZetaContainer(element, context, options) {
     var self = this;
     if (element) {
         containers.set(element, self);
     }
-    self.element = element || root;
-    self.context = context || null;
-    self.components = new Map();
-    self.asyncEvents = new Map();
-    self.autoDestroy = containsOrEquals(root, element);
-    if (element) {
-        containers.set(element, self);
-    }
+    extend(self, {
+        element: element || root,
+        context: context || null,
+        components: new Map(),
+        asyncEvents: new Map(),
+        autoDestroy: containsOrEquals(root, element),
+        normalizeTouchEvents: false
+    }, options);
 }
 
 definePrototype(ZetaContainer, {

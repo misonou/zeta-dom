@@ -286,6 +286,8 @@ declare namespace Zeta {
 
         readonly autoDestroy: boolean;
 
+        readonly normalizeTouchEvents: boolean;
+
         /**
          * Registers event handlers to a DOM element.
          * @param element A DOM element.
