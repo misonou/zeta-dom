@@ -182,7 +182,7 @@ definePrototype(ZetaEventEmitter, {
         }
         // find the nearest ancestor that has widget or context set
         var context = container.getContext(target || self.target);
-        return single((bubbles ? parentsAndSelf : makeArray)(context), function (v) {
+        return !!context && single(bubbles ? parentsAndSelf(context) : [context], function (v) {
             var component = container.components.get(v.element || v);
             return component && single(component.states, function (v) {
                 return callHandler(v, eventName, self.eventName, self.data);
