@@ -73,6 +73,8 @@ export declare function removeLock(element: Element): void;
 
 export function watchElements(element: Element, selector: string, callback: (addedNodes: Element[], removedNodes: Element[]) => any): void;
 
+export function watchAttributes(element: Element, attributes: string | string[], callback: (map: Map<Element, { oldValues: Zeta.Dictionary<string | null>, newValues: Zeta.Dictionary<string | null> }>) => any): void;
+
 /**
  * Scroll all ancestor container so that the specified element is in view.
  * @param element Element to be scrolled into view.

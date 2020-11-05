@@ -47,60 +47,6 @@ definePrototype(Rect, {
     }
 });
 
-const MutationObserver = window.MutationObserver || (function () {
-    function MutationObserver(handler) {
-        var self = this;
-        this.records = [];
-        this.handler = function () {
-            handler(self.takeRecords(), self);
-        };
-        throwNotFunction(handler);
-    }
-    MutationObserver.prototype = {
-        observe: function (element, init) {
-            var self = this;
-            bind(element, 'DOMNodeInserted DOMNodeRemoved DOMAttrModified DOMCharacterDataModified', function (e) {
-                var type = e.type.charAt(7);
-                var oldValue = e.prevValue;
-                var record = {};
-                record.addedNodes = [];
-                record.removedNodes = [];
-                if (type === 'M') {
-                    record.type = 'attributes';
-                    record.target = e.target;
-                    record.attributeName = e.attrName;
-                    if (init.attributeOldValue) {
-                        record.oldValue = oldValue;
-                    }
-                } else if (type === 'a') {
-                    record.type = 'characterData';
-                    record.target = e.target;
-                    if (init.characterDataOldValue) {
-                        record.oldValue = oldValue;
-                    }
-                } else {
-                    record.type = 'childList';
-                    record.target = e.target.parentNode;
-                    record[type === 'I' ? 'addedNodes' : 'removedNodes'][0] = e.target;
-                }
-                var shouldIgnore = any(self.records, function (v) {
-                    return v.type === 'childList' && v.addedNodes.some(function (v) {
-                        return containsOrEquals(v, record.target);
-                    });
-                });
-                if (!shouldIgnore && init[record.type] && (init.subtree || record.target === element)) {
-                    self.records[self.records.length] = record;
-                    setTimeoutOnce(self.handler);
-                }
-            });
-        },
-        takeRecords: function () {
-            return this.records.splice(0);
-        }
-    };
-    return MutationObserver;
-}());
-
 
 /* --------------------------------------
  * General helper
