@@ -501,11 +501,11 @@ function defineAliasProperty(obj, prop, target, targetProp) {
     state.alias[prop] = getObservableState(target).alias[targetProp] || [target, targetProp];
 }
 
-function defineObservableProperty(obj, prop, initialValue) {
+function defineObservableProperty(obj, prop, initialValue, callback) {
     var state = getObservableState(obj);
     var alias = state.alias[prop];
     if (alias) {
-        return defineObservableProperty(alias[0], alias[1], initialValue);
+        return defineObservableProperty(alias[0], alias[1], initialValue, callback);
     }
     if (!(prop in state.values)) {
         var desc = getOwnPropertyDescriptor(obj, prop);
@@ -514,9 +514,13 @@ function defineObservableProperty(obj, prop, initialValue) {
         }
         var setter = function (value) {
             var state = getObservableState(this);
-            if (value !== state.values[prop]) {
+            var oldValue = state.values[prop];
+            if (isFunction(callback)) {
+                value = callback.call(this, value, oldValue);
+            }
+            if (value !== oldValue) {
                 if (!(prop in state.oldValues)) {
-                    state.oldValues[prop] = state.values[prop];
+                    state.oldValues[prop] = oldValue;
                 }
                 state.values[prop] = value;
                 state.newValues[prop] = value;
@@ -531,7 +535,7 @@ function defineObservableProperty(obj, prop, initialValue) {
         defineGetterProperty(obj, prop, function () {
             var state = getObservableState(this);
             return state.values[prop];
-        }, initialValue !== undefined ? undefined : setter);
+        }, callback === true ? undefined : setter);
         return setter.bind(obj);
     }
 }

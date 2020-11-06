@@ -385,7 +385,7 @@ export function getOwnPropertyDescriptors(obj: object): PropertyDescriptorMap;
  * Defines properties on an object.
  * Properties with function as values will be defined as non-enumerable.
  * @param o An object which the properties will be defined on.
- * @param p 
+ * @param p
  */
 export function define<T extends object, U extends Zeta.Dictionary<number | string | boolean | object | null | Zeta.AnyFunction>>(o: T, p: Zeta.AdditionalMembers<T, U>);
 
@@ -443,11 +443,11 @@ export function deepFreeze<T>(obj: T): Zeta.DeepReadonly<T>;
 /**
  * Makes an object observable which hooked listeners
  * are called synchronously immediately after a property is changed.
- * 
- * This must be called in advanced of any other methods such as 
+ *
+ * This must be called in advanced of any other methods such as
  * `watch`, `watchOnce`, `defineAliasProperty`, `defineObservableProperty`
  * which automatically turns an object observable.
- * 
+ *
  * @param obj An object to observe.
  * @param sync Must be the boolean value `true`.
  * @returns A function which when called with a callback, the hooked listeners are not called until the given callback returns.
@@ -489,18 +489,47 @@ export function watchable<T extends object>(obj: T): Zeta.WatchableInstance<T>;
  */
 export function defineAliasProperty(obj: object, prop: string, target: object, targetProp?: string): void;
 
-export function defineObservableProperty<T extends object>(obj: T, prop: string): (value: any) => void;
+/**
+ * Defines an observable property.
+ * @param obj An object which the new property is defined on.
+ * @param prop Property name.
+ * @param initialValue Initial value.
+ * @returns A setter function to update the value.
+ * @see watch
+ * @see watchOnce
+ */
+export function defineObservableProperty<T extends object, P extends keyof T>(obj: T, prop: P, initialValue?: T[P]): (value: T[P]) => void;
 
 /**
  * Defines an observable property.
  * @param obj An object which the new property is defined on.
  * @param prop Property name.
+ * @param initialValue Initial value.
+ * @returns A setter function to update the value.
  * @see watch
  * @see watchOnce
  */
-export function defineObservableProperty<T extends object, P extends keyof T>(obj: T, prop: P): (value: T[P]) => void;
+export function defineObservableProperty<T extends object, V>(obj: T, prop: string, initialValue?: V): (value: V) => void;
 
-export function defineObservableProperty<T extends object, V>(obj: T, prop: string, initialValue: V): (value: V) => void;
+/**
+ * Defines an observable property where the value is infiltrated when being set.
+ * @param obj An object which the new property is defined on.
+ * @param prop Property name.
+ * @param initialValue Initial value.
+ * @param callback A callback to mangle on the new value being set. If the returned value is same as old value, no event will be triggered.
+ * @returns A setter function to update the value.
+ */
+export function defineObservableProperty<T extends object, P extends keyof T>(obj: T, prop: P, initialValue: T[P], callback: (this: T, newValue: T[P], oldValue: T[P]) => T[P]): (value: T[P]) => void;
+
+/**
+ * Defines an observable property where the value is infiltrated when being set.
+ * @param obj An object which the new property is defined on.
+ * @param prop Property name.
+ * @param initialValue Initial value.
+ * @param callback A callback to mangle on the new value being set. If the returned value is same as old value, no event will be triggered.
+ * @returns A setter function to update the value.
+ */
+export function defineObservableProperty<T extends object, V>(obj: T, prop: string, initialValue: V, callback: (this: T, newValue: V, oldValue: V) => V): (value: V) => void;
 
 /**
  * Defines a read-only observable property and retrieves the setter for private use.
@@ -509,4 +538,13 @@ export function defineObservableProperty<T extends object, V>(obj: T, prop: stri
  * @param initialValue Initial value.
  * @returns A setter function to update the value.
  */
-export function defineObservableProperty<T extends object, P extends keyof T>(obj: T, prop: P, initialValue: T[P]): (value: T[P]) => void;
+export function defineObservableProperty<T extends object, P extends keyof T>(obj: T, prop: P, initialValue: T[P], readonly: true): (value: T[P]) => void;
+
+/**
+ * Defines a read-only observable property and retrieves the setter for private use.
+ * @param obj An object which the new property is defined on.
+ * @param prop Property name.
+ * @param initialValue Initial value.
+ * @returns A setter function to update the value.
+ */
+export function defineObservableProperty<T extends object, V>(obj: T, prop: string, initialValue: V, readonly: true): (value: V) => void;
