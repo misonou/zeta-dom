@@ -169,10 +169,12 @@ function map(obj, callback) {
 }
 
 function any(obj, callback) {
-    var result;
+    var result = false;
     each(obj, function (i, v) {
-        result = callback.call(this, v, i) && v;
-        return !result;
+        if (callback.call(this, v, i)) {
+            result = v;
+            return false;
+        }
     });
     return result;
 }
