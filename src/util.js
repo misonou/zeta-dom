@@ -329,23 +329,19 @@ function always(promise, callback) {
 }
 
 function resolveAll(obj, callback) {
-    if (!obj || typeof obj !== 'object') {
-        return Promise.resolve(obj).then(callback);
-    }
-    if (obj instanceof Promise || isFunction(obj.then)) {
-        return obj.then(callback);
+    if (!obj || typeof obj !== 'object' || isThenable(obj)) {
+        return resolve(obj).then(callback);
     }
     if (isArray(obj)) {
-        return Promise.all(obj).then(function (d) {
-            return isFunction(callback) ? callback(d) : d;
-        });
+        return Promise.all(obj).then(callback);
     }
     var result = {};
-    return Promise.all(keys(obj).map(function (v) {
+    var arr = keys(obj).map(function (v) {
         return resolveAll(obj[v], function (d) {
             result[v] = d;
         });
-    })).then(function () {
+    });
+    return resolveAll(arr, function () {
         return isFunction(callback) ? callback(result) : result;
     });
 }
