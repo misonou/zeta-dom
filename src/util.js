@@ -17,6 +17,7 @@ const values = Object.values || function (obj) {
     return vals;
 };
 
+var setImmediateStore = new Map();
 var matchWordCache;
 var watchStore;
 
@@ -36,6 +37,10 @@ function isArray(obj) {
 
 function isFunction(obj) {
     return typeof obj === 'function' && obj;
+}
+
+function isThenable(obj) {
+    return !!obj && isFunction(obj.then) && obj;
 }
 
 function isPlainObject(obj) {
@@ -221,10 +226,19 @@ function setImmediate(fn) {
     });
 }
 
+function setImmediateOnceCallback(fn) {
+    mapRemove(setImmediateStore, fn)();
+}
+
+function setImmediateOnce(fn) {
+    mapGet(setImmediateStore, fn, function () {
+        return setImmediate(setImmediateOnceCallback.bind(0, fn)), fn;
+    });
+}
+
 function setTimeoutOnce(fn) {
-    fn.timeout = fn.timeout || setTimeout(function () {
-        fn.timeout = null;
-        fn();
+    mapGet(setImmediateStore, fn, function () {
+        return setTimeout(setImmediateOnceCallback.bind(0, fn)), fn;
     });
 }
 
@@ -507,7 +521,7 @@ function defineObservableProperty(obj, prop, initialValue) {
                 state.values[prop] = value;
                 state.newValues[prop] = value;
                 if (!state.sync) {
-                    setTimeoutOnce(state.handleChanges);
+                    setImmediateOnce(state.handleChanges);
                 } else if (!state.lock) {
                     state.handleChanges();
                 }
@@ -584,6 +598,7 @@ export {
     either,
     isArray,
     isFunction,
+    isThenable,
     isPlainObject,
     isArrayLike,
     makeArray,
@@ -598,6 +613,7 @@ export {
     createPrivateStore,
     setTimeoutOnce,
     setImmediate,
+    setImmediateOnce,
 
     // throw
     throwNotFunction,

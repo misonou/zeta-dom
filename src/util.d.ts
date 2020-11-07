@@ -20,7 +20,14 @@ export function isArray<T>(obj: T): T extends any[] ? T : false;
  * @param obj An input value to be tested.
  * @returns The same instance of function if it is a function; otherwise false.
  */
-export function isFunction(obj: any): Zeta.AnyFunction | false;
+export function isFunction<T>(obj: T): T extends Zeta.AnyFunction ? T : false;
+
+/**
+ * Tests whether the value is thenable, i.e. can be chained as a Promise.
+ * @param obj An input value to be tested.
+ * @returns The same instance of function if it is thenable; otherwise false.
+ */
+export function isThenable<T>(obj: T): T extends PromiseLike<any> ? T : false;
 
 /**
  * Tests whether the value is a simple object, i.e. created with object literal {}, or with no prototype chain.
@@ -29,7 +36,7 @@ export function isFunction(obj: any): Zeta.AnyFunction | false;
  */
 export function isPlainObject<T>(obj: T): T extends Record<any, any> ? T : false;
 
-export function isArrayLike<T>(obj: T): T extends Array | ArrayLike ? T : false;
+export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? T : false;
 
 /**
  * Creates an array containing the specified item if the given object is not an array.
@@ -240,6 +247,8 @@ export function mapRemove<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, 
 export function createPrivateStore<K extends object = object, V = any>(): Zeta.PrivateStore<K, V>;
 
 export function setImmediate(fn: Zeta.AnyFunction, ...args): void;
+
+export function setImmediateOnce(fn: Zeta.AnyFunction): void;
 
 export function setTimeoutOnce(fn: Zeta.AnyFunction): void;
 
