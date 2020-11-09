@@ -1,9 +1,10 @@
 import { IS_IE10, IS_MAC, IS_TOUCH } from "./env.js";
 import { Map, Set, WeakMap, Promise, $ } from "./shim.js";
-import { any, each, extend, lcfirst, makeArray, map, mapGet, mapRemove, matchWord, setTimeoutOnce, single, throwNotFunction, ucfirst } from "./util.js";
-import { bind, containsOrEquals, dispatchDOMMouseEvent, getRect, is, isVisible, makeSelection, parentsAndSelf, removeNode, scrollBy, selectIncludeSelf } from "./domUtil.js";
+import { any, each, extend, lcfirst, makeArray, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
+import { bind, containsOrEquals, dispatchDOMMouseEvent, getRect, is, isVisible, makeSelection, parentsAndSelf, removeNode, scrollBy } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getContainer, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked, removeLock } from "./domLock.js";
+import { observe, watchAttributes, watchElements } from "./observe.js";
 
 const KEYNAMES = JSON.parse('{"8":"backspace","9":"tab","13":"enter","16":"shift","17":"ctrl","18":"alt","19":"pause","20":"capsLock","27":"escape","32":"space","33":"pageUp","34":"pageDown","35":"end","36":"home","37":"leftArrow","38":"upArrow","39":"rightArrow","40":"downArrow","45":"insert","46":"delete","48":"0","49":"1","50":"2","51":"3","52":"4","53":"5","54":"6","55":"7","56":"8","57":"9","65":"a","66":"b","67":"c","68":"d","69":"e","70":"f","71":"g","72":"h","73":"i","74":"j","75":"k","76":"l","77":"m","78":"n","79":"o","80":"p","81":"q","82":"r","83":"s","84":"t","85":"u","86":"v","87":"w","88":"x","89":"y","90":"z","91":"leftWindow","92":"rightWindowKey","93":"select","96":"numpad0","97":"numpad1","98":"numpad2","99":"numpad3","100":"numpad4","101":"numpad5","102":"numpad6","103":"numpad7","104":"numpad8","105":"numpad9","106":"multiply","107":"add","109":"subtract","110":"decimalPoint","111":"divide","112":"f1","113":"f2","114":"f3","115":"f4","116":"f5","117":"f6","118":"f7","119":"f8","120":"f9","121":"f10","122":"f11","123":"f12","144":"numLock","145":"scrollLock","186":"semiColon","187":"equalSign","188":"comma","189":"dash","190":"period","191":"forwardSlash","192":"backtick","219":"openBracket","220":"backSlash","221":"closeBracket","222":"singleQuote"}');
 const SELECTOR_FOCUSABLE = ':input, [contenteditable], a[href], area[href], iframe';
@@ -199,149 +200,6 @@ function releaseFocus(b) {
     focusFriends.delete(b);
 }
 
-
-/* --------------------------------------
- * Observe
- * -------------------------------------- */
-
-const MutationObserver = window.MutationObserver || (function () {
-    function MutationObserver(handler) {
-        var self = this;
-        this.records = [];
-        this.handler = function () {
-            handler(self.takeRecords(), self);
-        };
-        throwNotFunction(handler);
-    }
-    MutationObserver.prototype = {
-        observe: function (element, init) {
-            var self = this;
-            var attributeFilter = init.attributeFilter;
-            if (attributeFilter) {
-                attributeFilter = attributeFilter.map(function (v) {
-                    return String(v).toLowerCase();
-                });
-            }
-            bind(element, 'DOMNodeInserted DOMNodeRemoved DOMAttrModified DOMCharacterDataModified', function (e) {
-                var type = e.type.charAt(7);
-                // @ts-ignore: non-standard member
-                var oldValue = e.prevValue;
-                var record = {};
-                record.addedNodes = [];
-                record.removedNodes = [];
-                if (type === 'M') {
-                    // @ts-ignore: non-standard member
-                    if (!attributeFilter || attributeFilter.indexOf(e.attrName.toLowerCase()) >= 0) {
-                        record.type = 'attributes';
-                        record.target = e.target;
-                        // @ts-ignore: non-standard member
-                        record.attributeName = e.attrName;
-                        if (init.attributeOldValue) {
-                            record.oldValue = oldValue;
-                        }
-                    }
-                } else if (type === 'a') {
-                    record.type = 'characterData';
-                    record.target = e.target;
-                    if (init.characterDataOldValue) {
-                        record.oldValue = oldValue;
-                    }
-                } else {
-                    record.type = 'childList';
-                    // @ts-ignore: e.target is Element
-                    record.target = e.target.parentNode;
-                    record[type === 'I' ? 'addedNodes' : 'removedNodes'][0] = e.target;
-                }
-                var shouldIgnore = any(self.records, function (v) {
-                    return v.type === 'childList' && v.addedNodes.some(function (v) {
-                        return containsOrEquals(v, record.target);
-                    });
-                });
-                if (!shouldIgnore && init[record.type] && (init.subtree || record.target === element)) {
-                    self.records[self.records.length] = record;
-                    setTimeoutOnce(self.handler);
-                }
-            });
-        },
-        takeRecords: function () {
-            return this.records.splice(0);
-        }
-    };
-    return MutationObserver;
-}());
-
-function watchElements(element, selector, callback) {
-    var collection = new Set();
-    var observer = new MutationObserver(function (records) {
-        var removedNodes = map(records, function (v) {
-            return selectIncludeSelf(selector, v.removedNodes);
-        });
-        var addedNodes = map(records, function (v) {
-            return selectIncludeSelf(selector, v.addedNodes);
-        });
-        addedNodes = addedNodes.filter(function (v) {
-            return containsOrEquals(element, v) && !collection.has(v);
-        });
-        removedNodes = removedNodes.filter(function (v) {
-            return !containsOrEquals(element, v);
-        });
-        if (addedNodes[0] || removedNodes[0]) {
-            addedNodes.forEach(collection.add.bind(collection));
-            removedNodes.forEach(collection.delete.bind(collection));
-            callback(addedNodes, removedNodes);
-        }
-    });
-    observer.observe(element, {
-        subtree: true,
-        childList: true
-    });
-}
-
-function watchAttributes(element, attributes, callback) {
-    var mapGetInit = function () {
-        return { oldValues: {}, newValues: {} };
-    };
-    var setValues = function (dict, key, oldValue, newValue) {
-        dict.oldValues[key] = oldValue;
-        dict.newValues[key] = newValue;
-    };
-    var processWatchElements = function (map, arr, pos) {
-        each(arr, function (i, v) {
-            var dict = mapGet(map, v, mapGetInit);
-            each(attributes, function (i, w) {
-                var value = v.getAttribute(w);
-                if (value !== null) {
-                    var args = [dict, w, null, null];
-                    args[pos] = value;
-                    // @ts-ignore: argument count always matches
-                    setValues.apply(null, args);
-                }
-            });
-        });
-    };
-    var observer = new MutationObserver(function (records) {
-        var map = new Map();
-        each(records, function (i, v) {
-            var target = v.target;
-            var dict = mapGet(map, target, mapGetInit);
-            setValues(dict, v.attributeName, v.oldValue, target.getAttribute(v.attributeName));
-        });
-        callback(map);
-    });
-    attributes = makeArray(attributes);
-    observer.observe(element, {
-        subtree: true,
-        attributes: true,
-        attributeOldValue: true,
-        attributeFilter: attributes
-    });
-    watchElements(element, '[' + attributes.join('],[') + ']', function (addedNodes, removedNodes) {
-        var map = new Map();
-        processWatchElements(map, addedNodes, 3);
-        processWatchElements(map, removedNodes, 2);
-        callback(map);
-    });
-}
 
 /* --------------------------------------
  * DOM event handling
@@ -743,10 +601,7 @@ domReady.then(function () {
         }
     });
 
-    new MutationObserver(unmount).observe(root, {
-        subtree: true,
-        childList: true
-    });
+    observe(root, unmount);
     setFocus(document.activeElement);
 });
 
@@ -774,7 +629,6 @@ export default {
     focusable,
     focused,
     setModal,
-    setFocus,
     retainFocus,
     releaseFocus,
     focus: function (element) {

@@ -62,18 +62,13 @@ export function on(element: Element, event: Zeta.ZetaEventHandlers): void;
  * domLock
  * -------------------------------------- */
 
-export declare function lock(element: Element, promise: Promise<any>, oncancel?: () => Promise<any>): Promise<any>;
-export declare function locked(element: Element, parents?: boolean): boolean;
-export declare function cancelLock(element: Element, force?: boolean): void;
-export declare function removeLock(element: Element): void;
+export * from "./domLock";
 
 /* --------------------------------------
  * Observe
  * -------------------------------------- */
 
-export function watchElements(element: Element, selector: string, callback: (addedNodes: Element[], removedNodes: Element[]) => any): void;
-
-export function watchAttributes(element: Element, attributes: string | string[], callback: (map: Map<Element, { oldValues: Zeta.Dictionary<string | null>, newValues: Zeta.Dictionary<string | null> }>) => any): void;
+export { watchElements, watchAttributes } from "./observe"
 
 /**
  * Scroll all ancestor container so that the specified element is in view.

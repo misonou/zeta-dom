@@ -1,5 +1,6 @@
-import { createPrivateStore, definePrototype, each, extend, isFunction, isPlainObject, kv, makeArray, mapGet, matchWord, randomId, reject, resolve, single } from "./util.js";
+import { createPrivateStore, definePrototype, each, extend, isFunction, isPlainObject, kv, mapGet, matchWord, randomId, reject, resolve, single } from "./util.js";
 import { containsOrEquals, is, parentsAndSelf } from "./domUtil.js";
+import { observe } from "./observe.js";
 import dom from "./dom.js";
 
 const root = document.documentElement;
@@ -379,23 +380,19 @@ function containerValidTarget(container, element) {
 }
 
 function containerCreateObserver(container, callback, options) {
-    function handleMutations(mutations) {
+    return observe(container, function (mutations) {
         var changes = [];
         var orphans = new Map();
         each(mutations, function (i, v) {
-            // filter out changes due to sizzle engine
-            // to prevent excessive invocation due to querying elements through jQuery
-            if (v.attributeName !== 'id' || ((v.oldValue || '').slice(0, 6) !== 'sizzle' && (v.target.id !== (v.oldValue || '')))) {
-                if (!containsOrEquals(container.element, v.target)) {
-                    mapGet(orphans, v.target, Array).push(v);
-                } else if (containerValidTarget(container, v.target)) {
-                    each(v.removedNodes, function (i, v) {
-                        if (orphans.has(v)) {
-                            changes.push.apply(changes, orphans.get(v));
-                        }
-                    });
-                    changes.push(v);
-                }
+            if (!containsOrEquals(container.element, v.target)) {
+                mapGet(orphans, v.target, Array).push(v);
+            } else if (containerValidTarget(container, v.target)) {
+                each(v.removedNodes, function (i, v) {
+                    if (orphans.has(v)) {
+                        changes.push.apply(changes, orphans.get(v));
+                    }
+                });
+                changes.push(v);
             }
         });
         changes = changes.filter(function (v) {
@@ -404,18 +401,7 @@ function containerCreateObserver(container, callback, options) {
         if (changes[0]) {
             callback(changes);
         }
-    }
-
-    var moptions = extend({}, options);
-    moptions.subtree = true;
-    moptions.childList = true;
-    moptions.attributeOldValue |= options.attributes;
-
-    var observer = new MutationObserver(handleMutations);
-    observer.observe(container.element, moptions);
-    return function () {
-        handleMutations(observer.takeRecords());
-    };
+    });
 }
 
 function containerGetContext(inst, element) {
