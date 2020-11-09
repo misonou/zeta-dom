@@ -1,6 +1,5 @@
-import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, setTimeoutOnce } from "./util.js";
+import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop } from "./util.js";
 import { $ } from "./shim.js";
-import { throwNotFunction } from "./util.js";
 
 const root = document.documentElement;
 const selection = window.getSelection();
