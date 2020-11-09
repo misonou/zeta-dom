@@ -336,9 +336,9 @@ function resolveAll(obj, callback) {
         return Promise.all(obj).then(callback);
     }
     var result = {};
-    var arr = keys(obj).map(function (v) {
-        return resolveAll(obj[v], function (d) {
-            result[v] = d;
+    var arr = map(obj, function (v, i) {
+        return resolve(v).then(function (d) {
+            result[i] = d;
         });
     });
     return resolveAll(arr, function () {
