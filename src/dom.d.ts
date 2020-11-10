@@ -83,4 +83,4 @@ export * from "./domLock";
  * Observe
  * -------------------------------------- */
 
-export { watchElements, watchAttributes } from "./observe"
+export * from "./observe";

@@ -3,8 +3,8 @@ import { Map, Set, WeakMap, Promise, $ } from "./shim.js";
 import { any, each, extend, lcfirst, makeArray, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
 import { bind, containsOrEquals, dispatchDOMMouseEvent, is, isVisible, makeSelection, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getContainer, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
-import { lock, cancelLock, locked, removeLock } from "./domLock.js";
-import { observe, watchAttributes, watchElements } from "./observe.js";
+import { lock, cancelLock, locked } from "./domLock.js";
+import { observe, elementDetached, watchAttributes, watchElements } from "./observe.js";
 
 const KEYNAMES = JSON.parse('{"8":"backspace","9":"tab","13":"enter","16":"shift","17":"ctrl","18":"alt","19":"pause","20":"capsLock","27":"escape","32":"space","33":"pageUp","34":"pageDown","35":"end","36":"home","37":"leftArrow","38":"upArrow","39":"rightArrow","40":"downArrow","45":"insert","46":"delete","48":"0","49":"1","50":"2","51":"3","52":"4","53":"5","54":"6","55":"7","56":"8","57":"9","65":"a","66":"b","67":"c","68":"d","69":"e","70":"f","71":"g","72":"h","73":"i","74":"j","75":"k","76":"l","77":"m","78":"n","79":"o","80":"p","81":"q","82":"r","83":"s","84":"t","85":"u","86":"v","87":"w","88":"x","89":"y","90":"z","91":"leftWindow","92":"rightWindowKey","93":"select","96":"numpad0","97":"numpad1","98":"numpad2","99":"numpad3","100":"numpad4","101":"numpad5","102":"numpad6","103":"numpad7","104":"numpad8","105":"numpad9","106":"multiply","107":"add","109":"subtract","110":"decimalPoint","111":"divide","112":"f1","113":"f2","114":"f3","115":"f4","116":"f5","117":"f6","118":"f7","119":"f8","120":"f9","121":"f10","122":"f11","123":"f12","144":"numLock","145":"scrollLock","186":"semiColon","187":"equalSign","188":"comma","189":"dash","190":"period","191":"forwardSlash","192":"backtick","219":"openBracket","220":"backSlash","221":"closeBracket","222":"singleQuote"}');
 const SELECTOR_FOCUSABLE = ':input, [contenteditable], a[href], area[href], iframe';
@@ -244,33 +244,6 @@ domReady.then(function () {
     function triggerGestureEvent(gesture, nativeEvent) {
         mouseInitialPoint = null;
         return triggerUIEvent('gesture', nativeEvent, focusPath.slice(-1), gesture);
-    }
-
-    function unmount(mutations) {
-        // automatically free resources when DOM nodes are removed from document
-        each(mutations, function (i, v) {
-            each(v.removedNodes, function (i, v) {
-                if (v.nodeType === 1 && !containsOrEquals(root, v)) {
-                    var container = getContainer(v, true);
-                    if (container && container.autoDestroy && container.element === v) {
-                        container.destroy();
-                    }
-                    removeLock(v);
-                    var modalPath = mapRemove(modalElements, v);
-                    if (modalPath && focused(v)) {
-                        var path = any(modalElements, function (w) {
-                            return w.indexOf(v) >= 0;
-                        }) || focusPath;
-                        path.push.apply(path, modalPath);
-                        setFocus(modalPath[0], false, null, path);
-                    }
-                    var index = focusPath.indexOf(v);
-                    if (index >= 0) {
-                        setFocus(focusPath[index + 1] || body);
-                    }
-                }
-            });
-        });
     }
 
     if (IS_IE10) {
@@ -548,7 +521,23 @@ domReady.then(function () {
         }
     });
 
-    observe(root, unmount);
+    elementDetached(function () {
+        each(modalElements, function (element, modelPath) {
+            if (!containsOrEquals(root, element) && mapRemove(modalElements, element) && focused(element)) {
+                var path = any(modalElements, function (w) {
+                    return w.indexOf(element) >= 0;
+                }) || focusPath;
+                path.push.apply(path, modelPath);
+                setFocus(modelPath[0], false, null, path);
+            }
+        });
+        for (var i = focusPath.length - 1; i >= 0; i--) {
+            if (!containsOrEquals(root, focusPath[i])) {
+                setFocus(focusPath[i + 1] || body);
+                break;
+            }
+        }
+    });
     setFocus(document.activeElement);
 });
 
@@ -591,8 +580,9 @@ export default {
     lock,
     locked,
     cancelLock,
-    removeLock,
 
+    observe,
+    elementDetached,
     watchElements,
     watchAttributes
 };

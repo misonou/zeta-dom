@@ -2,6 +2,7 @@ import { Map, WeakMap, Promise } from "./shim.js";
 import { any, createPrivateStore, definePrototype, extend, makeArray, mapRemove, reject, resolve } from "./util.js";
 import { parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
+import { elementDetached } from "./observe.js";
 
 const lockedElements = new WeakMap();
 const handledErrors = new WeakMap();
@@ -43,9 +44,13 @@ function removeLock(element) {
 }
 
 function DOMLock(element) {
-    this.element = element;
-    lockedElements.set(element, this);
-    _(this, { promises: new Map() });
+    var self = this;
+    _(self, {
+        promises: new Map()
+    });
+    self.element = element;
+    lockedElements.set(element, self);
+    elementDetached(element, removeLock);
 }
 
 definePrototype(DOMLock, {
@@ -138,6 +143,5 @@ window.onbeforeunload = function (e) {
 export {
     lock,
     locked,
-    cancelLock,
-    removeLock
+    cancelLock
 };

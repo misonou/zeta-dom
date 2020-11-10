@@ -1,8 +1,13 @@
-import { Map, Set, WeakMap } from "./shim.js";
-import { any, each, keys, makeArray, map, mapGet, setImmediate, setImmediateOnce, throwNotFunction } from "./util.js";
-import { bind, containsOrEquals, selectIncludeSelf } from "./domUtil.js";
+import { Set } from "./shim.js";
+import { any, each, extend, isFunction, makeArray, map, mapGet, mapRemove, setImmediateOnce, throwNotFunction } from "./util.js";
+import { bind, containsOrEquals, is, selectIncludeSelf } from "./domUtil.js";
 
-const observedElements = new WeakMap();
+const root = document.documentElement;
+const detachHandlers = new Map();
+const optionsForChildList = {
+    subtree: true,
+    childList: true
+};
 
 const MutationObserver = window.MutationObserver || (function () {
     function MutationObserver(handler) {
@@ -70,62 +75,47 @@ const MutationObserver = window.MutationObserver || (function () {
     return MutationObserver;
 }());
 
-function WatchAttributeState() {
-    this.oldValues = {};
-    this.newValues = {};
-}
-
-function setValues(dict, key, oldValue, newValue) {
-    if (!(key in dict.oldValues)) {
-        dict.oldValues[key] = oldValue;
+function observe(element, options, callback) {
+    callback = throwNotFunction(callback || options);
+    if (isFunction(options)) {
+        options = optionsForChildList;
     }
-    dict.newValues[key] = newValue;
-}
-
-function createObserverState(element) {
-    var handlers = [];
-    var processRecords = function (records, callback) {
+    var processRecords = function (records) {
         records = records.filter(function (v) {
             // filter out changes due to sizzle engine
             // to prevent excessive invocation due to querying elements through jQuery
             return v.attributeName !== 'id' || ((v.oldValue || '').slice(0, 6) !== 'sizzle' && (v.target.id !== (v.oldValue || '')));
         });
         if (records[0]) {
-            handlers.forEach(function (v) {
-                if (v === callback) {
-                    v(records.slice(0));
-                } else {
-                    setImmediate(v, records.slice(0));
-                }
-            });
+            callback(records);
         }
     };
     var observer = new MutationObserver(processRecords);
-    observer.observe(element, {
-        subtree: true,
-        childList: true,
-        attributes: true,
-        attributeOldValue: true
-    });
-    return {
-        handlers: handlers,
-        checkChanges: function (callback) {
-            processRecords(observer.takeRecords(), callback);
-        }
+    observer.observe(element, options);
+    return function () {
+        processRecords(observer.takeRecords());
     };
 }
 
-function observe(element, callback) {
-    var state = mapGet(observedElements, element, function () {
-        return createObserverState(element);
-    });
-    state.handlers.push(callback);
-    return state.checkChanges.bind(null, callback);
+function elementDetached(element, callback) {
+    var handlers = mapGet(detachHandlers, is(element, Element) || root, Array);
+    var promise;
+    callback = isFunction(element) || isFunction(callback);
+    if (!callback) {
+        promise = new Promise(function (resolve) {
+            callback = resolve;
+        });
+    }
+    handlers.push(callback);
+    return promise;
 }
 
-function watchElements(element, selector, callback) {
+function watchElements(element, selector, callback, fireInit) {
     var collection = new Set(selectIncludeSelf(selector, element));
-    observe(element, function () {
+    var options = extend({}, optionsForChildList, {
+        attributes: selector.indexOf('[') >= 0
+    });
+    observe(element, options, function () {
         var matched = selectIncludeSelf(selector, element);
         var removedNodes = map(collection, function (v) {
             return matched.indexOf(v) < 0 ? v : null;
@@ -139,63 +129,49 @@ function watchElements(element, selector, callback) {
             callback(addedNodes, removedNodes);
         }
     });
+    if (fireInit && collection.size) {
+        callback(makeArray(collection), []);
+    }
 }
 
 function watchAttributes(element, attributes, callback) {
-    var handleResult = function (map) {
-        each(map, function (i, v) {
-            var oldValues = v.oldValues;
-            var newValues = v.newValues;
-            each(oldValues, function (i, w) {
-                if (newValues[i] === w) {
-                    delete oldValues[i];
-                    delete newValues[i];
-                }
-            });
-            if (!keys(oldValues)) {
-                map.delete(i);
-            }
-        });
-        if (map.size) {
-            callback(map);
-        }
+    var options = {
+        subtree: true,
+        attributes: true,
+        attributeFilter: makeArray(attributes)
     };
-    attributes = makeArray(attributes);
-    observe(element, function (records) {
-        var map = new Map();
+    observe(element, options, function (records) {
+        var set = new Set();
         each(records, function (i, v) {
-            var attr = v.attributeName;
-            if (attributes.indexOf(attr) >= 0) {
-                var dict = mapGet(map, v.target, WatchAttributeState);
-                setValues(dict, attr, v.oldValue, v.target.getAttribute(attr));
-            }
+            set.add(v.target);
         });
-        handleResult(map);
-    });
-    watchElements(element, '[' + attributes.join('],[') + ']', function (addedNodes, removedNodes) {
-        var map = new Map();
-        var processElements = function (map, arr, pos) {
-            each(arr, function (i, v) {
-                var dict = mapGet(map, v, WatchAttributeState);
-                each(attributes, function (i, w) {
-                    var value = v.getAttribute(w);
-                    if (value !== null) {
-                        var args = [dict, w, null, null];
-                        args[pos] = value;
-                        // @ts-ignore: argument count always matches
-                        setValues.apply(null, args);
-                    }
-                });
-            });
-        };
-        processElements(map, addedNodes, 3);
-        processElements(map, removedNodes, 2);
-        handleResult(map);
+        callback(makeArray(set));
     });
 }
 
+observe(root, function (records) {
+    var removedNodes = map(records, function (v) {
+        return map(v.removedNodes, function (v) {
+            return v.nodeType === 1 && !containsOrEquals(root, v) ? v : null;
+        });
+    });
+    if (removedNodes[0]) {
+        mapGet(detachHandlers, root, Array).forEach(function (callback) {
+            callback(removedNodes.slice(0));
+        });
+        each(detachHandlers, function (element, handlers) {
+            if (!containsOrEquals(root, element) && mapRemove(detachHandlers, element)) {
+                handlers.forEach(function (callback) {
+                    callback(element);
+                });
+            }
+        });
+    }
+});
+
 export {
     observe,
+    elementDetached,
     watchElements,
     watchAttributes
 };

@@ -1,6 +1,6 @@
 import { createPrivateStore, definePrototype, each, extend, isFunction, isPlainObject, kv, mapGet, matchWord, randomId, reject, resolve, single } from "./util.js";
 import { containsOrEquals, is, parentsAndSelf } from "./domUtil.js";
-import { observe } from "./observe.js";
+import { elementDetached, observe } from "./observe.js";
 import dom from "./dom.js";
 
 const root = document.documentElement;
@@ -253,6 +253,11 @@ function ZetaContainer(element, context, options) {
         autoDestroy: containsOrEquals(root, element),
         normalizeTouchEvents: false
     }, options);
+    if (self.autoDestroy) {
+        elementDetached(element, function () {
+            self.destroy();
+        });
+    }
 }
 
 definePrototype(ZetaContainer, {
