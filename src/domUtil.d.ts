@@ -176,6 +176,14 @@ export function bind(element: EventTarget, event: { [T in keyof GlobalEventHandl
  */
 export function bind(element: EventTarget, event: Record<string, (e: infer E extends Event ? E : never) => any>, useCapture?: boolean | AddEventListenerOptions): (() => void);
 
+export function bindUntil<T extends keyof GlobalEventHandlersEventMap>(promise: PromiseLike<any>, element: EventTarget, event: T, listener: (e: GlobalEventHandlersEventMap[T]) => any, useCapture?: boolean | AddEventListenerOptions): (() => void);
+
+export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: string, listener: (e: Event) => any, useCapture?: boolean | AddEventListenerOptions): (() => void);
+
+export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: { [T in keyof GlobalEventHandlersEventMap]?: (e: GlobalEventHandlersEventMap[T]) => any }, useCapture?: boolean | AddEventListenerOptions): (() => void);
+
+export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: Record<string, (e: infer E extends Event ? E : never) => any>, useCapture?: boolean | AddEventListenerOptions): (() => void);
+
 export function dispatchDOMMouseEvent(nativeEvent: MouseEvent | TouchEvent | JQuery.UIEventBase): boolean;
 
 export function dispatchDOMMouseEvent(eventName: string, point: Zeta.PointLike, nativeEvent: MouseEvent | TouchEvent | JQuery.UIEventBase): boolean;
@@ -418,6 +426,6 @@ export function makeSelection(base: Zeta.RangeLike, extent: Zeta.RangeLike): voi
 /**
  * Places a text cursor at the specified position.
  * @param node A DOM element or text node.
- * @param offset A number representing the n-th child of an element or the n-th characters of a text node. 
+ * @param offset A number representing the n-th child of an element or the n-th characters of a text node.
  */
 export function makeSelection(node: Node, offset: number): void;

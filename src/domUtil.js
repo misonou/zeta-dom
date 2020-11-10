@@ -1,4 +1,4 @@
-import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop } from "./util.js";
+import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always } from "./util.js";
 import { $ } from "./shim.js";
 
 const root = document.documentElement;
@@ -238,6 +238,10 @@ function bind(element, event, listener, useCapture) {
 
 function unbind(element, event, listener) {
     addOrRemoveEventListener('removeEventListener', element, event, listener);
+}
+
+function bindUntil(promise, element, event, listener, useCapture) {
+    always(promise, bind(element, event, listener, useCapture));
 }
 
 function dispatchDOMMouseEvent(eventName, point, e) {
@@ -544,6 +548,7 @@ export {
     createNodeIterator,
 
     bind,
+    bindUntil,
     dispatchDOMMouseEvent,
 
     removeNode,
