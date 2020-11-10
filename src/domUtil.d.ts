@@ -224,7 +224,18 @@ export function setClass(element: Element, className: string, values: boolean | 
 
 export function getScrollOffset(winOrElm: Window | Element): { x: number; y: number };
 
+export function getScrollParent(element: Window | Element): Window | Element;
+
+export function getContentRect(element: Element): Zeta.Rect;
+
 export function scrollBy(element: Window | Element, x: number, y: number): { x: number; y: number } | false;
+
+/**
+ * Scroll all ancestor container so that the specified element is in view.
+ * @param element Element to be scrolled into view.
+ * @param rect A rect represent a region inside the element to be scrolled into view.
+ */
+export function scrollIntoView(element: Element, rect?: Zeta.RectLike): void;
 
 
 /* --------------------------------------

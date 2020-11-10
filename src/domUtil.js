@@ -1,4 +1,4 @@
-import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always } from "./util.js";
+import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord } from "./util.js";
 import { $ } from "./shim.js";
 
 const root = document.documentElement;
@@ -7,8 +7,13 @@ const selection = window.getSelection();
 const elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
 const compareDocumentPositionImpl = document.compareDocumentPosition;
 const compareBoundaryPointsImpl = Range.prototype.compareBoundaryPoints;
+const OFFSET_ZERO = Object.freeze({
+    x: 0,
+    y: 0
+});
 
 var originDiv;
+var scrollbarWidth;
 
 /* --------------------------------------
  * Custom class
@@ -300,6 +305,11 @@ function getScrollOffset(winOrElm) {
     };
 }
 
+function getScrollParent(element) {
+    for (var s; element !== root && (s = getComputedStyle(element)) && s.overflow === 'visible' && matchWord(s.position, 'static relative'); element = element.parentNode);
+    return element;
+}
+
 function scrollBy(element, x, y) {
     var winOrElm = element === root || element === document.body ? window : element;
     var orig = getScrollOffset(winOrElm);
@@ -314,6 +324,49 @@ function scrollBy(element, x, y) {
         x: cur.x - orig.x,
         y: cur.y - orig.y
     };
+}
+
+function getContentRect(element) {
+    if (scrollbarWidth === undefined) {
+        // detect native scrollbar size
+        // height being picked because scrollbar may not be shown if container is too short
+        var dummy = $('<div style="overflow:scroll;height:80px"><div style="height:100px"></div></div>').appendTo(document.body)[0];
+        scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
+        removeNode(dummy);
+    }
+    var style = getComputedStyle(element);
+    var hasOverflowX = element.offsetWidth < element.scrollWidth;
+    var hasOverflowY = element.offsetHeight < element.scrollHeight;
+    var parentRect = getRect(element === document.body ? root : element);
+    if ((style.overflow !== 'visible' || element === document.body) && (hasOverflowX || hasOverflowY)) {
+        if (style.overflowY === 'scroll' || ((style.overflowY !== 'hidden' || element === document.body) && hasOverflowY)) {
+            parentRect.right -= scrollbarWidth;
+        }
+        if (style.overflowX === 'scroll' || ((style.overflowX !== 'hidden' || element === document.body) && hasOverflowX)) {
+            parentRect.bottom -= scrollbarWidth;
+        }
+    }
+    return parentRect;
+}
+
+function scrollIntoView(element, rect) {
+    var parent = getScrollParent(element);
+    var parentRect = getContentRect(parent);
+    rect = rect || getRect(element);
+
+    var deltaX = Math.max(0, rect.right - parentRect.right) || Math.min(rect.left - parentRect.left, 0);
+    var deltaY = Math.max(0, rect.bottom - parentRect.bottom) || Math.min(rect.top - parentRect.top, 0);
+    var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
+    if (parent !== root) {
+        var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y));
+        if (parentResult) {
+            result = {
+                x: result.x + parentResult.x,
+                y: result.y + parentResult.y
+            };
+        }
+    }
+    return (result.x || result.y) ? result : false;
 }
 
 
@@ -555,7 +608,10 @@ export {
     getClass,
     setClass,
     getScrollOffset,
+    getScrollParent,
+    getContentRect,
     scrollBy,
+    scrollIntoView,
 
     createRange,
     rangeIntersects,
