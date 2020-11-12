@@ -389,6 +389,13 @@ export function getOwnPropertyDescriptors(obj: object): PropertyDescriptorMap;
  */
 export function define<T extends object, U extends Zeta.Dictionary<number | string | boolean | object | null | Zeta.AnyFunction>>(o: T, p: Zeta.AdditionalMembers<T, U>);
 
+/**
+ * Defines an enumerble value property on an object.
+ * @param obj An object which the property will be defined on.
+ * @param prop Name of the property.
+ * @param value Initial value of the property.
+ * @param readonly Specifiying whether the property should be read-only.
+ */
 export function defineOwnProperty(obj: object, prop: string, value?: any, readonly?: boolean): void;
 
 /**
@@ -405,6 +412,7 @@ export function defineGetterProperty(obj: object, name: string, get: () => any, 
  * @param obj An object which the property will be defined on.
  * @param name Name of the property.
  * @param value Initial value of the property.
+ * @param readonly Specifiying whether the property should be read-only.
  */
 export function defineHiddenProperty(obj: object, name: string, value: any, readonly?: boolean): void;
 

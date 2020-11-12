@@ -382,7 +382,7 @@ function define(o, p) {
 }
 
 function defineOwnProperty(obj, name, value, readonly) {
-    Object.defineProperty(obj, name, {
+    defineProperty(obj, name, {
         configurable: true,
         enumerable: true,
         writable: !readonly,
@@ -424,9 +424,7 @@ function definePrototype(fn, prototype, props) {
 
 function inherit(proto, props) {
     var obj = Object.create(isFunction(proto) ? proto.prototype : proto || Object.prototype);
-    each(getOwnPropertyDescriptors(props), function (i, v) {
-        defineProperty(obj, i, v);
-    });
+    define(obj, props);
     return obj;
 }
 
