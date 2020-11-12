@@ -408,7 +408,14 @@ function defineHiddenProperty(obj, name, value, readonly) {
     });
 }
 
-function definePrototype(fn, prototype) {
+function definePrototype(fn, prototype, props) {
+    if (isFunction(prototype)) {
+        props = props || {};
+        fn.prototype = inherit(prototype, props);
+        defineHiddenProperty(fn.prototype, 'constructor', fn);
+        Object.setPrototypeOf(fn, prototype);
+        prototype = props;
+    }
     each(getOwnPropertyDescriptors(prototype), function (i, v) {
         v.enumerable = !isFunction(v.value);
         defineProperty(fn.prototype, i, v);

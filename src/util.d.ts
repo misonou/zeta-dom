@@ -409,6 +409,14 @@ export function defineGetterProperty(obj: object, name: string, get: () => any, 
 export function defineHiddenProperty(obj: object, name: string, value: any, readonly?: boolean): void;
 
 /**
+ * Defines the parent class and properties on the prototype object of a function.
+ * @param fn A function which its prototype object will have specified properties defined.
+ * @param parentClass A function which serves as the parent class.
+ * @param proto An object containing values, getters, setters or methods which will be defined on the prototype object.
+ */
+export function definePrototype<T extends Zeta.AnyFunction, U extends Zeta.AnyFunction, V extends Zeta.Dictionary<number | string | boolean | null | Zeta.AnyFunction>>(fn: T, parentClass: U, proto?: Zeta.AdditionalMembers<InstanceType<T> & InstanceType<U>, V>): void;
+
+/**
  * Define properties on the prototype object of a function.
  * @param fn A function which its prototype object will have specified properties defined.
  * @param proto An object containing values, getters, setters or methods which will be defined on the prototype object.
