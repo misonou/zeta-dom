@@ -1,4 +1,4 @@
-import { Set, Map, WeakMap } from "./shim.js";
+import { Set, Map, WeakMap, Promise } from "./shim.js";
 import { any, each, extend, isFunction, makeArray, map, mapGet, mapRemove, setImmediateOnce, throwNotFunction } from "./util.js";
 import { bind, containsOrEquals, selectIncludeSelf } from "./domUtil.js";
 

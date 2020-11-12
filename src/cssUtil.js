@@ -1,3 +1,4 @@
+import { Map, Promise, $ } from "./shim.js";
 import { getClass, setClass, iterateNode, createNodeIterator, isVisible, bind } from "./domUtil.js";
 import { reject, noop, resolve, each, matchWord, keys } from "./util.js";
 
