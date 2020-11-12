@@ -1,9 +1,9 @@
-import { Set } from "./shim.js";
+import { Set, Map, WeakMap } from "./shim.js";
 import { any, each, extend, isFunction, makeArray, map, mapGet, mapRemove, setImmediateOnce, throwNotFunction } from "./util.js";
-import { bind, containsOrEquals, is, selectIncludeSelf } from "./domUtil.js";
+import { bind, containsOrEquals, selectIncludeSelf } from "./domUtil.js";
 
 const root = document.documentElement;
-const detachHandlers = new Map();
+const detachHandlers = new WeakMap();
 const optionsForChildList = {
     subtree: true,
     childList: true
@@ -75,6 +75,11 @@ const MutationObserver = window.MutationObserver || (function () {
     return MutationObserver;
 }());
 
+function DetachHandlerState() {
+    this.handlers = []
+    this.map = new Map();
+}
+
 function observe(element, options, callback) {
     callback = throwNotFunction(callback || options);
     if (isFunction(options)) {
@@ -97,16 +102,27 @@ function observe(element, options, callback) {
     };
 }
 
-function elementDetached(element, callback) {
-    var handlers = mapGet(detachHandlers, is(element, Element) || root, Array);
+function registerCleanup(callback) {
+    var state = mapGet(detachHandlers, root, DetachHandlerState);
+    state.handlers.push(throwNotFunction(callback));
+}
+
+function afterDetached(element, from, callback) {
+    if (isFunction(from)) {
+        callback = from;
+        from = root;
+    }
+    if (!mapGet(detachHandlers, from)) {
+        initDetachWatcher(from);
+    }
     var promise;
-    callback = isFunction(element) || isFunction(callback);
-    if (!callback) {
+    if (!isFunction(callback)) {
         promise = new Promise(function (resolve) {
             callback = resolve;
         });
     }
-    handlers.push(callback);
+    var state = mapGet(detachHandlers, from, DetachHandlerState);
+    mapGet(state.map, element, Array).push(callback);
     return promise;
 }
 
@@ -149,29 +165,35 @@ function watchAttributes(element, attributes, callback) {
     });
 }
 
-observe(root, function (records) {
-    var removedNodes = map(records, function (v) {
-        return map(v.removedNodes, function (v) {
-            return v.nodeType === 1 && !containsOrEquals(root, v) ? v : null;
+function initDetachWatcher(element) {
+    observe(element, function (records) {
+        var state = mapGet(detachHandlers, element);
+        var removedNodes = map(records, function (v) {
+            return map(v.removedNodes, function (v) {
+                return v.nodeType === 1 && !containsOrEquals(element, v) ? v : null;
+            });
         });
+        if (removedNodes[0]) {
+            state.handlers.forEach(function (callback) {
+                callback(removedNodes.slice(0));
+            });
+            each(state.map, function (child, handlers) {
+                if (!containsOrEquals(element, child) && mapRemove(state.map, child)) {
+                    handlers.forEach(function (callback) {
+                        callback(child);
+                    });
+                }
+            });
+        }
     });
-    if (removedNodes[0]) {
-        mapGet(detachHandlers, root, Array).forEach(function (callback) {
-            callback(removedNodes.slice(0));
-        });
-        each(detachHandlers, function (element, handlers) {
-            if (!containsOrEquals(root, element) && mapRemove(detachHandlers, element)) {
-                handlers.forEach(function (callback) {
-                    callback(element);
-                });
-            }
-        });
-    }
-});
+}
+
+initDetachWatcher(root);
 
 export {
     observe,
-    elementDetached,
+    registerCleanup,
+    afterDetached,
     watchElements,
     watchAttributes
 };
