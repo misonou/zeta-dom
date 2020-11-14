@@ -91,7 +91,7 @@ function comparePosition(a, b, strict) {
     if (a === b) {
         return 0;
     }
-    var v = a && b && compareDocumentPositionImpl.call(a, b);
+    var v = a && b && compareDocumentPositionImpl.call(a.element || a, b.element || b);
     if (v & 2) {
         return (strict && v & 8) || (v & 1) ? NaN : 1;
     }

@@ -57,7 +57,7 @@ export function sameElementSpec(a: Element, b: Element): boolean;
  * @param [strict] Do not compare if one node is containing another.
  * @returns -1 if the first node precedes the second; 1 if the second node precedes the first; 0 if they are the same node; or NaN if one containing the other when strict to set to true.
  */
-export function comparePosition(a: Node, b: Node, strict?: boolean): number;
+export function comparePosition(a: Node | Zeta.HasElement, b: Node | Zeta.HasElement, strict?: boolean): number;
 
 /**
  * Tests whether two elements is in the same node tree (i.e. document or same fragment).
