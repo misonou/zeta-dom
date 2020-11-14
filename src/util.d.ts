@@ -241,6 +241,34 @@ export function mapGet<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> 
 export function mapRemove<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> : never), key: K): V;
 
 /**
+ * Determines whether two maps contains the same keys and each key associates the same value.
+ * @param a A Map object to compare.
+ * @param b A Map object to compare.
+ */
+export function equal(a: Map<any, any>, b: Map<any, any>): boolean;
+
+/**
+ * Determines whether two sets contains the same collection of items.
+ * @param a A Set object to compare.
+ * @param b A Set object to compare.
+ */
+export function equal(a: Set<any>, b: Set<any>): boolean;
+
+/**
+ * Determines whether two arrays are sequentially equal.
+ * @param a An array to compare.
+ * @param b An array to compare.
+ */
+export function equal(a: any[], b: any[]): boolean;
+
+/**
+ * Determines whether two objects have the same properties and each property associates the same value.
+ * @param a An object to compare.
+ * @param b An object to compare.
+ */
+export function equal(a: any, b: any): boolean;
+
+/**
  * Creates a data store to associate private data to objects, filling the use case of private variables.
  * @returns A function to access the private data store.
  */

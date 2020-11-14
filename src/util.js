@@ -17,6 +17,12 @@ const values = Object.values || function (obj) {
     return vals;
 };
 
+const compareFn = [
+    function (b, v, i) { return b[i] !== v; },
+    function (b, v, i) { return b.get(i) !== v; },
+    function (b, v, i) { return !b.has(v); }
+];
+
 var setImmediateStore = new Map();
 var matchWordCache;
 var watchStore;
@@ -207,6 +213,17 @@ function mapRemove(map, key) {
     var value = map.get(key);
     map.delete(key);
     return value;
+}
+
+function equal(a, b) {
+    if (typeof a !== 'object' || !b || a.constructor !== b.constructor) {
+        return a === b;
+    }
+    var type = (a instanceof Map && 1) || (a instanceof Set && 2) || (isArray(a) && 3) || 0;
+    if (a.length !== b.length || a.size !== b.size || (!type && keys(a).length !== keys(b).length)) {
+        return false;
+    }
+    return !single(a, (compareFn[type] || compareFn[0]).bind(0, b));
 }
 
 function createPrivateStore() {
@@ -615,6 +632,7 @@ export {
     kv,
     mapGet,
     mapRemove,
+    equal,
     createPrivateStore,
     setTimeoutOnce,
     setImmediate,
