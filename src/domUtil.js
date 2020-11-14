@@ -70,7 +70,8 @@ function is(element, selector) {
         return element instanceof selector && element;
     }
     if (selector.toFixed) {
-        return (element.nodeType & selector) && element;
+        var nodeType = element.nodeType;
+        return (nodeType & selector) === nodeType && element;
     }
     return (selector === '*' || tagName(element) === selector || $(element).is(selector)) && element;
 }
