@@ -1,6 +1,7 @@
 import { Set, Map, WeakMap, Promise } from "./shim.js";
 import { any, each, extend, isFunction, makeArray, map, mapGet, mapRemove, setImmediateOnce, throwNotFunction } from "./util.js";
 import { bind, containsOrEquals, selectIncludeSelf } from "./domUtil.js";
+import dom from "./dom.js";
 
 const root = document.documentElement;
 const detachHandlers = new WeakMap();
@@ -127,7 +128,9 @@ function afterDetached(element, from, callback) {
 }
 
 function watchElements(element, selector, callback, fireInit) {
-    var collection = new Set(selectIncludeSelf(selector, element));
+    var collection = new Set();
+    var add = collection.add.bind(collection);
+    var remove = collection.delete.bind(collection);
     var options = extend({}, optionsForChildList, {
         attributes: selector.indexOf('[') >= 0
     });
@@ -140,13 +143,19 @@ function watchElements(element, selector, callback, fireInit) {
             return !collection.has(v);
         });
         if (addedNodes[0] || removedNodes[0]) {
-            addedNodes.forEach(collection.add.bind(collection));
-            removedNodes.forEach(collection.delete.bind(collection));
+            addedNodes.forEach(add);
+            removedNodes.forEach(remove);
             callback(addedNodes, removedNodes);
         }
     });
-    if (fireInit && collection.size) {
-        callback(makeArray(collection), []);
+    if (fireInit) {
+        dom.ready.then(function () {
+            var matched = selectIncludeSelf(selector, element);
+            if (matched[0]) {
+                matched.forEach(add);
+                callback(matched, []);
+            }
+        });
     }
 }
 
