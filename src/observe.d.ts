@@ -6,7 +6,7 @@ export function observe(element: Element, options: MutationObserverInit, callbac
 
 export function watchElements(element: Element, selector: string, callback: (addedNodes: Element[], removedNodes: Element[]) => any, fireInit?: boolean): void;
 
-export function watchAttributes(element: Element, attributes: string | string[], callback: (nodes: Element[]) => any): void;
+export function watchAttributes(element: Element, attributes: string | string[], callback: (nodes: Element[]) => any, fireInit?: boolean): void;
 
 export function registerCleanup(callback: () => any): void;
 

@@ -159,7 +159,7 @@ function watchElements(element, selector, callback, fireInit) {
     }
 }
 
-function watchAttributes(element, attributes, callback) {
+function watchAttributes(element, attributes, callback, fireInit) {
     var options = {
         subtree: true,
         attributes: true,
@@ -172,6 +172,14 @@ function watchAttributes(element, attributes, callback) {
         });
         callback(makeArray(set));
     });
+    if (fireInit) {
+        dom.ready.then(function () {
+            var matched = selectIncludeSelf('[' + options.attributeFilter.join('],[') + ']', element);
+            if (matched[0]) {
+                callback(matched);
+            }
+        });
+    }
 }
 
 function initDetachWatcher(element) {
