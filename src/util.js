@@ -179,6 +179,16 @@ function map(obj, callback) {
     return arr;
 }
 
+function grep(obj, callback) {
+    var arr = [];
+    each(obj, function (i, v) {
+        if (callback.call(this, v, i)) {
+            arr[arr.length] = v;
+        }
+    });
+    return arr;
+}
+
 function any(obj, callback) {
     var result = false;
     each(obj, function (i, v) {
@@ -627,6 +637,7 @@ export {
     extend,
     each,
     map,
+    grep,
     any,
     single,
     kv,

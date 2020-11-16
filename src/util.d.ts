@@ -141,6 +141,38 @@ export function map<K, V, R>(obj: Map<K, V>, callback: (v: V, i: K) => Zeta.MapR
 export function map<R>(obj: any, callback: (v: any, i: any) => Zeta.MapResultValue<R>): R[];
 
 /**
+ * Filters items from the given array or array-like object.
+ * @param obj An array or an array-like object.
+ * @param callback Function called for each item which returns if the item should be included.
+ * @returns An array containing items for which the callback returned a truthy value.
+ */
+export function grep<T>(obj: T[] | ArrayLike<T>, callback: (v: T, i: number) => any): T[];
+
+/**
+ * Filters items from the given set.
+ * @param obj A set object.
+ * @param callback Function called for each item which returns if the item should be included.
+ * @returns An array containing items for which the callback returned a truthy value.
+ */
+export function grep<T>(obj: Set<T>, callback: (v: T, i: number) => any): T[];
+
+/**
+ * Filters items from the given map.
+ * @param obj A map object.
+ * @param callback Function called for each item which returns if the item should be included.
+ * @returns An array containing items for which the callback returned a truthy value.
+ */
+export function grep<K, V>(obj: Map<K, V>, callback: (v: V, i: K) => any): V[];
+
+/**
+ * Filters values from the given object.
+ * @param obj An object.
+ * @param callback  Function called for each property which returns if the property value should be included.
+ * @returns An array containing property values for which the callback returned a truthy value.
+ */
+export function grep(obj: any, callback: (v: any, i: any) => any): any[];
+
+/**
  * Extracts the first item in the given array or array-like object that satifies a condition.
  * @param obj An array or an array-like object.
  * @param callback Function called for each original item which determines if the item satifies a condition.
