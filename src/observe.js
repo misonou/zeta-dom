@@ -1,5 +1,5 @@
 import { Set, Map, WeakMap, Promise } from "./shim.js";
-import { any, each, extend, isFunction, makeArray, map, mapGet, mapRemove, setImmediateOnce, throwNotFunction } from "./util.js";
+import { any, each, extend, grep, isFunction, makeArray, map, mapGet, mapRemove, setImmediateOnce, throwNotFunction } from "./util.js";
 import { bind, containsOrEquals, selectIncludeSelf } from "./domUtil.js";
 import dom from "./dom.js";
 
@@ -136,8 +136,8 @@ function watchElements(element, selector, callback, fireInit) {
     });
     observe(element, options, function () {
         var matched = selectIncludeSelf(selector, element);
-        var removedNodes = map(collection, function (v) {
-            return matched.indexOf(v) < 0 ? v : null;
+        var removedNodes = grep(collection, function (v) {
+            return matched.indexOf(v) < 0;
         });
         var addedNodes = matched.filter(function (v) {
             return !collection.has(v);
@@ -186,8 +186,8 @@ function initDetachWatcher(element) {
     observe(element, function (records) {
         var state = mapGet(detachHandlers, element);
         var removedNodes = map(records, function (v) {
-            return map(v.removedNodes, function (v) {
-                return v.nodeType === 1 && !containsOrEquals(element, v) ? v : null;
+            return grep(v.removedNodes, function (v) {
+                return v.nodeType === 1 && !containsOrEquals(element, v);
             });
         });
         if (removedNodes[0]) {
