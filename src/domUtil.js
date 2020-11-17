@@ -48,6 +48,33 @@ definePrototype(Rect, {
     translate: function (x, y) {
         var self = this;
         return toPlainRect(self.left + x, self.top + y, self.right + x, self.bottom + y);
+    },
+    expand: function (l, t, r, b) {
+        var self = this;
+        switch (arguments.length) {
+            case 1:
+                t = l;
+            case 2:
+                r = l;
+            case 3:
+                b = t;
+    }
+        var w = self.width;
+        var h = self.height;
+        var dx = l + r + w;
+        var dy = t + b + h;
+        if (dx < 0) {
+            l -= (dx * l / (l + r)) | 0;
+            // @ts-ignore: type inference issue
+            r = -(l + w);
+        }
+        if (dy < 0) {
+            t -= (dy * t / (t + b)) | 0;
+            // @ts-ignore: type inference issue
+            b = -(t + h);
+        }
+        // @ts-ignore: type inference issue
+        return toPlainRect(self.left - l, self.top - t, self.right + r, self.bottom + b);
     }
 });
 

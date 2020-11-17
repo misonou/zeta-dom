@@ -106,6 +106,15 @@ declare namespace Zeta {
          * @returns A new rect object.
          */
         translate(x: number, y: number): Rect;
+
+        /**
+         * Returns a new rect expanded or contracted by the specified pixels from each direction.
+         * @param left Number of pixels to expand (contract for negative number) from the left edge.
+         * @param top Number of pixels to expand (contract for negative number) from the top edge. If not supplied, this will be equal to `left` parameter.
+         * @param right Number of pixels to expand (contract for negative number) from the right edge. If not supplied, this will be equal to `left` parameter.
+         * @param bottom Number of pixels to expand (contract for negative number) from the bottom edge. If not supplied, this will be equal to `top` parameter.
+         */
+        expand(left: number, top?: number, right?: number, bottom?: number): Rect;
     }
 
     interface HasRange {
