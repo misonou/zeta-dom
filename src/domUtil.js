@@ -525,12 +525,15 @@ function getRect(elm, includeMargin) {
         rect = toPlainRect(0, 0, 0, 0);
     } else {
         rect = toPlainRect(elm.getBoundingClientRect());
-        if (includeMargin) {
+        if (includeMargin === true) {
             var style = getComputedStyle(elm);
-            rect.top -= Math.max(0, parseFloat(style.marginTop));
-            rect.left -= Math.max(0, parseFloat(style.marginLeft));
-            rect.right += Math.max(0, parseFloat(style.marginRight));
-            rect.bottom += Math.max(0, parseFloat(style.marginBottom));
+            var marginTop = Math.max(0, parseFloat(style.marginTop));
+            var marginLeft = Math.max(0, parseFloat(style.marginLeft));
+            var marginRight = Math.max(0, parseFloat(style.marginRight));
+            var marginBottom = Math.max(0, parseFloat(style.marginBottom));
+            rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
+        } else if (includeMargin) {
+            rect = rect.expand(includeMargin);
         }
     }
     return rect;
