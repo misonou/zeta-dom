@@ -58,7 +58,7 @@ definePrototype(Rect, {
                 r = l;
             case 3:
                 b = t;
-    }
+        }
         var w = self.width;
         var h = self.height;
         var dx = l + r + w;
@@ -383,10 +383,11 @@ function getContentRect(element) {
 }
 
 function scrollIntoView(element, rect) {
+    if (!rect || rect.top === undefined) {
+        rect = getRect(element, rect);
+    }
     var parent = getScrollParent(element);
     var parentRect = getContentRect(parent);
-    rect = rect || getRect(element);
-
     var deltaX = Math.max(0, rect.right - parentRect.right) || Math.min(rect.left - parentRect.left, 0);
     var deltaY = Math.max(0, rect.bottom - parentRect.bottom) || Math.min(rect.top - parentRect.top, 0);
     var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
