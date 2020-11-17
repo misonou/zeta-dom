@@ -143,6 +143,14 @@ declare namespace Zeta {
         nextNode(): T | null;
     }
 
+    interface TreeWalker<T> extends Iterator<T> {
+        parentNode(): T | null;
+        firstChild(): T | null;
+        lastChild(): T | null;
+        previousSibling(): T | null;
+        nextSibling(): T | null;
+    }
+
     type Dictionary<T = any> = Record<string, T>;
 
     type ZetaEventName = 'init' | 'destroy' | 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'typing' | 'textInput' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | Zeta.KeyNameSpecial | Zeta.ClickName;

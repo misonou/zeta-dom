@@ -150,6 +150,14 @@ export function createDocumentFragment(content?: Zeta.HtmlContent): DocumentFrag
  */
 export function createNodeIterator<T extends number>(root: Element, whatToShow: T, filter?: Zeta.IteratorNodeFilter<T extends 1 ? Element : T extends 4 ? Text : Node>): Zeta.Iterator<T extends 1 ? Element : T extends 4 ? Text : Node>;
 
+/**
+ * Creates a DOM tree walker. It is essentially the same as Document#createTreeWalker but allows arguments to be optional.
+ * @param root A DOM node.
+ * @param whatToShow A bitmask specifying which types of DOM node should be iterated.
+ * @returns A DOM node iterator.
+ */
+export function createTreeWalker<T extends number>(root: Element, whatToShow: T, filter?: Zeta.IteratorNodeFilter<T extends 1 ? Element : T extends 4 ? Text : Node>): Zeta.TreeWalker<T extends 1 ? Element : T extends 4 ? Text : Node>;
+
 
 /* --------------------------------------
  * Events

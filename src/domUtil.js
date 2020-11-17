@@ -218,6 +218,11 @@ function createNodeIterator(root, whatToShow, filter) {
     return document.createNodeIterator(root, whatToShow, isFunction(filter) || null, false);
 }
 
+function createTreeWalker(root, whatToShow, filter) {
+    // @ts-ignore: assume filter is of correct signature
+    return document.createTreeWalker(root, whatToShow, isFunction(filter) || null, false);
+}
+
 
 /* --------------------------------------
  * Events
@@ -600,6 +605,7 @@ export {
     createTextNode,
     createElement,
     createNodeIterator,
+    createTreeWalker,
 
     bind,
     bindUntil,
