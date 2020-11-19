@@ -315,7 +315,7 @@ definePrototype(ZetaContainer, {
         return containerCreateObserver(this, callback, options);
     },
     emit: function (eventName, target, data, bubbles) {
-        return emitEvent(eventName, this, data, target, bubbles);
+        return emitEvent(eventName, this, target, data, bubbles);
     },
     emitAsync: function (event, target, data, bubbles, mergeData) {
         containerRegisterAsyncEvent(this, event, target || this.element, data, bubbles, mergeData);
