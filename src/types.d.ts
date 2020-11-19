@@ -162,11 +162,16 @@ declare namespace Zeta {
 
     type Dictionary<T = any> = Record<string, T>;
 
-    type ZetaEventName = 'init' | 'destroy' | 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'typing' | 'textInput' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | Zeta.KeyNameSpecial | Zeta.ClickName;
+
+    /* --------------------------------------
+     * events.js
+     * -------------------------------------- */
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaEventTypeMap = { [P in Zeta.ClickName]: ZetaMouseEvent } & {
+    type ZetaDOMEventName = 'init' | 'destroy' | 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'typing' | 'textInput' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | Zeta.KeyNameSpecial | Zeta.ClickName;
+
+    type ZetaDOMEventMap = { [P in Zeta.ClickName]: ZetaMouseEvent } & {
         focusin: ZetaFocusEvent;
         focusout: ZetaFocusEvent;
         mousedown: ZetaMouseEvent;
@@ -179,19 +184,30 @@ declare namespace Zeta {
 
     type ZetaEventType<E extends string, M> = (M & { [s: string]: ZetaEvent })[E];
 
-    type ZetaEventHandler<E extends ZetaEvent, T extends ElementLike = Element> = (this: T, e: ZetaEventWithContext<E, T>, self: T) => any;
+    type ZetaEventHandler<E extends string, M = {}, T = Element> = (this: T, e: ZetaEventType<E, M> & ZetaEventContext<T>, self: T) => any;
 
-    type ZetaEventHandler<E extends string, T extends ElementLike = Element> = ZetaEventHandler<ZetaEventType<E, ZetaEventTypeMap>, T>;
-
-    type ZetaEventHandlers<T extends ElementLike = Element> = { [P in ZetaEventName]?: ZetaEventHandler<P, T> };
-
-    type ZetaEventWithContext<E, T> = E & ZetaEventContext<T>;
+    type ZetaEventHandlers<E extends string, M = {}, T = Element> = { [P in E]?: ZetaEventHandler<P, M, T> };
 
     interface ZetaEventContext<T> {
         /**
          * Gets a custom object that represents a functional sub-component.
          */
         readonly context: T;
+    }
+
+    interface ZetaEventDispatcher<M, T = Element> {
+        /**
+         * Adds an event handler to a specific event.
+         * @param event Name of the event.
+         * @param handler A callback function to be fired when the specified event is triggered.
+         */
+        on<E extends keyof M>(event: E, handler: ZetaEventHandler<E, M, T>);
+
+        /**
+         * Adds event handlers to multiple events.
+         * @param handlers A dictionary which the keys are event names and values are the callback for each event.
+         */
+        on(handlers: ZetaEventHandlers<keyof M, M, T>);
     }
 
     interface ZetaEvent {
@@ -287,19 +303,24 @@ declare namespace Zeta {
         readonly data: string;
     }
 
-    interface ZetaEventSource {
-        new(target: Element, path?: Element[]);
+    declare class ZetaEventSource {
+        constructor(target: Element, path?: Element[]);
 
         readonly path: string;
         readonly source: ZetaEventSourceName;
         sourceKeyName: string;
     }
 
-    interface ZetaContainer<T extends ElementLike = Element> extends HasElement {
+    declare class ZetaEventContainer<T extends ElementLike = Element> implements HasElement {
+        /**
+         * Gets the root element this container associates with.
+         */
+        readonly element: Element;
+
         /**
          * Gets the event currently being fired within this container.
          */
-        readonly event: (ZetaEvent & ZetaEventContext<T>) | null;
+        readonly event: ZetaEvent & ZetaEventContext<T> | null;
 
         readonly autoDestroy: boolean;
 
@@ -311,7 +332,7 @@ declare namespace Zeta {
          * @param handlers An object which each entry represent the handler to be registered on the event.
          * @returns A randomly generated key.
          */
-        add(element: Element, handlers: ZetaEventHandlers<T>): string;
+        add(element: Element, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): string;
 
         /**
          * Registers event handlers to a DOM element with a specific key.
@@ -320,7 +341,7 @@ declare namespace Zeta {
          * @param handlers An object which each entry represent the handler to be registered on the event.
          * @returns The specified key.
          */
-        add(element: Element, key: string, handlers: ZetaEventHandlers<T>): string;
+        add(element: Element, key: string, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): string;
 
         /**
          * Removes the element from the container.
@@ -397,17 +418,12 @@ declare namespace Zeta {
          * Adds a handler to intercept event being fired within this container.
          * @param handler An event handler.
          */
-        tap(handler: ZetaEventHandler<ZetaEvent, ZetaContainer>): void;
+        tap(handler: ZetaEventHandler<'tap', {}, ZetaEventContainer>): void;
 
         /**
          * Fire scheduled asynchronous events immediately.
          */
         flushEvents(): void;
-    }
-
-    interface ZetaComponentConstructor {
-        new (): ZetaComponent;
-        (): ZetaComponent;
     }
 
     interface ZetaComponent {

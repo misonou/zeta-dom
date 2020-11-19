@@ -6,8 +6,8 @@ import dom from "./dom.js";
 
 const root = document.documentElement;
 const containers = new WeakMap();
-const domEventTrap = new ZetaContainer();
-const domContainer = new ZetaContainer();
+const domEventTrap = new ZetaEventContainer();
+const domContainer = new ZetaEventContainer();
 const _ = createPrivateStore();
 
 export var eventSource;
@@ -18,7 +18,6 @@ export var lastEventSource;
  * Helper functions
  * -------------------------------------- */
 
-/** @type {Zeta.ZetaComponentConstructor} */
 function ZetaComponent() {
     this.states = {};
 }
@@ -158,7 +157,7 @@ definePrototype(ZetaEventEmitter, {
             if (!handler) {
                 return false;
             }
-            var contextContainer = is(state.context, ZetaContainer) || container;
+            var contextContainer = is(state.context, ZetaEventContainer) || container;
             var event = new ZetaEvent(self, eventName, state, data === undefined ? containerRemoveAsyncEvent(container, eventName, state) : data);
             var prevEventSource = eventSource;
             var prevEvent = contextContainer.event;
@@ -241,7 +240,7 @@ definePrototype(ZetaEvent, {
  * ZetaContainer
  * -------------------------------------- */
 
-function ZetaContainer(element, context, options) {
+function ZetaEventContainer(element, context, options) {
     var self = this;
     if (element) {
         containers.set(element, self);
@@ -261,7 +260,7 @@ function ZetaContainer(element, context, options) {
     }
 }
 
-definePrototype(ZetaContainer, {
+definePrototype(ZetaEventContainer, {
     event: null,
     tap: function (handler) {
         domEventTrap.setContext(this.element, this);
@@ -432,6 +431,7 @@ function containerSetContext(inst, element, context) {
 }
 
 export {
+    ZetaEventContainer,
     ZetaEventSource,
     emitEvent,
     emitDOMEvent,

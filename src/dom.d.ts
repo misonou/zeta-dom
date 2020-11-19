@@ -58,19 +58,19 @@ export function retainFocus(a: Element, b: Element): void;
 
 export function releaseFocus(a: Element, b: Element): void;
 
-export function emit(eventName: string, target: Element, data?: any, bubbles?: boolean)
+export function emit(eventName: string, target: Element, data?: any, bubbles?: boolean);
 
-export function on<T extends Zeta.ZetaEventName>(event: T, handler: Zeta.ZetaEventHandler<T>): void;
+export function on<T extends Zeta.ZetaDOMEventName>(event: T, handler: Zeta.ZetaEventHandler<T, Zeta.ZetaDOMEventMap>): void;
 
-export function on(event: string, handler: Zeta.ZetaEventHandler<any>): void;
+export function on(event: string, handler: Zeta.ZetaEventHandler): void;
 
-export function on(event: Zeta.ZetaEventHandlers): void;
+export function on(event: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): void;
 
-export function on<T extends Zeta.ZetaEventName>(element: Element, event: T, handler: Zeta.ZetaEventHandler<T>): void;
+export function on<T extends Zeta.ZetaDOMEventName>(element: Element, event: T, handler: Zeta.ZetaEventHandler<T, Zeta.ZetaDOMEventMap>): void;
 
-export function on(element: Element, event: string, handler: Zeta.ZetaEventHandler<any>): void;
+export function on(element: Element, event: string, handler: Zeta.ZetaEventHandler): void;
 
-export function on(element: Element, event: Zeta.ZetaEventHandlers): void;
+export function on(element: Element, event: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): void;
 
 
 /* --------------------------------------
