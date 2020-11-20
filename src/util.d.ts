@@ -173,6 +173,14 @@ export function grep<K, V>(obj: Map<K, V>, callback: (v: V, i: K) => any): V[];
 export function grep(obj: any, callback: (v: any, i: any) => any): any[];
 
 /**
+ * Removes items that satifies a condition from an array and returns them as a new array.
+ * @param arr An array object.
+ * @param callback Function called for each item which returns if the item should be included.
+ * @returns An array containing items for which the callback returned a truthy value.
+ */
+export function splice<T>(arr: T[], callback: (v: T, i: number) => any): T[];
+
+/**
  * Extracts the first item in the given array or array-like object that satifies a condition.
  * @param obj An array or an array-like object.
  * @param callback Function called for each original item which determines if the item satifies a condition.

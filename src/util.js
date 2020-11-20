@@ -189,6 +189,16 @@ function grep(obj, callback) {
     return arr;
 }
 
+function splice(arr, callback) {
+    var result = [];
+    for (var i = arr.length - 1; i >= 0; i--) {
+        if (callback.call(arr, arr[i], i)) {
+            result.unshift(arr.splice(i, 1)[0]);
+        }
+    }
+    return result;
+}
+
 function any(obj, callback) {
     var result = false;
     each(obj, function (i, v) {
@@ -638,6 +648,7 @@ export {
     each,
     map,
     grep,
+    splice,
     any,
     single,
     kv,
