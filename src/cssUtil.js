@@ -141,15 +141,4 @@ export {
     parseCSS,
     isCssUrlValue,
     runCSSTransition
-
-    // getZIndex: getZIndex,
-    // getZIndexOver: getZIndexOver,
-    // setZIndexOver: setZIndexOver,
-    // cssFromPoint: cssFromPoint,
-    // cssFromRect: cssFromRect,
-    // position: position,
-    // snap: ƒ (element, to, dir)
-    // unsnap: ƒ (element)
-    // drag: ƒ drag(event, within, callback)
-    // scrollIntoView: ƒ scrollIntoView(element, rect)
 };
