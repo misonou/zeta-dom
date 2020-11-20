@@ -31,6 +31,12 @@ export const root: HTMLHtmlElement;
 export const ready: Promise<void>;
 
 /**
+ * Determines whether the element can receive text input.
+ * @param element A DOM element.
+ */
+export function textInputAllowed(element: Element): boolean;
+
+/**
  * Determines whether the given element is currently focusable.
  * The result will be `false` in case the element is outside the current modal element,
  * which prevents focus to be moved outside the model element.

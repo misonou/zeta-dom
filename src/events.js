@@ -1,14 +1,16 @@
 import { Map, WeakMap } from "./shim.js";
-import { createPrivateStore, definePrototype, each, extend, isFunction, isPlainObject, kv, mapGet, matchWord, randomId, reject, resolve, single } from "./util.js";
+import { createPrivateStore, definePrototype, each, extend, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, randomId, reject, resolve, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, is, parentsAndSelf } from "./domUtil.js";
-import { afterDetached, observe } from "./observe.js";
+import { afterDetached } from "./observe.js";
 import dom from "./dom.js";
 
+const _ = createPrivateStore();
 const root = document.documentElement;
 const containers = new WeakMap();
 const domEventTrap = new ZetaEventContainer();
 const domContainer = new ZetaEventContainer();
-const _ = createPrivateStore();
+const asyncEventData = new Map();
+const asyncEvents = [];
 
 export var eventSource;
 export var lastEventSource;
@@ -17,23 +19,6 @@ export var lastEventSource;
 /* --------------------------------------
  * Helper functions
  * -------------------------------------- */
-
-function ZetaComponent() {
-    this.states = {};
-}
-
-function ZetaEventHandlerState(element, context, handlers) {
-    var self = this;
-    var copy = {};
-    each(handlers, function (i, v) {
-        if (isFunction(v)) {
-            copy[i] = v;
-        }
-    });
-    self.element = element;
-    self.context = context;
-    self.handlers = copy;
-}
 
 function ZetaEventSource(target, path) {
     var self = this;
@@ -91,14 +76,9 @@ function getContainer(element, exact) {
     return mapGet(containers, cur) || domContainer;
 }
 
-function emitEvent(eventName, container, target, data, bubbles) {
-    var event = is(eventName, ZetaEvent) ? _(eventName) : new ZetaEventEmitter(eventName, container, target, data, null, bubbles);
-    return event.emit(container, null, target, bubbles);
-}
-
 function emitDOMEvent(eventName, nativeEvent, target, data, bubbles, source) {
-    var event = new ZetaEventEmitter(eventName, domContainer, target, data, nativeEvent, bubbles, source);
-    return event.emit(domEventTrap, 'tap', getContainer(target).element, false) || event.emit();
+    var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, nativeEvent, bubbles, source);
+    return emitter.emit(domEventTrap, 'tap', getContainer(target).element, true) || emitter.emit();
 }
 
 function listenDOMEvent(element, event, handler) {
@@ -107,10 +87,46 @@ function listenDOMEvent(element, event, handler) {
         event = element;
         element = root;
     }
-    domContainer.setContext(element, element);
     domContainer.add(element, isPlainObject(event) || kv(event, handler));
 }
 
+function registerAsyncEvent(eventName, container, target, data, bubbles, mergeData) {
+    var map = mapGet(asyncEventData, container, Map);
+    var dict = mapGet(map, target || container.element, Object);
+    if (dict[eventName] && (isFunction(mergeData) || (data === undefined && dict[eventName].data === undefined))) {
+        dict[eventName].data = mergeData && mergeData(dict[eventName].data, data);
+    } else {
+        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, null, bubbles);
+        asyncEvents.push(dict[eventName]);
+        setImmediateOnce(emitAsyncEvents);
+    }
+}
+
+function removeAsyncEvent(eventName, container, target) {
+    var map = mapGet(asyncEventData, container);
+    var dict = map && mapGet(map, target);
+    if (dict && dict[eventName]) {
+        var event = dict[eventName];
+        delete dict[eventName];
+        asyncEvents.splice(asyncEvents.indexOf(event), 1);
+        return event.data || { data: event.data };
+    }
+}
+
+function emitAsyncEvents(container) {
+    var events;
+    if (!container) {
+        events = asyncEvents.splice(0);
+        asyncEventData.clear();
+    } else if (mapRemove(asyncEventData, container)) {
+        events = splice(asyncEvents, function (v) {
+            return v.container === container;
+        });
+    }
+    each(events, function (i, v) {
+        v.emit();
+    });
+}
 
 /* --------------------------------------
  * ZetaEventEmitter
@@ -130,7 +146,7 @@ function ZetaEventEmitter(eventName, container, target, data, originalEvent, bub
         eventName: eventName,
         target: target,
         data: data,
-        bubbles: bubbles,
+        bubbles: !!bubbles,
         properties: properties,
         sourceObj: source
     }, properties);
@@ -140,69 +156,66 @@ definePrototype(ZetaEventEmitter, {
     emit: function (container, eventName, target, bubbles) {
         var self = this;
         container = container || self.container;
-        bubbles = bubbles === undefined ? self.bubbles : bubbles;
-
-        var callHandler = function (state, handlerName, eventName, data) {
-            if (handlerName === 'init' || handlerName === 'destroy') {
-                // prevent init and destroy event from called consecutively twice
-                if (state.lastEvent === handlerName) {
-                    return false;
-                }
-                state.lastEvent = handlerName;
-            }
-            if (matchWord(handlerName || eventName, 'keystroke gesture') && callHandler(state, null, data.data, null)) {
-                return self.handled;
-            }
-            var handler = state.handlers[handlerName || eventName];
-            if (!handler) {
-                return false;
-            }
-            var contextContainer = is(state.context, ZetaEventContainer) || container;
-            var event = new ZetaEvent(self, eventName, state, data === undefined ? containerRemoveAsyncEvent(container, eventName, state) : data);
-            var prevEventSource = eventSource;
-            var prevEvent = contextContainer.event;
-            contextContainer.event = event;
-            eventSource = self.sourceObj;
-            try {
-                var returnValue = handler.call(event.context, event, event.context);
-                if (returnValue !== undefined) {
-                    // @ts-ignore: type inference issue
-                    self.handled = resolve(returnValue);
-                }
-            } catch (e) {
-                console.error(e);
-                // @ts-ignore: type inference issue
-                self.handled = reject(e);
-            }
-            eventSource = prevEventSource;
-            contextContainer.event = prevEvent;
-            return self.handled;
-        };
-        if (is(target, ZetaEventHandlerState)) {
-            return callHandler(target, eventName, self.eventName, self.data);
+        if (bubbles === undefined) {
+            bubbles = self.bubbles;
         }
-        // find the nearest ancestor that has widget or context set
-        var context = container.getContext(target || self.target);
-        return !!context && single(bubbles ? parentsAndSelf(context) : [context], function (v) {
-            var component = container.components.get(v.element || v);
-            return component && single(component.states, function (v) {
-                return callHandler(v, eventName, self.eventName, self.data);
-            });
+        var components = _(container).components;
+        // @ts-ignore: type inference issue
+        var targets = !bubbles ? [target || self.target] : self.originalEvent && target === undefined ? self.sourceObj.path : parentsAndSelf(target || self.target);
+        return single(targets, function (v) {
+            var component = components.get(v);
+            return component && emitterCallHandlers(self, component, self.eventName, eventName, self.data);
         });
     }
 });
 
+function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
+    handlerName = handlerName || eventName;
+    if (matchWord(handlerName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data)) {
+        return emitter.result;
+    }
+    if (data === undefined) {
+        data = removeAsyncEvent(eventName, component.container, context);
+    }
+    var handlers = component.handlers[handlerName];
+    if (handlers) {
+        var context = component.context;
+        var contextContainer = is(context, ZetaEventContainer) || component.container;
+        var event = new ZetaEvent(emitter, eventName, component, data);
+        var prevEventSource = eventSource;
+        var prevEvent = contextContainer.event;
+        contextContainer.event = event;
+        eventSource = emitter.sourceObj;
+        try {
+            var returnValue = single(handlers, function (v) {
+                return v.call(context, event, context);
+            });
+            if (returnValue !== undefined) {
+                emitter.result = resolve(returnValue);
+            }
+        } catch (e) {
+            console.error(e);
+            emitter.result = reject(e);
+        }
+        eventSource = prevEventSource;
+        contextContainer.event = prevEvent;
+    }
+    if (!emitter.result && handlerName === 'keystroke' && data.char && dom.textInputAllowed(emitter.target)) {
+        emitterCallHandlers(emitter, component, 'textInput', null, data.char);
+    }
+    return emitter.result;
+}
 
 /* --------------------------------------
  * ZetaEvent
  * -------------------------------------- */
 
-function ZetaEvent(event, eventName, state, data) {
+function ZetaEvent(event, eventName, component, data) {
     var self = extend(this, event.properties);
     self.eventName = eventName;
     self.type = eventName;
-    self.context = state.context;
-    self.target = containsOrEquals(event.target, state.element) ? state.element : event.target;
+    self.context = component.context;
+    self.target = containsOrEquals(event.target, component.element) ? component.element : event.target;
     self.data = null;
     if (isPlainObject(data)) {
         extend(self, data);
@@ -215,12 +228,12 @@ function ZetaEvent(event, eventName, state, data) {
 definePrototype(ZetaEvent, {
     handled: function (promise) {
         var event = _(this);
-        if (!event.handled) {
-            event.handled = resolve(promise);
+        if (!event.result) {
+            event.result = resolve(promise);
         }
     },
     isHandled: function () {
-        return !!_(this).handled;
+        return !!_(this).result;
     },
     preventDefault: function () {
         var event = this.originalEvent;
@@ -237,22 +250,25 @@ definePrototype(ZetaEvent, {
 
 
 /* --------------------------------------
- * ZetaContainer
+ * ZetaEventContainer
  * -------------------------------------- */
 
 function ZetaEventContainer(element, context, options) {
     var self = this;
-    if (element) {
-        containers.set(element, self);
-    }
+    _(self, {
+        components: new Map()
+    });
     extend(self, {
         element: element || root,
         context: context || null,
-        components: new Map(),
-        asyncEvents: new Map(),
         autoDestroy: containsOrEquals(root, element),
-        normalizeTouchEvents: false
+        normalizeTouchEvents: false,
+        captureDOMEvents: false
     }, options);
+    if (element && self.captureDOMEvents) {
+        domEventTrap.setContext(element, self);
+        containers.set(element, self);
+    }
     if (self.autoDestroy) {
         afterDetached(element, function () {
             self.destroy();
@@ -263,177 +279,95 @@ function ZetaEventContainer(element, context, options) {
 definePrototype(ZetaEventContainer, {
     event: null,
     tap: function (handler) {
-        domEventTrap.setContext(this.element, this);
-        domEventTrap.add(this.element, {
-            tap: handler
-        });
+        domEventTrap.add(this.element, 'tap', handler);
     },
     getContext: function (element) {
-        return (containerGetContext(this, element) || '').context;
+        var components = _(this).components;
+        var component;
+        for (var cur = element; cur && !component; cur = cur.parentNode) {
+            component = components.get(cur);
+        }
+        return component && component.context;
     },
     setContext: function (element, context) {
-        containerSetContext(this, element, context);
-        if (this !== domEventTrap && is(element, Node)) {
-            containers.set(element, this);
-        }
+        containerCreateContext(this, element, context);
     },
-    add: function (element, key, handlers) {
-        if (typeof key !== 'string') {
-            handlers = key;
-            key = randomId();
-        }
+    add: function (target, event, handler) {
         var self = this;
-        var target = is(element, Node) || element.element || element;
-        var component = is(target, Node) ? containerGetContext(self, target) : containerSetContext(self, element, element);
-        if (component) {
-            var state = component.states[key] || new ZetaEventHandlerState(target, is(element, Node) ? component.context : element, handlers);
-            component.attached = true;
-            component.states[key] = state;
-            containerRegisterWidgetEvent(self, state, true);
-        }
+        var key = randomId();
+        var handlers = containerCreateContext(self, target).handlers;
+        each(isPlainObject(event) || kv(event, handler), function (i, v) {
+            var dict = handlers[i] || (handlers[i] = {});
+            dict[key] = throwNotFunction(v);
+        });
+        return key;
     },
-    delete: function (element, key) {
+    delete: function (target, key) {
         var self = this;
-        var component = mapGet(self.components, element);
+        var components = _(self).components;
+        var component = mapGet(components, target);
         if (component) {
             if (key) {
-                var state = component.states[key];
-                if (state) {
-                    delete component.states[key];
-                    containerRegisterWidgetEvent(self, state, false);
-                }
-            } else {
-                component.attached = false;
-                each(component.states, function (i, v) {
-                    containerRegisterWidgetEvent(self, v, false);
+                var handlers = component.handlers;
+                each(handlers, function (i, v) {
+                    delete v[key];
+                    if (!keys(v)[0]) {
+                        delete this[i];
+                    }
                 });
+                if (keys(handlers)[0]) {
+                    return;
+                }
+            }
+            components.delete(target);
+            if (self.captureDOMEvents) {
+                containers.delete(component.element);
             }
         }
     },
-    observe: function (callback, options) {
-        return containerCreateObserver(this, callback, options);
-    },
     emit: function (eventName, target, data, bubbles) {
-        return emitEvent(eventName, this, target, data, bubbles);
+        var emitter = is(eventName, ZetaEvent) ? _(eventName) : new ZetaEventEmitter(eventName, this, target, data, null, bubbles);
+        return emitter.emit(this, null, target, bubbles);
     },
-    emitAsync: function (event, target, data, bubbles, mergeData) {
-        containerRegisterAsyncEvent(this, event, target || this.element, data, bubbles, mergeData);
+    emitAsync: function (eventName, target, data, bubbles, mergeData) {
+        registerAsyncEvent(eventName, this, target, data, bubbles, mergeData);
     },
     flushEvents: function () {
-        containerEmitAsyncEvents(this);
+        emitAsyncEvents(this);
     },
     destroy: function () {
         var self = this;
-        domEventTrap.delete(self.element);
-        containers.delete(self.element);
-        each(self.components, function (i, v) {
-            containers.delete(i);
-            self.emit('destroy', i);
-        });
+        if (self.captureDOMEvents) {
+            domEventTrap.delete(self.element);
+            containers.delete(self.element);
+            each(_(self).components, function (i) {
+                containers.delete(i);
+            });
+        }
     }
 });
 
-
-function containerEmitAsyncEvents(inst) {
-    inst.timeout = null;
-    while (inst.asyncEvents.size) {
-        var map = inst.asyncEvents;
-        inst.asyncEvents = new Map();
-        each(map, function (i, v) {
-            each(v, function (j, v) {
-                if (!isPlainObject(i) || i.handlers[j]) {
-                    v.emit(null, null, i);
-                }
-            });
-        });
-        each(map, function (i, v) {
-            var obj = mapGet(inst.components, i.element || i);
-            if (obj && !obj.attached) {
-                inst.components.delete(i.element || i);
-            }
-        });
-    }
-}
-
-function containerRemoveAsyncEvent(inst, eventName, target) {
-    var obj = mapGet(inst.asyncEvents, target);
-    if (obj && obj[eventName]) {
-        var data = obj[eventName].data;
-        delete obj[eventName];
-        return data || {
-            data: data
+function containerCreateContext(container, element, context) {
+    var cur = mapGet(_(container).components, element, function () {
+        return {
+            container: container,
+            element: element,
+            context: context || element,
+            handlers: {}
         };
-    }
-}
-
-function containerRegisterAsyncEvent(inst, eventName, target, data, bubbles, mergeData) {
-    var obj = mapGet(inst.asyncEvents, target, Object);
-    obj[eventName] = new ZetaEventEmitter(eventName, inst, target.element || target, mergeData && obj[eventName] ? mergeData(obj[eventName].data, data) : data, null, bubbles);
-    inst.timeout = inst.timeout || setTimeout(containerEmitAsyncEvents, 0, inst);
-}
-
-function containerRegisterWidgetEvent(container, state, isInit) {
-    var event = ['destroy', 'init'];
-    if (state.attached ^ isInit && !containerRemoveAsyncEvent(container, event[+!isInit], state)) {
-        containerRegisterAsyncEvent(container, event[+isInit], state);
-    }
-    state.attached = isInit;
-}
-
-function containerValidTarget(container, element) {
-    return container === domEventTrap || (containers.get(element) || container) === container;
-}
-
-function containerCreateObserver(container, callback, options) {
-    return observe(container, function (mutations) {
-        var changes = [];
-        var orphans = new Map();
-        each(mutations, function (i, v) {
-            if (!containsOrEquals(container.element, v.target)) {
-                mapGet(orphans, v.target, Array).push(v);
-            } else if (containerValidTarget(container, v.target)) {
-                each(v.removedNodes, function (i, v) {
-                    if (orphans.has(v)) {
-                        changes.push.apply(changes, orphans.get(v));
-                    }
-                });
-                changes.push(v);
-            }
-        });
-        changes = changes.filter(function (v) {
-            return options[v.type];
-        });
-        if (changes[0]) {
-            callback(changes);
-        }
     });
-}
-
-function containerGetContext(inst, element) {
-    var component;
-    for (var cur = element; cur && !component; cur = cur.parentNode) {
-        component = inst.components.get(cur);
-    }
-    return component || null;
-}
-
-function containerSetContext(inst, element, context) {
-    var cur = mapGet(inst.components, element, ZetaComponent);
-    // @ts-ignore: undeclared property added to ZetaComponent
-    if ((cur.context || context) !== context) {
+    if (context && (cur.context || context) !== context) {
         throw new Error('Element has already been set to another context');
     }
-    // @ts-ignore: undeclared property added to ZetaComponent
-    cur.element = element;
-    // @ts-ignore: undeclared property added to ZetaComponent
-    cur.context = context;
+    if (container.captureDOMEvents && is(element, Element)) {
+        containers.set(element, self);
+    }
     return cur;
 }
 
 export {
     ZetaEventContainer,
     ZetaEventSource,
-    emitEvent,
     emitDOMEvent,
     listenDOMEvent,
     getContainer,

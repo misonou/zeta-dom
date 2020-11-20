@@ -1,6 +1,6 @@
 import { IS_IE10, IS_MAC, IS_TOUCH } from "./env.js";
 import { Map, Set, WeakMap, Promise, $ } from "./shim.js";
-import { any, each, extend, lcfirst, makeArray, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
+import { any, each, extend, lcfirst, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
 import { bind, containsOrEquals, dispatchDOMMouseEvent, is, isVisible, makeSelection, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getContainer, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
@@ -203,30 +203,18 @@ domReady.then(function () {
         }
     }
 
-    function triggerUIEvent(eventName, nativeEvent, elements, data, bubbles) {
-        var prev = null;
-        return any(makeArray(elements), function (v) {
-            var container = getContainer(v);
-            if (prev !== container) {
-                prev = container;
-                if (emitDOMEvent(eventName, nativeEvent, v, data, bubbles)) {
-                    return true;
-                }
-                if (data.char && textInputAllowed(v)) {
-                    return emitDOMEvent('textInput', nativeEvent, v, data.char, true);
-                }
-            }
-        });
+    function triggerUIEvent(eventName, data, target) {
+        return emitDOMEvent(eventName, currentEvent, target || focusPath[0], data, true);
     }
 
-    function triggerKeystrokeEvent(keyName, char, nativeEvent) {
+    function triggerKeystrokeEvent(keyName, char) {
         var data = {
             data: keyName,
             char: char
         };
         lastEventSource.sourceKeyName = keyName;
-        if (triggerUIEvent('keystroke', nativeEvent, focusPath, data, true)) {
-            nativeEvent.preventDefault();
+        if (triggerUIEvent('keystroke', data)) {
+            currentEvent.preventDefault();
             return true;
         }
     }
@@ -243,7 +231,7 @@ domReady.then(function () {
 
     function triggerGestureEvent(gesture, nativeEvent) {
         mouseInitialPoint = null;
-        return triggerUIEvent('gesture', nativeEvent, focusPath.slice(-1), gesture);
+        return emitDOMEvent('gesture', nativeEvent, focusPath.slice(-1)[0], gesture, true);
     }
 
     if (IS_IE10) {
@@ -320,7 +308,7 @@ domReady.then(function () {
                 imeNode.data = newText;
                 makeSelection(imeNode, startOffset);
             }
-            if (!triggerUIEvent('textInput', e, focusPath[0], imeText)) {
+            if (!triggerUIEvent('textInput', imeText)) {
                 if (isInputElm) {
                     imeNode.value = curText;
                     imeNode.setSelectionRange(imeOffset, imeOffset);
@@ -337,7 +325,7 @@ domReady.then(function () {
         textInput: function (e) {
             // required for older mobile browsers that do not support beforeinput event
             // ignore in case browser fire textInput before/after compositionend
-            if (!imeNode && (e.data === imeText || triggerUIEvent('textInput', e, focusPath[0], e.data))) {
+            if (!imeNode && (e.data === imeText || triggerUIEvent('textInput', e.data))) {
                 e.preventDefault();
             }
         },
@@ -346,7 +334,7 @@ domReady.then(function () {
                 var keyCode = e.keyCode;
                 var isModifierKey = (META_KEYS.indexOf(keyCode) >= 0);
                 if (isModifierKey && keyCode !== modifiedKeyCode) {
-                    triggerUIEvent('metakeychange', e, focusPath, getEventName(e), true);
+                    triggerUIEvent('metakeychange', getEventName(e));
                 }
                 var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || (keyCode >= 96 && keyCode <= 111));
                 // @ts-ignore: boolean arithmetic
@@ -355,7 +343,7 @@ domReady.then(function () {
                 modifierCount *= isSpecialKey || ((modifierCount > 2 || (modifierCount > 1 && !e.shiftKey)) && !isModifierKey);
                 modifiedKeyCode = keyCode;
                 if (modifierCount) {
-                    triggerKeystrokeEvent(getEventName(e, KEYNAMES[keyCode] || e.key), keyCode === 32 ? ' ' : '', e);
+                    triggerKeystrokeEvent(getEventName(e, KEYNAMES[keyCode] || e.key), keyCode === 32 ? ' ' : '');
                 }
             }
         },
@@ -365,7 +353,7 @@ domReady.then(function () {
                 modifiedKeyCode = null;
                 modifierCount--;
                 if (isModifierKey) {
-                    triggerUIEvent('metakeychange', e, focusPath, getEventName(e) || '', true);
+                    triggerUIEvent('metakeychange', getEventName(e) || '');
                 }
             }
         },
@@ -373,19 +361,19 @@ domReady.then(function () {
             var data = e.char || e.key || String.fromCharCode(e.charCode);
             // @ts-ignore: non-standard member
             if (!imeNode && !modifierCount && (e.synthetic || !('onbeforeinput' in e.target))) {
-                triggerKeystrokeEvent(getEventName(e, KEYNAMES[modifiedKeyCode] || data), data, e);
+                triggerKeystrokeEvent(getEventName(e, KEYNAMES[modifiedKeyCode] || data), data);
             }
         },
         beforeinput: function (e) {
             if (!imeNode && e.cancelable) {
                 switch (e.inputType) {
                     case 'insertText':
-                        return triggerUIEvent('textInput', e, focusPath[0], e.data);
+                        return triggerUIEvent('textInput', e.data);
                     case 'deleteContent':
                     case 'deleteContentBackward':
-                        return triggerKeystrokeEvent('backspace', '', e);
+                        return triggerKeystrokeEvent('backspace', '');
                     case 'deleteContentForward':
-                        return triggerKeystrokeEvent('delete', '', e);
+                        return triggerKeystrokeEvent('delete', '');
                 }
             }
         },
@@ -452,7 +440,7 @@ domReady.then(function () {
             // @ts-ignore: e.target is Element
             if (containsOrEquals(e.target, focusPath[0]) || !textInputAllowed(e.target)) {
                 var dir = e.deltaY || e.detail;
-                if (dir && triggerUIEvent('mousewheel', e, e.target, dir / Math.abs(dir) * (IS_MAC ? -1 : 1), true)) {
+                if (dir && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1))) {
                     e.preventDefault();
                 }
             }
@@ -562,6 +550,7 @@ export default {
     root,
     ready: domReady,
 
+    textInputAllowed,
     focusable,
     focused,
     setModal,

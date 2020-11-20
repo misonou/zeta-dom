@@ -311,52 +311,93 @@ declare namespace Zeta {
         sourceKeyName: string;
     }
 
+    interface ZetaEventContainerOptions {
+        /**
+         * Sets whether all event handlers are automatically removed when the root element is detached.
+         */
+        autoDestroy?: boolean;
+
+        /**
+         * Sets whether successive touchstart and touchend events without touchmove will be normalized to click event.
+         */
+        normalizeTouchEvents?: boolean;
+
+        /**
+         * Sets whether DOM events will be captured.
+         * If yes, DOM events will be dispatched to registered components within this container in prior to global event handlers registered by `dom.on`.
+         */
+        captureDOMEvents?: boolean;
+    }
+
     declare class ZetaEventContainer<T extends ElementLike = Element> implements HasElement {
+        /**
+         * Createa a new event container for listening or dispatching events.
+         * @param root A DOM element of which DOM events fired on descedant elements will be captured.
+         * @param context An object to be exposed through `dom.context` if the `captureDOMEvents` option is set to `true`.
+         * @param options A dictionary containing options specifying the behavior of the container.
+         */
+        constructor(root?: Element, context?: any, options?: ZetaEventContainerOptions);
+
         /**
          * Gets the root element this container associates with.
          */
-        readonly element: Element;
+        readonly element: HTMLElement;
+
+        /**
+         * Gets the public interfacing object exposed through `dom.context` if the `captureDOMEvents` option is set to `true`.
+         */
+        readonly context: any;
 
         /**
          * Gets the event currently being fired within this container.
          */
         readonly event: ZetaEvent & ZetaEventContext<T> | null;
 
+        /**
+         * Gets whether all event handlers are automatically removed when the root element is detached.
+         */
         readonly autoDestroy: boolean;
 
+        /**
+         * Gets whether successive touchstart and touchend events without touchmove will be normalized to click event.
+         */
         readonly normalizeTouchEvents: boolean;
 
         /**
-         * Registers event handlers to a DOM element.
-         * @param element A DOM element.
-         * @param handlers An object which each entry represent the handler to be registered on the event.
-         * @returns A randomly generated key.
+         * Gets whether DOM events will be captured.
          */
-        add(element: Element, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): string;
+        readonly captureDOMEvents: boolean;
+
+        /**
+         * Registers event handlers to a DOM element.
+         * @param target An event target.
+         * @param handlers An object which each entry represent the handler to be registered on the event.
+         * @returns A randomly generated key used to remove event handlers registered by this call.
+         */
+        add(target: object, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): string;
 
         /**
          * Registers event handlers to a DOM element with a specific key.
-         * @param element A DOM element.
-         * @param key A string to be used as the key.
-         * @param handlers An object which each entry represent the handler to be registered on the event.
-         * @returns The specified key.
+         * @param target An event target.
+         * @param event Name of the event.
+         * @param handler A callback function to be fired when the specified event is triggered.
+         * @returns A randomly generated key used to remove event handlers registered by this call.
          */
-        add(element: Element, key: string, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): string;
+        add<E extends string>(target: object, event: E, handlers: ZetaEventHandler<E, ZetaDOMEventMap, T>): string;
 
         /**
          * Removes the element from the container.
-         * Handlers for destroy event will be fired unless handlers are added back immediately using the same key.
-         * @param element A DOM element.
+         * All event handlers are also removed.
+         * @param target An event target.
          */
-        delete(element: Element): void;
+        delete(target: object): void;
 
         /**
          * Removes event handlers that is registered using the specified key.
-         * Handlers for destroy event registered using the key will be fired unless handlers are added back immediately using the same key.
-         * @param element A DOM element.
+         * @param target An event target.
          * @param key A string to be used as the key.
          */
-        delete(element: Element, key: string): void;
+        delete(target: object, key: string): void;
 
         /**
          * Defunct the container. Destroy event will be fired for all registered elements.
@@ -401,18 +442,11 @@ declare namespace Zeta {
 
         /**
          * Defines a custom object that represents a DOM component.
+         * Setting to a different context without first deleting the element from container will throw an error.
          * @param element A DOM element.
          * @param context Any object that has the property "element" pointing to the same DOM element.
          */
         setContext(element: Element, context: T): void;
-
-        /**
-         * Listens DOM mutations in this container.
-         * Mutations from nested containers will not be propagated to parent containers.
-         * @param callback A callback to be fired asynchronously when there are changes.
-         * @param options An object specifying which types of mutations shuold be included.
-         */
-        observe(callback: (mutations: MutationRecord[]) => any, options: MutationObserverInit): void;
 
         /**
          * Adds a handler to intercept event being fired within this container.
