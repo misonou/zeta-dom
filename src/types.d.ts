@@ -460,12 +460,63 @@ declare namespace Zeta {
         flushEvents(): void;
     }
 
-    interface ZetaComponent {
-        readonly states: Dictionary<ZetaEventHandlers>;
-        element: Element;
-        context: any;
+    /* --------------------------------------
+     * tree.js
+     * -------------------------------------- */
+
+    interface NodeTreeOptions {
     }
 
+    interface NodeTreeEventMap {
+        update: NodeTreeUpdateEvent;
+    }
+
+    interface NodeTreeUpdateEvent extends ZetaEvent {
+        readonly updatedNodes: VirtualNode[];
+    }
+
+    declare abstract class NodeTree<T extends VirtualNode> implements ZetaEventDispatcher<NodeTreeEventMap, NodeTree<T>>, HasElement {
+        readonly element: Element;
+        readonly rootNode: T;
+
+        getNode(element: Element): T | null;
+        setNode(element: Element): T;
+        removeNode(node: T): void;
+
+        on<E extends keyof NodeTreeEventMap>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap, NodeTree<T>>);
+        on(handler: ZetaEventHandlers<keyof NodeTreeEventMap, NodeTreeEventMap, NodeTree<T>>);
+    }
+
+    declare class TraversableNodeTree<T extends TraversableNode> extends NodeTree<T> {
+        constructor(element: Element, constructor?: new (...args) => T, options?: Zeta.NodeTreeOptions);
+        constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: Zeta.NodeTreeOptions);
+    }
+
+    declare class InheritedNodeTree<T extends InheritedNode> extends NodeTree<T> {
+        constructor(element: Element, constructor?: new (...args) => T, options?: Zeta.NodeTreeOptions);
+        constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: Zeta.NodeTreeOptions);
+    }
+
+    declare abstract class VirtualNode implements HasElement {
+        readonly element: Element;
+    }
+
+    declare abstract class TraversableNode extends VirtualNode {
+        constructor(tree: NodeTree, element: Element);
+
+        readonly parentNode: TraversableNode | null;
+        readonly firstChild: TraversableNode | null;
+        readonly lastChild: TraversableNode | null;
+        readonly previousSilbing: TraversableNode | null;
+        readonly nextSilbing: TraversableNode | null;
+        readonly childNodes: TraversableNode[];
+    }
+
+    declare abstract class InheritedNode extends VirtualNode {
+        constructor(tree: NodeTree, element: Element);
+
+        getComputedValues(): Dictionary;
+    }
 }
 
 // supplement to lib.dom.d.ts
