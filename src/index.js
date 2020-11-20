@@ -3,6 +3,8 @@ import * as shim from "./shim.js";
 import * as _util from "./util.js";
 import * as _domUtil from "./domUtil.js";
 import * as cssUtil from "./cssUtil.js";
+import { ZetaEventContainer } from "./events.js";
+import { InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree } from "./tree.js";
 import dom from "./dom.js";
 
 const IS_IOS = env.IS_IOS;
@@ -21,7 +23,12 @@ export default {
     shim,
     util,
     dom,
-    css: cssUtil
+    css: cssUtil,
+    EventContainer: ZetaEventContainer,
+    InheritedNode,
+    InheritedNodeTree,
+    TraversableNode,
+    TraversableNodeTree
 };
 
 export {
@@ -33,5 +40,10 @@ export {
     shim,
     util,
     dom,
-    cssUtil as css
+    cssUtil as css,
+    ZetaEventContainer as EventContainer,
+    InheritedNode,
+    InheritedNodeTree,
+    TraversableNode,
+    TraversableNodeTree
 };
