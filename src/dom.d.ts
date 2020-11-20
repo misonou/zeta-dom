@@ -6,6 +6,12 @@
 export var event: Event | null;
 
 /**
+ * Gets the active component registered through event container.
+ * @see Zeta.ZetaEventContainer<T>
+ */
+export var context: any;
+
+/**
  * Gets the current active element which is readily receiving user input.
  */
 export var activeElement: HTMLElement;

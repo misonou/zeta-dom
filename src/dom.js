@@ -538,6 +538,9 @@ export default {
     get event() {
         return currentEvent;
     },
+    get context() {
+        return getContainer(focusPath[0]).context;
+    },
     get activeElement() {
         return focusPath[0];
     },
