@@ -253,6 +253,20 @@ export function single<R>(obj: any, callback: (v: any, i: string) => R): R | fal
 export function kv<T extends string | number | symbol, V>(key: T, value: V): Record<T, V>;
 
 /**
+ * Returns a new object that contains a subset of properties.
+ * @param obj An object from which properties are copied.
+ * @param keys Names of properties to be copied.
+ */
+export function pick<T>(obj: T, keys: string[]): Partial<T>;
+
+/**
+ * Returns a new object that does not contain the specified properties
+ * @param obj An object from which properties are copied.
+ * @param keys Names of properties to be excluded.
+ */
+export function exclude<T>(obj: T, keys: string[]): Partial<T>;
+
+/**
  * Gets item associated with the specified key in the given map.
  * @param map A map or weak map object.
  * @param key A value or object as the key.

@@ -225,6 +225,24 @@ function kv(key, value) {
     return obj;
 }
 
+function pick(obj, keys) {
+    var result = {};
+    each(keys, function (i, v) {
+        if (v in obj) {
+            result[v] = obj[v];
+        }
+    });
+    return result;
+}
+
+function exclude(obj, keys) {
+    var result = extend({}, obj);
+    each(keys, function (i, v) {
+        delete result[v];
+    });
+    return result;
+}
+
 function mapGet(map, key, fn) {
     return map.get(key) || fn && (map.set(key, new fn()), map.get(key));
 }
@@ -652,6 +670,8 @@ export {
     any,
     single,
     kv,
+    pick,
+    exclude,
     mapGet,
     mapRemove,
     equal,
