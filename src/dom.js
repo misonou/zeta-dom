@@ -224,7 +224,7 @@ domReady.then(function () {
             clientX: point.clientX,
             clientY: point.clientY,
             metakey: getEventName(nativeEvent)
-        });
+        }, true);
     }
 
     function triggerGestureEvent(gesture, nativeEvent) {
