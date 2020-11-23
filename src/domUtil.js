@@ -144,10 +144,11 @@ function isVisible(element) {
 
 function acceptNode(iterator, node) {
     node = node || iterator.currentNode;
-    if (!node || !(iterator.whatToShow & (is(node, Node) ? (1 << (node.nodeType - 1)) : node.nodeType))) {
+    if (!node || !(iterator.whatToShow & (1 << (node.nodeType - 1)))) {
         return 3;
     }
-    return !iterator.filter ? 1 : (iterator.filter.acceptNode || iterator.filter).call(iterator.filter, node);
+    var filter = iterator.filter;
+    return !filter ? 1 : (filter.acceptNode || filter).call(filter, node);
 }
 
 function iterateNode(iterator, callback, from, until) {
