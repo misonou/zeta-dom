@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { window } from "./env.js";
 
 const Map = window.Map || (function () {
     function indexOf(map, key) {

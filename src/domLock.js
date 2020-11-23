@@ -1,4 +1,5 @@
 import { Map, WeakMap, Promise } from "./shim.js";
+import { window, document } from "./env.js";
 import { any, createPrivateStore, definePrototype, extend, makeArray, mapRemove, reject, resolve } from "./util.js";
 import { parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";

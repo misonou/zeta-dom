@@ -1,11 +1,11 @@
 import { Map, WeakMap } from "./shim.js";
+import { window, root } from "./env.js";
 import { createPrivateStore, definePrototype, each, extend, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, randomId, reject, resolve, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, is, parentsAndSelf } from "./domUtil.js";
 import { afterDetached } from "./observe.js";
-import dom from "./dom.js";
+import dom, { textInputAllowed } from "./dom.js";
 
 const _ = createPrivateStore();
-const root = document.documentElement;
 const containers = new WeakMap();
 const domEventTrap = new ZetaEventContainer();
 const domContainer = new ZetaEventContainer();
@@ -198,7 +198,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         eventSource = prevEventSource;
         contextContainer.event = prevEvent;
     }
-    if (!emitter.result && handlerName === 'keystroke' && data.char && dom.textInputAllowed(emitter.target)) {
+    if (!emitter.result && handlerName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
         emitterCallHandlers(emitter, component, 'textInput', null, data.char);
     }
     return emitter.result;

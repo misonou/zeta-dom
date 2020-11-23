@@ -12,7 +12,7 @@ const IS_IE10 = env.IS_IE10;
 const IS_IE = env.IS_IE;
 const IS_MAC = env.IS_MAC;
 const IS_TOUCH = env.IS_TOUCH;
-const util = { ..._util, ..._domUtil };
+const util = _util.extend({}, _util, _domUtil);
 
 export default {
     IS_IOS,

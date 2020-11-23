@@ -1,9 +1,9 @@
 import { Set, Map, WeakMap, Promise } from "./shim.js";
+import { window, root } from "./env.js";
 import { any, each, extend, grep, isFunction, makeArray, map, mapGet, mapRemove, setImmediateOnce, throwNotFunction } from "./util.js";
 import { bind, containsOrEquals, selectIncludeSelf } from "./domUtil.js";
 import dom from "./dom.js";
 
-const root = document.documentElement;
 const detachHandlers = new WeakMap();
 const optionsForChildList = {
     subtree: true,

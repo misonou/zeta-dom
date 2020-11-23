@@ -1,8 +1,7 @@
 import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray } from "./util.js";
 import { $ } from "./shim.js";
+import { window, document, root, getSelection, getComputedStyle } from "./env.js";
 
-const root = document.documentElement;
-const selection = window.getSelection();
 // @ts-ignore: non-standard member
 const elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
 const compareDocumentPositionImpl = document.compareDocumentPosition;
@@ -458,6 +457,7 @@ function compareRangePosition(a, b, strict) {
 }
 
 function makeSelection(b, e) {
+    var selection = getSelection();
     if (!selection) {
         return;
     }

@@ -1,4 +1,5 @@
 import { Map, Promise, $ } from "./shim.js";
+import { window, document, getComputedStyle } from "./env.js";
 import { getClass, setClass, iterateNode, createNodeIterator, isVisible, bind } from "./domUtil.js";
 import { reject, noop, resolve, each, matchWord, keys } from "./util.js";
 
@@ -14,6 +15,13 @@ function parseCSS(value) {
 
 function isCssUrlValue(value) {
     return value && value !== 'none' && /url\((?:'(.+)'|"(.+)"|([^)]+))\)/.test(value) && (RegExp.$1 || RegExp.$2 || RegExp.$3);
+}
+
+function normalizeCSSValue(curValue) {
+    if (curValue === 'matrix(1, 0, 0, 1, 0, 0)') {
+        return 'none';
+    }
+    return curValue;
 }
 
 function styleToJSON(style) {
@@ -83,14 +91,8 @@ function runCSSTransition(element, className, callback) {
         var transitionProperties = map1.get(v);
         var dict = {};
         each(curStyle, function (j, v) {
-            var curValue = curStyle[v];
-            var newValue = newStyle[i][v];
-            if (curValue === 'matrix(1, 0, 0, 1, 0, 0)') {
-                curValue = 'none';
-            }
-            if (newValue === 'matrix(1, 0, 0, 1, 0, 0)') {
-                newValue = 'none';
-            }
+            var curValue = normalizeCSSValue(curStyle[v]);
+            var newValue = normalizeCSSValue(newStyle[i][v]);
             if (curValue !== newValue) {
                 var prop = removeVendorPrefix(v);
                 var allowNumber = matchWord(v, 'opacity line-height');

@@ -1,4 +1,5 @@
 import { Map, Set, WeakMap, Promise } from "./shim.js";
+import { window } from "./env.js";
 
 const keys = Object.keys;
 const freeze = Object.freeze;
