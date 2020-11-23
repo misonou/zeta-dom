@@ -1,5 +1,5 @@
 import dom from "./dom.js";
-import { comparePosition, containsOrEquals, createTreeWalker, is, iterateNode, parentsAndSelf } from "./domUtil.js";
+import { combineNodeFilters, comparePosition, containsOrEquals, createTreeWalker, is, iterateNode, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventContainer } from "./events.js";
 import { observe } from "./observe.js";
 import { Map, WeakMap } from "./shim.js"
@@ -385,7 +385,14 @@ function TraversableNodeTree(root, constructor, options) {
     NodeTree.call(this, TraversableNode, root, constructor, options);
 }
 
-definePrototype(TraversableNodeTree, NodeTree);
+definePrototype(TraversableNodeTree, NodeTree, {
+    isNodeVisible: function () {
+        return true;
+    },
+    acceptNode: function () {
+        return 1;
+    }
+});
 
 function InheritedNodeTree(root, constructor, options) {
     NodeTree.call(this, InheritedNode, root, constructor, options);
@@ -393,9 +400,158 @@ function InheritedNodeTree(root, constructor, options) {
 
 definePrototype(InheritedNodeTree, NodeTree);
 
+function TreeWalker(root, whatToShow, filter) {
+    var self = this;
+    self.whatToShow = whatToShow || -1;
+    self.filter = combineNodeFilters(_(root).tree.acceptNode, filter);
+    self.currentNode = root;
+    self.root = root;
+}
+
+function treeWalkerIsNodeVisible(inst, node) {
+    return node && _(node).tree.isNodeVisible(node, inst) && node;
+}
+
+function treeWalkerAcceptNode(inst, node, checkVisibility) {
+    if (checkVisibility && node !== inst.root && !treeWalkerIsNodeVisible(inst, node)) {
+        return 2;
+    }
+    return inst.filter(node);
+}
+treeWalkerAcceptNode.$1 = 0;
+
+function treeWalkerNodeAccepted(inst, node, checkVisibility) {
+    treeWalkerAcceptNode.$1 = treeWalkerAcceptNode(inst, node, checkVisibility);
+    if (treeWalkerAcceptNode.$1 === 1) {
+        inst.currentNode = node;
+        return true;
+    }
+}
+
+function treeWalkerTraverseChildren(inst, pChild, pSib) {
+    var node = inst.currentNode[pChild];
+    while (node) {
+        if (treeWalkerNodeAccepted(inst, node, true)) {
+            return node;
+        }
+        if (treeWalkerAcceptNode.$1 === 3 && node[pChild]) {
+            node = node[pChild];
+            continue;
+        }
+        while (!node[pSib]) {
+            node = treeWalkerIsNodeVisible(inst, node.parentNode);
+            if (!node || node === inst.root || node === inst.currentNode) {
+                return null;
+            }
+        }
+        node = node[pSib];
+    }
+}
+
+function treeWalkerTraverseSibling(inst, pChild, pSib) {
+    var node = inst.currentNode;
+    while (node && node !== inst.root) {
+        var sibling = node[pSib];
+        while (sibling) {
+            if (treeWalkerNodeAccepted(inst, sibling)) {
+                return sibling;
+            }
+            sibling = (treeWalkerAcceptNode.$1 === 2 || !sibling[pChild]) ? sibling[pSib] : sibling[pChild];
+        }
+        node = treeWalkerIsNodeVisible(inst, node.parentNode);
+        if (!node || node === inst.root || treeWalkerAcceptNode(inst, node, true) === 1) {
+            return null;
+        }
+    }
+}
+
+definePrototype(TreeWalker, {
+    previousSibling: function () {
+        return treeWalkerTraverseSibling(this, 'lastChild', 'previousSibling');
+    },
+    nextSibling: function () {
+        return treeWalkerTraverseSibling(this, 'firstChild', 'nextSibling');
+    },
+    firstChild: function () {
+        return treeWalkerTraverseChildren(this, 'firstChild', 'nextSibling');
+    },
+    lastChild: function () {
+        return treeWalkerTraverseChildren(this, 'lastChild', 'previousSibling');
+    },
+    parentNode: function () {
+        // @ts-ignore: type inference issue
+        for (var node = this.currentNode; node && node !== this.root; node = node.parentNode) {
+            // @ts-ignore: type inference issue
+            var parentNode = node.parentNode;
+            if (treeWalkerNodeAccepted(this, parentNode, true)) {
+                return parentNode;
+            }
+        }
+    },
+    previousNode: function () {
+        var self = this;
+        for (var node = self.currentNode; node && node !== self.root;) {
+            // @ts-ignore: type inference issue
+            for (var sibling = node.previousSibling; sibling; sibling = node.previousSibling) {
+                node = sibling;
+                var rv = treeWalkerAcceptNode(self, sibling);
+                // @ts-ignore: type inference issue
+                while (rv !== 2 && treeWalkerIsNodeVisible(self, node.firstChild)) {
+                    // @ts-ignore: type inference issue
+                    node = node.lastChild;
+                    rv = treeWalkerAcceptNode(self, node, true);
+                }
+                if (rv === 1) {
+                    // @ts-ignore: type inference issue
+                    self.currentNode = node;
+                    return node;
+                }
+            }
+            // @ts-ignore: type inference issue
+            node = treeWalkerIsNodeVisible(self, node.parentNode);
+            if (!node || node === self.root) {
+                return null;
+            }
+            if (treeWalkerNodeAccepted(self, node, true)) {
+                return node;
+            }
+        }
+    },
+    nextNode: function () {
+        var self = this;
+        var rv = 1;
+        for (var node = self.currentNode; node;) {
+            // @ts-ignore: type inference issue
+            while (rv !== 2 && node.firstChild) {
+                // @ts-ignore: type inference issue
+                node = node.firstChild;
+                if (treeWalkerNodeAccepted(self, node, true)) {
+                    return node;
+                }
+                rv = treeWalkerAcceptNode.$1;
+            }
+            // @ts-ignore: type inference issue
+            while (node && node !== self.root && !node.nextSibling) {
+                // @ts-ignore: type inference issue
+                node = treeWalkerIsNodeVisible(self, node.parentNode);
+            }
+            if (!node || node === self.root) {
+                return null;
+            }
+            // @ts-ignore: type inference issue
+            node = node.nextSibling;
+            if (treeWalkerNodeAccepted(self, node, true)) {
+                return node;
+            }
+            rv = treeWalkerAcceptNode.$1;
+        }
+    }
+});
+
 export {
     TraversableNode,
     TraversableNodeTree,
     InheritedNode,
-    InheritedNodeTree
+    InheritedNodeTree,
+    TreeWalker
 };

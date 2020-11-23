@@ -467,6 +467,13 @@ declare namespace Zeta {
      * -------------------------------------- */
 
     interface NodeTreeOptions {
+        captureDOMEvents?: boolean;
+    }
+
+    interface TraversableNodeTreeOptions<T> extends NodeTreeOptions {
+    }
+
+    interface InheritedNodeTreeOptions<T> extends NodeTreeOptions {
     }
 
     interface NodeTreeEventMap {
@@ -490,13 +497,16 @@ declare namespace Zeta {
     }
 
     declare class TraversableNodeTree<T extends TraversableNode> extends NodeTree<T> {
-        constructor(element: Element, constructor?: new (...args) => T, options?: Zeta.NodeTreeOptions);
-        constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: Zeta.NodeTreeOptions);
+        constructor(element: Element, constructor?: new (...args) => T, options?: TraversableNodeTreeOptions<T>);
+        constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: TraversableNodeTreeOptions<T>);
+
+        isNodeVisible(node: T, iterator: TreeWalker<T>): boolean;
+        acceptNode(node: T, iterator: TreeWalker<T>): IteratorNodeFilterResult;
     }
 
     declare class InheritedNodeTree<T extends InheritedNode> extends NodeTree<T> {
-        constructor(element: Element, constructor?: new (...args) => T, options?: Zeta.NodeTreeOptions);
-        constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: Zeta.NodeTreeOptions);
+        constructor(element: Element, constructor?: new (...args) => T, options?: InheritedNodeTreeOptions<T>);
+        constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: InheritedNodeTreeOptions<T>);
     }
 
     declare abstract class VirtualNode implements HasElement {
@@ -518,6 +528,24 @@ declare namespace Zeta {
         constructor(tree: NodeTree, element: Element);
 
         getComputedValues(): Dictionary;
+    }
+
+    declare class TreeWalker<T extends TraversableNode> implements Iterator<T> {
+        constructor(root: T, whatToShow?: number, filter?: IteratorNodeFilter<T>);
+
+        readonly root: T;
+        readonly whatToShow: number;
+        readonly filter: IteratorNodeFilter<T>;
+
+        currentNode: T;
+
+        nextNode(): T | null;
+        previousNode(): T | null;
+        parentNode(): T | null;
+        firstChild(): T | null;
+        lastChild(): T | null;
+        previousSilbing(): T | null;
+        nextSilbing(): T | null;
     }
 }
 

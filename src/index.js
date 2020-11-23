@@ -4,7 +4,7 @@ import * as _util from "./util.js";
 import * as _domUtil from "./domUtil.js";
 import * as cssUtil from "./cssUtil.js";
 import { ZetaEventContainer } from "./events.js";
-import { InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree } from "./tree.js";
+import { InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree, TreeWalker } from "./tree.js";
 import dom from "./dom.js";
 
 const IS_IOS = env.IS_IOS;
@@ -28,7 +28,8 @@ export default {
     InheritedNode,
     InheritedNodeTree,
     TraversableNode,
-    TraversableNodeTree
+    TraversableNodeTree,
+    TreeWalker
 };
 
 export {
@@ -45,5 +46,6 @@ export {
     InheritedNode,
     InheritedNodeTree,
     TraversableNode,
-    TraversableNodeTree
+    TraversableNodeTree,
+    TreeWalker
 };
