@@ -1,4 +1,4 @@
-import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord } from "./util.js";
+import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray } from "./util.js";
 import { $ } from "./shim.js";
 
 const root = document.documentElement;
@@ -149,6 +149,21 @@ function acceptNode(iterator, node) {
     }
     var filter = iterator.filter;
     return !filter ? 1 : (filter.acceptNode || filter).call(filter, node);
+}
+
+function combineNodeFilters() {
+    var args = makeArray(arguments);
+    return function (node) {
+        var result = 1;
+        for (var i = 0, len = args.length; i < len; i++) {
+            var value = isFunction(args[i]) && args[i](node);
+            if (value === 2) {
+                return 2;
+            }
+            result |= value;
+        }
+        return result;
+    };
 }
 
 function iterateNode(iterator, callback, from, until) {
@@ -596,6 +611,7 @@ export {
     comparePosition,
     connected,
     containsOrEquals,
+    combineNodeFilters,
     iterateNode,
     iterateNodeToArray,
 

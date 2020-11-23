@@ -68,6 +68,15 @@ export function connected(a: Element, b: Element): boolean;
 export function containsOrEquals(a: Node | Zeta.HasElement, b: Node | Zeta.HasElement): boolean;
 
 /**
+ * Combines multiple node filters.
+ *
+ * If any one of the filter returns 2 meaning to skip the given node and its descendants, the combined filter will also return 2 and no subsequent filters will be called.
+ * If any one of the filter returns 3 meaning to skip the given node, the combined filter will also return 3.
+ * @param args Node filters to be chained.
+ */
+export function combineNodeFilters(...args: Zeta.IteratorNodeFilter[]): Zeta.IteratorNodeFilter;
+
+/**
  * Iterates and invoke the given callback for each node.
  * @param iterator Any iterable object with the previousNode and nextNode methods.
  * @param [callback] Function to be called on each node.
