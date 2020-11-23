@@ -103,17 +103,6 @@ function is(element, selector) {
     return (selector === '*' || tagName(element) === selector || $(element).is(selector)) && element;
 }
 
-function sameElementSpec(a, b) {
-    if (tagName(a) !== tagName(b)) {
-        return false;
-    }
-    var thisAttr = a.attributes;
-    var prevAttr = b.attributes;
-    return thisAttr.length === prevAttr.length && !any(thisAttr, function (v) {
-        return !prevAttr[v.nodeName] || v.value !== prevAttr[v.nodeName].value;
-    });
-}
-
 function comparePosition(a, b, strict) {
     if (a === b) {
         return 0;
@@ -221,23 +210,6 @@ function selectClosestRelative(selector, container) {
         }
     }
     return element;
-}
-
-
-/* --------------------------------------
- * Create
- * -------------------------------------- */
-
-function createDocumentFragment(node) {
-    return is(node, DocumentFragment) || $(document.createDocumentFragment()).append(node)[0];
-}
-
-function createTextNode(text) {
-    return document.createTextNode(text || '\u200b');
-}
-
-function createElement(name) {
-    return document.createElement(name);
 }
 
 function createNodeIterator(root, whatToShow, filter) {
@@ -620,7 +592,6 @@ export {
     tagName,
     is,
     isVisible,
-    sameElementSpec,
     comparePosition,
     connected,
     containsOrEquals,
@@ -632,9 +603,6 @@ export {
     selectIncludeSelf,
     selectClosestRelative,
 
-    createDocumentFragment,
-    createTextNode,
-    createElement,
     createNodeIterator,
     createTreeWalker,
 

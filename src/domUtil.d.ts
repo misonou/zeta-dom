@@ -43,14 +43,6 @@ export function is<T extends number>(a: Node, b: T): Zeta.NodeOfType<T> | false;
 export function isVisible(a: Element): boolean;
 
 /**
- * Tests whether two elements shared the same tag name and attributes.
- * @param a A DOM element.
- * @param b A DOM element.
- * @returns true if the two given elements have the same tag name and attributes.
- */
-export function sameElementSpec(a: Element, b: Element): boolean;
-
-/**
  * Returns whether one node precedes the other node in document order.
  * @param a A DOM node.
  * @param b A DOM node.
@@ -118,29 +110,6 @@ export function parentsAndSelf(node: Node): Element[];
 export function selectIncludeSelf(sel: string, node: Node | NodeList | Node[] | ArrayLike<Node>): Element[];
 
 export function selectClosestRelative(sel: string, node: Node): Element;
-
-/**
- * Creates a DOM element. It is the an alias to Document#createElement.
- * @param tagName Tag name of the element to be created.
- * @returns A DOM element of the specified tag name.
- */
-export function createElement(tagName: string): Element;
-
-/**
- * Creates a DOM text node.
- * @param [nodeValue] Text content of the text node to be created.
- * @returns A DOM text node.
- */
-export function createTextNode(nodeValue?: string): Text;
-
-/**
- * Creates an empty document fragment or a document fragment containing supplied content.
- * If supplied content is a set of DOM nodes that is descendant from document or other fragment, they will be removed from the original ancestors.
- * If the supplied content is also a document fragment, the same object is returned.
- * @param [content] Content to be inserted to the fragment.
- * @returns A document fragment containing the supplied content.
- */
-export function createDocumentFragment(content?: Zeta.HtmlContent): DocumentFragment
 
 /**
  * Creates a DOM node iterator. It is essentially the same as Document#createNodeIterator but allows arguments to be optional.
