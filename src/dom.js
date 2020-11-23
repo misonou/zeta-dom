@@ -2,7 +2,7 @@ import { IS_IE10, IS_MAC, IS_TOUCH } from "./env.js";
 import { Map, Set, WeakMap, Promise, $ } from "./shim.js";
 import { any, each, extend, lcfirst, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
 import { bind, containsOrEquals, dispatchDOMMouseEvent, is, isVisible, makeSelection, parentsAndSelf } from "./domUtil.js";
-import { ZetaEventSource, lastEventSource, getContainer, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
+import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
 import { afterDetached, observe, registerCleanup, watchAttributes, watchElements } from "./observe.js";
 
@@ -71,11 +71,9 @@ function focusLockedWithin(element) {
 
 function triggerFocusEvent(eventName, elements, relatedTarget, source) {
     each(elements, function (i, v) {
-        if (getContainer(v, true)) {
-            emitDOMEvent(eventName, null, v, {
-                relatedTarget: relatedTarget
-            }, false, source);
-        }
+        emitDOMEvent(eventName, null, v, {
+            relatedTarget: relatedTarget
+        }, false, source);
     });
 }
 
@@ -379,7 +377,7 @@ domReady.then(function () {
         },
         touchstart: function (e) {
             // @ts-ignore: e.target is Element
-            var container = getContainer(e.target);
+            var container = getEventContext(e.target);
             normalizeTouchEvents = container.normalizeTouchEvents;
             mouseInitialPoint = extend({}, e.touches[0]);
             if (!e.touches[1]) {
@@ -539,7 +537,7 @@ export default {
         return currentEvent;
     },
     get context() {
-        return getContainer(focusPath[0]).context;
+        return getEventContext(focusPath[0]).context;
     },
     get activeElement() {
         return focusPath[0];

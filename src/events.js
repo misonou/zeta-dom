@@ -68,17 +68,15 @@ function getEventSourceName() {
     return type[0] === 'k' || type.substr(0, 3) === 'com' ? 'keyboard' : type[0] === 't' ? 'touch' : type[0] === 'm' || matchWord(type, 'wheel click dblclick contextmenu') ? 'mouse' : matchWord(type, 'drop cut copy paste') || 'script';
 }
 
-function getContainer(element, exact) {
-    if (exact) {
-        return mapGet(containers, element);
-    }
+function getEventContext(element) {
     for (var cur = element; cur && !containers.has(cur); cur = cur.parentNode);
-    return mapGet(containers, cur) || domContainer;
+    var container = mapGet(containers, cur) || domContainer;
+    return _(container).options;
 }
 
 function emitDOMEvent(eventName, nativeEvent, target, data, bubbles, source) {
     var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, nativeEvent, bubbles, source);
-    return emitter.emit(domEventTrap, 'tap', getContainer(target).element, true) || emitter.emit();
+    return emitter.emit(domEventTrap, 'tap', target, true) || emitter.emit();
 }
 
 function listenDOMEvent(element, event, handler) {
@@ -255,16 +253,18 @@ definePrototype(ZetaEvent, {
 
 function ZetaEventContainer(element, context, options) {
     var self = this;
-    _(self, {
-        components: new Map()
-    });
-    extend(self, {
+    options = extend({
         element: element || root,
         context: context || null,
         autoDestroy: containsOrEquals(root, element),
         normalizeTouchEvents: false,
         captureDOMEvents: false
     }, options);
+    _(self, {
+        options: options,
+        components: new Map()
+    });
+    extend(self, options);
     if (element && self.captureDOMEvents) {
         domEventTrap.setContext(element, self);
         containers.set(element, self);
@@ -370,7 +370,7 @@ export {
     ZetaEventSource,
     emitDOMEvent,
     listenDOMEvent,
-    getContainer,
+    getEventContext,
     getEventSource,
     prepEventSource,
     setLastEventSource
