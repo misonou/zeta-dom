@@ -70,29 +70,17 @@ export function retainFocus(a: Element, b: Element): void;
 
 export function releaseFocus(a: Element, b: Element): void;
 
-export function emit(eventName: string, target: Element, data?: any, bubbles?: boolean);
+/**
+ * Emits an event to a DOM element.
+ * @param eventName Name of the event.
+ * @param target A DOM element or a custom event target which the event should be dispatched on.
+ * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+ * @param bubbles Specifies whether the event should bubble up through the component tree. Default is true.
+ */
+export declare function emit(eventName: string, target: Element, data?: any, bubbles?: boolean, source?: string): Promise<any> | undefined;
 
-export function on<T extends Zeta.ZetaDOMEventName>(event: T, handler: Zeta.ZetaEventHandler<T, Zeta.ZetaDOMEventMap>): void;
-
-export function on(event: string, handler: Zeta.ZetaEventHandler): void;
-
-export function on(event: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): void;
-
-export function on<T extends Zeta.ZetaDOMEventName>(element: Element, event: T, handler: Zeta.ZetaEventHandler<T, Zeta.ZetaDOMEventMap>): void;
-
-export function on(element: Element, event: string, handler: Zeta.ZetaEventHandler): void;
-
-export function on(element: Element, event: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): void;
-
-
-/* --------------------------------------
- * domLock
- * -------------------------------------- */
+export { getEventSource, listenDOMEvent as on } from "./events";
 
 export * from "./domLock";
-
-/* --------------------------------------
- * Observe
- * -------------------------------------- */
 
 export * from "./observe";

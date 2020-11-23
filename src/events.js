@@ -85,7 +85,7 @@ function listenDOMEvent(element, event, handler) {
         event = element;
         element = root;
     }
-    domContainer.add(element, isPlainObject(event) || kv(event, handler));
+    return domContainer.add(element, event, handler);
 }
 
 function registerAsyncEvent(eventName, container, target, data, bubbles, mergeData) {
@@ -300,29 +300,23 @@ definePrototype(ZetaEventContainer, {
             var dict = handlers[i] || (handlers[i] = {});
             dict[key] = throwNotFunction(v);
         });
-        return key;
-    },
-    delete: function (target, key) {
-        var self = this;
-        var components = _(self).components;
-        var component = mapGet(components, target);
-        if (component) {
-            if (key) {
-                var handlers = component.handlers;
-                each(handlers, function (i, v) {
-                    delete v[key];
-                    if (!keys(v)[0]) {
-                        delete this[i];
-                    }
-                });
-                if (keys(handlers)[0]) {
-                    return;
+        return function () {
+            each(handlers, function (i, v) {
+                delete v[key];
+                if (!keys(v)[0]) {
+                    delete this[i];
                 }
+            });
+            if (!keys(handlers)[0]) {
+                self.delete(target);
             }
-            components.delete(target);
-            if (self.captureDOMEvents) {
-                containers.delete(component.element);
-            }
+        };
+    },
+    delete: function (target) {
+        var self = this;
+        var component = mapRemove(_(self).components, target);
+        if (component && self.captureDOMEvents) {
+            containers.delete(component.element);
         }
     },
     emit: function (eventName, target, data, bubbles) {

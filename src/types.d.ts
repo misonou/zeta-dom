@@ -369,40 +369,42 @@ declare namespace Zeta {
         readonly captureDOMEvents: boolean;
 
         /**
-         * Registers event handlers to a DOM element.
+         * Registers event handlers to a DOM element or a custom event target.
          * @param target An event target.
          * @param handlers An object which each entry represent the handler to be registered on the event.
-         * @returns A randomly generated key used to remove event handlers registered by this call.
+         * @returns A function that will unregister the handler when called.
          */
-        add(target: object, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): string;
+        add(target: any, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): () => void;
 
         /**
-         * Registers event handlers to a DOM element with a specific key.
+         * Registers event handlers to a DOM element or a custom event target.
          * @param target An event target.
          * @param event Name of the event.
          * @param handler A callback function to be fired when the specified event is triggered.
-         * @returns A randomly generated key used to remove event handlers registered by this call.
+         * @returns A function that will unregister the handlers when called.
          */
-        add<E extends string>(target: object, event: E, handlers: ZetaEventHandler<E, ZetaDOMEventMap, T>): string;
+        add<E extends string>(target: any, event: E, handlers: ZetaEventHandler<E, ZetaDOMEventMap, T>): () => void;
 
         /**
-         * Removes the element from the container.
+         * Removes the DOM element or custom event target from the container.
          * All event handlers are also removed.
          * @param target An event target.
          */
-        delete(target: object): void;
-
-        /**
-         * Removes event handlers that is registered using the specified key.
-         * @param target An event target.
-         * @param key A string to be used as the key.
-         */
-        delete(target: object, key: string): void;
+        delete(target: any): void;
 
         /**
          * Defunct the container. Destroy event will be fired for all registered elements.
          */
         destroy(): void;
+
+        /**
+         * Emits an event to a DOM element or a custom event target.
+         * @param event Name of the event.
+         * @param target A DOM element or a custom event target which the event should be dispatched on.
+         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param bubbles Specifies whether the event should bubble up through the component tree. Default is true.
+         */
+        emit(event: string, target?: any, data?: any, bubbles?: boolean): Promise<any> | false;
 
         /**
          * Re-emits an event to components.
@@ -412,7 +414,7 @@ declare namespace Zeta {
          * @param [data] Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param [bubbles] Specifies whether the event should bubble up through the component tree. Default is true.
          */
-        emit(event: ZetaEvent, target?: Element, data?: any, bubbles?: boolean): Promise<any> | false;
+        emit(event: ZetaEvent, target?: any, data?: any, bubbles?: boolean): Promise<any> | false;
 
         /**
          * Emits an event to components synchronously.
@@ -422,7 +424,7 @@ declare namespace Zeta {
          * @param [data] Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param [bubbles] Specifies whether the event should bubble up through the component tree. Default is true.
          */
-        emit(eventName: string, target?: Element, data?: any, bubbles?: boolean): Promise<any> | false;
+        emit(eventName: string, target?: any, data?: any, bubbles?: boolean): Promise<any> | false;
 
         /**
          * Emits an event to components asynchronously.
@@ -432,7 +434,7 @@ declare namespace Zeta {
          * @param [bubbles] Specifies whether the event should bubble up through the component tree. Default is true.
          * @param [mergeData] A callback to aggregates data from the previous undispatched event of the same name on the same target.
          */
-        emitAsync(eventName: string, target?: Element, data?: any, bubbles?: boolean, mergeData?: (v, a) => any): void;
+        emitAsync(eventName: string, target?: any, data?: any, bubbles?: boolean, mergeData?: (v, a) => any): void;
 
         /**
          * Gets the custom object that represents the given element,
