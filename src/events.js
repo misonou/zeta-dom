@@ -1,4 +1,3 @@
-import { Map, WeakMap } from "./shim.js";
 import { window, root } from "./env.js";
 import { createPrivateStore, definePrototype, each, extend, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, randomId, reject, resolve, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, is, parentsAndSelf } from "./domUtil.js";

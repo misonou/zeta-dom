@@ -1,4 +1,4 @@
-import { Map, Set, WeakMap, Promise } from "./shim.js";
+import Promise from "./include/promise-polyfill.js";
 import { window } from "./env.js";
 
 const keys = Object.keys;

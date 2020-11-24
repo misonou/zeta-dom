@@ -1,6 +1,7 @@
-import { IS_IE10, IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle } from "./env.js";
+import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle } from "./env.js";
 import { KEYNAMES } from "./constants.js";
-import { Map, Set, WeakMap, Promise, $ } from "./shim.js";
+import Promise from "./include/promise-polyfill.js";
+import $ from "./include/jquery.js";
 import { any, each, extend, lcfirst, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
 import { bind, containsOrEquals, dispatchDOMMouseEvent, is, isVisible, makeSelection, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
@@ -230,21 +231,6 @@ domReady.then(function () {
     function triggerGestureEvent(gesture, nativeEvent) {
         mouseInitialPoint = null;
         return emitDOMEvent('gesture', nativeEvent, focusPath.slice(-1)[0], gesture, true);
-    }
-
-    if (IS_IE10) {
-        // polyfill for pointer-events: none for IE10
-        bind(body, 'mousedown mouseup mousemove mouseenter mouseleave click dblclick contextmenu wheel', function (e) {
-            // @ts-ignore: e.target is Element
-            if (getComputedStyle(e.target).pointerEvents === 'none') {
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                // @ts-ignore: e.target is Element
-                if (!e.bubbles || !dispatchDOMMouseEvent(e.type, e, e)) {
-                    e.preventDefault();
-                }
-            }
-        }, true);
     }
 
     bind(window, 'mousedown mouseup wheel compositionstart compositionend beforeinput textInput keydown keyup keypress touchstart touchend cut copy paste drop click dblclick contextmenu', function (e) {

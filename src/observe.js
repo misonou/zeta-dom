@@ -1,7 +1,7 @@
-import { Set, Map, WeakMap, Promise } from "./shim.js";
-import { window, root } from "./env.js";
-import { any, each, extend, grep, isFunction, makeArray, map, mapGet, mapRemove, setImmediateOnce, throwNotFunction } from "./util.js";
-import { bind, containsOrEquals, selectIncludeSelf } from "./domUtil.js";
+import Promise from "./include/promise-polyfill.js";
+import { root } from "./env.js";
+import { each, extend, grep, isFunction, makeArray, map, mapGet, mapRemove, throwNotFunction } from "./util.js";
+import { containsOrEquals, selectIncludeSelf } from "./domUtil.js";
 import dom from "./dom.js";
 
 const detachHandlers = new WeakMap();
@@ -9,72 +9,6 @@ const optionsForChildList = {
     subtree: true,
     childList: true
 };
-
-const MutationObserver = window.MutationObserver || (function () {
-    function MutationObserver(handler) {
-        var self = this;
-        this.records = [];
-        this.handler = function () {
-            handler(self.takeRecords(), self);
-        };
-        throwNotFunction(handler);
-    }
-    MutationObserver.prototype = {
-        observe: function (element, init) {
-            var self = this;
-            var attributeFilter = init.attributeFilter;
-            if (attributeFilter) {
-                attributeFilter = attributeFilter.map(function (v) {
-                    return String(v).toLowerCase();
-                });
-            }
-            bind(element, 'DOMNodeInserted DOMNodeRemoved DOMAttrModified DOMCharacterDataModified', function (e) {
-                var type = e.type.charAt(7);
-                // @ts-ignore: non-standard member
-                var oldValue = e.prevValue;
-                var record = {};
-                record.addedNodes = [];
-                record.removedNodes = [];
-                if (type === 'M') {
-                    // @ts-ignore: non-standard member
-                    if (!attributeFilter || attributeFilter.indexOf(e.attrName.toLowerCase()) >= 0) {
-                        record.type = 'attributes';
-                        record.target = e.target;
-                        // @ts-ignore: non-standard member
-                        record.attributeName = e.attrName;
-                        if (init.attributeOldValue) {
-                            record.oldValue = oldValue;
-                        }
-                    }
-                } else if (type === 'a') {
-                    record.type = 'characterData';
-                    record.target = e.target;
-                    if (init.characterDataOldValue) {
-                        record.oldValue = oldValue;
-                    }
-                } else {
-                    record.type = 'childList';
-                    // @ts-ignore: e.target is Element
-                    record.target = e.target.parentNode;
-                    record[type === 'I' ? 'addedNodes' : 'removedNodes'][0] = e.target;
-                }
-                var shouldIgnore = any(self.records, function (v) {
-                    return v.type === 'childList' && v.addedNodes.some(function (v) {
-                        return containsOrEquals(v, record.target);
-                    });
-                });
-                if (!shouldIgnore && init[record.type] && (init.subtree || record.target === element)) {
-                    self.records[self.records.length] = record;
-                    setImmediateOnce(self.handler);
-                }
-            });
-        },
-        takeRecords: function () {
-            return this.records.splice(0);
-        }
-    };
-    return MutationObserver;
-}());
 
 function DetachHandlerState() {
     this.handlers = []

@@ -2,7 +2,6 @@ import dom from "./dom.js";
 import { combineNodeFilters, comparePosition, containsOrEquals, createTreeWalker, is, iterateNode, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventContainer } from "./events.js";
 import { observe } from "./observe.js";
-import { Map, WeakMap } from "./shim.js"
 import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, isPlainObject, kv, map, mapGet, mapRemove } from "./util.js";
 
 const _ = createPrivateStore();
