@@ -38,11 +38,6 @@ module.exports = {
     },
     externals: {
         'promise-polyfill': 'promise-polyfill',
-        'jquery': {
-            commonjs: 'jquery',
-            commonjs2: 'jquery',
-            amd: 'jquery',
-            root: '$'
-        }
+        'jquery': 'jQuery'
     }
 };
