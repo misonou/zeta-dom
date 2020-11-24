@@ -1,8 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
 import { root } from "./env.js";
 import { each, extend, grep, isFunction, makeArray, map, mapGet, mapRemove, throwNotFunction } from "./util.js";
-import { containsOrEquals, selectIncludeSelf } from "./domUtil.js";
-import dom from "./dom.js";
+import { containsOrEquals, domReady, selectIncludeSelf } from "./domUtil.js";
 
 const detachHandlers = new WeakMap();
 const optionsForChildList = {
@@ -83,7 +82,7 @@ function watchElements(element, selector, callback, fireInit) {
         }
     });
     if (fireInit) {
-        dom.ready.then(function () {
+        domReady.then(function () {
             var matched = selectIncludeSelf(selector, element);
             if (matched[0]) {
                 matched.forEach(add);
@@ -107,7 +106,7 @@ function watchAttributes(element, attributes, callback, fireInit) {
         callback(makeArray(set));
     });
     if (fireInit) {
-        dom.ready.then(function () {
+        domReady.then(function () {
             var matched = selectIncludeSelf('[' + options.attributeFilter.join('],[') + ']', element);
             if (matched[0]) {
                 callback(matched);

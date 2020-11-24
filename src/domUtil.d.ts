@@ -5,6 +5,11 @@
  * -------------------------------------- */
 
 /**
+ * Gets a promise to be resolved when the document is ready.
+ */
+export const domReady: Promise<void>;
+
+/**
  * Returns the tag name of the given element in lower case.
  * @param element A DOM element.
  * @returns The tag name of the given element in lower case.

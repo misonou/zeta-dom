@@ -1,9 +1,8 @@
 import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle } from "./env.js";
 import { KEYNAMES } from "./constants.js";
-import Promise from "./include/promise-polyfill.js";
 import $ from "./include/jquery.js";
 import { any, each, extend, lcfirst, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
-import { bind, containsOrEquals, dispatchDOMMouseEvent, is, isVisible, makeSelection, parentsAndSelf } from "./domUtil.js";
+import { bind, containsOrEquals, dispatchDOMMouseEvent, domReady, is, isVisible, makeSelection, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
 import { afterDetached, observe, registerCleanup, watchAttributes, watchElements } from "./observe.js";
@@ -15,7 +14,6 @@ const focusPath = [];
 const focusFriends = new WeakMap();
 const focusElements = new Set();
 const modalElements = new Map();
-const domReady = new Promise($);
 
 var windowFocusedOut;
 var currentEvent;

@@ -11,6 +11,7 @@ const OFFSET_ZERO = Object.freeze({
     y: 0
 });
 
+var domReady = new Promise($);
 var originDiv;
 var scrollbarWidth;
 
@@ -605,6 +606,7 @@ function elementFromPoint(x, y, container) {
 
 
 export {
+    domReady,
     tagName,
     is,
     isVisible,
