@@ -1,18 +1,18 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("jquery"), require("promise-polyfill"));
+		module.exports = factory(require("promise-polyfill"), require("jQuery"));
 	else if(typeof define === 'function' && define.amd)
-		define("zeta", ["jquery", "promise-polyfill"], factory);
+		define("zeta", ["promise-polyfill", "jQuery"], factory);
 	else if(typeof exports === 'object')
-		exports["zeta"] = factory(require("jquery"), require("promise-polyfill"));
+		exports["zeta"] = factory(require("promise-polyfill"), require("jQuery"));
 	else
-		root["zeta"] = factory(root["$"], root["promise-polyfill"]);
-})(self, function(__WEBPACK_EXTERNAL_MODULE__44__, __WEBPACK_EXTERNAL_MODULE__804__) {
+		root["zeta"] = factory(root["promise-polyfill"], root["jQuery"]);
+})(self, function(__WEBPACK_EXTERNAL_MODULE__804__, __WEBPACK_EXTERNAL_MODULE__609__) {
 return /******/ (function() { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 650:
+/***/ 917:
 /***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 // ESM COMPAT FLAG
@@ -21,31 +21,20 @@ __webpack_require__.r(__webpack_exports__);
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
   "EventContainer": function() { return /* reexport */ ZetaEventContainer; },
-  "IS_IE": function() { return /* binding */ src_IS_IE; },
-  "IS_IE10": function() { return /* binding */ src_IS_IE10; },
-  "IS_IOS": function() { return /* binding */ src_IS_IOS; },
-  "IS_MAC": function() { return /* binding */ src_IS_MAC; },
-  "IS_TOUCH": function() { return /* binding */ src_IS_TOUCH; },
+  "IS_IE": function() { return /* reexport */ IS_IE; },
+  "IS_IE10": function() { return /* reexport */ IS_IE10; },
+  "IS_IOS": function() { return /* reexport */ IS_IOS; },
+  "IS_MAC": function() { return /* reexport */ IS_MAC; },
+  "IS_TOUCH": function() { return /* reexport */ IS_TOUCH; },
   "InheritedNode": function() { return /* reexport */ InheritedNode; },
   "InheritedNodeTree": function() { return /* reexport */ InheritedNodeTree; },
   "TraversableNode": function() { return /* reexport */ TraversableNode; },
   "TraversableNodeTree": function() { return /* reexport */ TraversableNodeTree; },
+  "TreeWalker": function() { return /* reexport */ TreeWalker; },
   "css": function() { return /* reexport */ cssUtil_namespaceObject; },
   "default": function() { return /* binding */ src; },
   "dom": function() { return /* reexport */ src_dom; },
-  "shim": function() { return /* reexport */ shim_namespaceObject; },
   "util": function() { return /* binding */ util; }
-});
-
-// NAMESPACE OBJECT: ./src/shim.js
-var shim_namespaceObject = {};
-__webpack_require__.r(shim_namespaceObject);
-__webpack_require__.d(shim_namespaceObject, {
-  "$": function() { return jQuery; },
-  "Map": function() { return Map; },
-  "Promise": function() { return Promise; },
-  "Set": function() { return Set; },
-  "WeakMap": function() { return WeakMap; }
 });
 
 // NAMESPACE OBJECT: ./src/util.js
@@ -68,6 +57,7 @@ __webpack_require__.d(util_namespaceObject, {
   "each": function() { return each; },
   "either": function() { return either; },
   "equal": function() { return equal; },
+  "exclude": function() { return exclude; },
   "extend": function() { return extend; },
   "getOwnPropertyDescriptors": function() { return getOwnPropertyDescriptors; },
   "grep": function() { return grep; },
@@ -90,6 +80,7 @@ __webpack_require__.d(util_namespaceObject, {
   "mapRemove": function() { return mapRemove; },
   "matchWord": function() { return matchWord; },
   "noop": function() { return noop; },
+  "pick": function() { return pick; },
   "randomId": function() { return randomId; },
   "reject": function() { return reject; },
   "repeat": function() { return repeat; },
@@ -116,17 +107,16 @@ __webpack_require__.r(domUtil_namespaceObject);
 __webpack_require__.d(domUtil_namespaceObject, {
   "bind": function() { return bind; },
   "bindUntil": function() { return bindUntil; },
+  "combineNodeFilters": function() { return combineNodeFilters; },
   "comparePosition": function() { return comparePosition; },
   "compareRangePosition": function() { return compareRangePosition; },
   "connected": function() { return connected; },
   "containsOrEquals": function() { return containsOrEquals; },
-  "createDocumentFragment": function() { return createDocumentFragment; },
-  "createElement": function() { return createElement; },
   "createNodeIterator": function() { return createNodeIterator; },
   "createRange": function() { return createRange; },
-  "createTextNode": function() { return createTextNode; },
   "createTreeWalker": function() { return createTreeWalker; },
   "dispatchDOMMouseEvent": function() { return dispatchDOMMouseEvent; },
+  "domReady": function() { return domReady; },
   "elementFromPoint": function() { return elementFromPoint; },
   "getClass": function() { return getClass; },
   "getCommonAncestor": function() { return getCommonAncestor; },
@@ -150,7 +140,6 @@ __webpack_require__.d(domUtil_namespaceObject, {
   "rectEquals": function() { return rectEquals; },
   "rectIntersects": function() { return rectIntersects; },
   "removeNode": function() { return removeNode; },
-  "sameElementSpec": function() { return sameElementSpec; },
   "scrollBy": function() { return scrollBy; },
   "scrollIntoView": function() { return scrollIntoView; },
   "selectClosestRelative": function() { return selectClosestRelative; },
@@ -171,237 +160,26 @@ __webpack_require__.d(cssUtil_namespaceObject, {
 
 // CONCATENATED MODULE: ./src/env.js
 // @ts-nocheck
-var root = document.documentElement;
-var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-var IS_IE10 = !!window.ActiveXObject;
-var IS_IE = !!window.ActiveXObject || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
+var env_window = self;
+var env_document = env_window.document;
+var root = env_document.documentElement;
+var getSelection = env_window.getSelection;
+var getComputedStyle = env_window.getComputedStyle;
+var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !env_window.MSStream;
+var IS_IE10 = !!env_window.ActiveXObject;
+var IS_IE = IS_IE10 || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
 var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
-var IS_TOUCH = ('ontouchstart' in window);
-// CONCATENATED MODULE: ./src/shim.js
+var IS_TOUCH = ('ontouchstart' in env_window);
+// CONCATENATED MODULE: ./src/include/promise-polyfill.js
 // @ts-nocheck
-var Map = window.Map || function () {
-  function indexOf(map, key) {
-    return map.items.indexOf(key);
-  }
 
-  function Map() {
-    var self = this;
-    self.items = [];
-    self._values = [];
-    self._keys = Set.prototype._keys;
-  }
+/** @type {PromiseConstructor} */
+var promise_polyfill_Promise = window.Promise || __webpack_require__(804).default;
 
-  Map.prototype = {
-    get size() {
-      return this.items.length;
-    },
-
-    has: function has(v) {
-      return indexOf(this, v) >= 0;
-    },
-    get: function get(v) {
-      var index = indexOf(this, v);
-      return index >= 0 ? this._values[index] : undefined;
-    },
-    set: function set(i, v) {
-      var self = this;
-      var index = indexOf(self, i);
-      self._values[index >= 0 ? index : self.items.push(i) - 1] = v;
-      return self;
-    },
-    delete: function _delete(v) {
-      var self = this;
-      var index = indexOf(self, v);
-
-      if (index >= 0) {
-        self.items.splice(index, 1);
-
-        self._values.splice(index, 1);
-      }
-
-      return index >= 0;
-    },
-    keys: function keys() {
-      return this._keys();
-    },
-    values: function values() {
-      var self = this;
-      return self._keys(function (v) {
-        return self.get(v);
-      });
-    },
-    entries: function entries() {
-      var self = this;
-      return self._keys(function (v) {
-        return [v, self.get(v)];
-      });
-    },
-    forEach: function forEach(callback, thisArg) {
-      var self = this;
-      self.items.forEach(function (v, i) {
-        callback.call(thisArg, self._values[i], v, self);
-      });
-    },
-    clear: function clear() {
-      this.items.splice(0);
-
-      this._values.splice(0);
-    }
-  };
-  return Map;
-}();
-
-var Set = window.Set || function () {
-  function Iterator(arr, callback) {
-    var self = this;
-    self.items = arr;
-    self.index = -1;
-
-    self.callback = callback || function (v) {
-      return v;
-    };
-  }
-
-  Iterator.prototype = {
-    next: function next() {
-      var self = this;
-
-      if (++self.index < self.items.length) {
-        return {
-          value: self.callback(self.items[self.index], self.index),
-          done: false
-        };
-      }
-
-      return {
-        value: undefined,
-        done: true
-      };
-    }
-  };
-
-  function Set() {
-    this.items = [];
-  }
-
-  Set.prototype = {
-    get size() {
-      return this.items.length;
-    },
-
-    has: function has(v) {
-      return this.items.indexOf(v) >= 0;
-    },
-    add: function add(v) {
-      var items = this.items;
-
-      if (items.indexOf(v) < 0) {
-        items.push(v);
-      }
-
-      return this;
-    },
-    delete: function _delete(v) {
-      var index = this.items.indexOf(v);
-
-      if (index >= 0) {
-        this.items.splice(index, 1);
-      }
-
-      return index >= 0;
-    },
-    keys: function keys() {
-      return this._keys();
-    },
-    values: function values() {
-      return this._keys();
-    },
-    entries: function entries() {
-      return this._keys(function (v) {
-        return [v, v];
-      });
-    },
-    forEach: function forEach(callback, thisArg) {
-      var self = this;
-      self.items.forEach(function (v) {
-        callback.call(thisArg, v, v, self);
-      });
-    },
-    clear: function clear() {
-      this.items.splice(0);
-    },
-    _keys: function _keys(callback) {
-      return new Iterator(this.items, callback);
-    }
-  };
-  return Set;
-}();
-
-var WeakMap = window.WeakMap || function () {
-  var num = 0;
-  var state = 0;
-  var returnValue;
-
-  function WeakMap() {
-    this.key = '__WeakMap' + ++num;
-  }
-
-  WeakMap.prototype = {
-    get: function get(key) {
-      if (this.has(key)) {
-        try {
-          state = 1;
-          key[this.key]();
-
-          if (state !== 2) {
-            throw new Error('Invalid operation');
-          }
-
-          var value = returnValue;
-          returnValue = null;
-          return value;
-        } finally {
-          state = 0;
-        }
-      }
-    },
-    set: function set(key, _value) {
-      Object.defineProperty(key, this.key, {
-        configurable: true,
-        value: function value() {
-          if (state === 1) {
-            returnValue = _value;
-            state = 2;
-          }
-        }
-      });
-      return this;
-    },
-    has: function has(key) {
-      return key && Object.hasOwnProperty.call(key, this.key);
-    },
-    delete: function _delete(key) {
-      var has = this.has(key);
-
-      if (has) {
-        delete key[this.key];
-      }
-
-      return has;
-    }
-  };
-  return WeakMap;
-}();
-
-var useRequire = "function" === 'function';
-
-var jQuery = window.jQuery || useRequire && __webpack_require__(44);
-
-var Promise = window.Promise || useRequire && __webpack_require__(804).default;
-
-
+/* harmony default export */ const promise_polyfill = (promise_polyfill_Promise);
 // CONCATENATED MODULE: ./src/util.js
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
+
 
 
 var keys = Object.keys;
@@ -462,7 +240,7 @@ function isPlainObject(obj) {
 }
 
 function isArrayLike(obj) {
-  if (isFunction(obj) || obj === window) {
+  if (isFunction(obj) || obj === env_window) {
     return false;
   }
 
@@ -656,6 +434,24 @@ function kv(key, value) {
   return obj;
 }
 
+function pick(obj, keys) {
+  var result = {};
+  each(keys, function (i, v) {
+    if (v in obj) {
+      result[v] = obj[v];
+    }
+  });
+  return result;
+}
+
+function exclude(obj, keys) {
+  var result = extend({}, obj);
+  each(keys, function (i, v) {
+    delete result[v];
+  });
+  return result;
+}
+
 function mapGet(map, key, fn) {
   return map.get(key) || fn && (map.set(key, new fn()), map.get(key));
 }
@@ -783,11 +579,11 @@ function htmlDecode(input) {
 
 
 function resolve(value) {
-  return Promise.resolve(value);
+  return promise_polyfill.resolve(value);
 }
 
 function reject(reason) {
-  return Promise.reject(reason);
+  return promise_polyfill.reject(reason);
 }
 
 function always(promise, callback) {
@@ -804,7 +600,7 @@ function resolveAll(obj, callback) {
   }
 
   if (isArray(obj)) {
-    return Promise.all(obj).then(callback);
+    return promise_polyfill.all(obj).then(callback);
   }
 
   var result = {};
@@ -823,7 +619,7 @@ function catchAsync(promise) {
 }
 
 function setPromiseTimeout(promise, ms, resolveWhenTimeout) {
-  return new Promise(function (resolve, reject) {
+  return new promise_polyfill(function (resolve, reject) {
     promise.then(resolve, reject);
     setTimeout(function () {
       (resolveWhenTimeout ? resolve : reject)('timeout');
@@ -1060,7 +856,7 @@ function _watch(obj, prop, handler, fireInit) {
 
 function _watchOnce(obj, prop, handler) {
   defineObservableProperty(obj, prop);
-  return new Promise(function (resolve) {
+  return new promise_polyfill(function (resolve) {
     var alias = getObservableState(obj).alias[prop] || [obj, prop];
     var handlers = getObservableState(alias[0]).handlers;
     handlers.push(function fn(e) {
@@ -1093,19 +889,26 @@ function watchable(obj) {
 }
 
 
+// CONCATENATED MODULE: ./src/include/jquery.js
+// @ts-nocheck
+
+/** @type {JQueryStatic} */
+var jQuery = window.jQuery || __webpack_require__(609);
+
+/* harmony default export */ const jquery = (jQuery);
 // CONCATENATED MODULE: ./src/domUtil.js
 
 
-var domUtil_root = document.documentElement;
-var selection = window.getSelection(); // @ts-ignore: non-standard member
+ // @ts-ignore: non-standard member
 
-var elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
-var compareDocumentPositionImpl = document.compareDocumentPosition;
+var elementsFromPoint = env_document.msElementsFromPoint || env_document.elementsFromPoint;
+var compareDocumentPositionImpl = env_document.compareDocumentPosition;
 var compareBoundaryPointsImpl = Range.prototype.compareBoundaryPoints;
 var OFFSET_ZERO = Object.freeze({
   x: 0,
   y: 0
 });
+var domReady = new Promise(jquery);
 var originDiv;
 var scrollbarWidth;
 /* --------------------------------------
@@ -1205,19 +1008,7 @@ function is(element, selector) {
     return (nodeType & selector) === nodeType && element;
   }
 
-  return (selector === '*' || tagName(element) === selector || jQuery(element).is(selector)) && element;
-}
-
-function sameElementSpec(a, b) {
-  if (tagName(a) !== tagName(b)) {
-    return false;
-  }
-
-  var thisAttr = a.attributes;
-  var prevAttr = b.attributes;
-  return thisAttr.length === prevAttr.length && !any(thisAttr, function (v) {
-    return !prevAttr[v.nodeName] || v.value !== prevAttr[v.nodeName].value;
-  });
+  return (selector === '*' || tagName(element) === selector || jquery(element).is(selector)) && element;
 }
 
 function comparePosition(a, b, strict) {
@@ -1245,11 +1036,11 @@ function connected(a, b) {
 function containsOrEquals(container, contained) {
   container = (container || '').element || container;
   contained = (contained || '').element || contained;
-  return container === contained || jQuery.contains(container, contained);
+  return container === contained || jquery.contains(container, contained);
 }
 
 function isVisible(element) {
-  if (!connected(domUtil_root, element)) {
+  if (!connected(root, element)) {
     return false;
   }
 
@@ -1269,11 +1060,31 @@ function isVisible(element) {
 function acceptNode(iterator, node) {
   node = node || iterator.currentNode;
 
-  if (!node || !(iterator.whatToShow & (is(node, Node) ? 1 << node.nodeType - 1 : node.nodeType))) {
+  if (!node || !(iterator.whatToShow & 1 << node.nodeType - 1)) {
     return 3;
   }
 
-  return !iterator.filter ? 1 : (iterator.filter.acceptNode || iterator.filter).call(iterator.filter, node);
+  var filter = iterator.filter;
+  return !filter ? 1 : (filter.acceptNode || filter).call(filter, node);
+}
+
+function combineNodeFilters() {
+  var args = makeArray(arguments);
+  return function (node) {
+    var result = 1;
+
+    for (var i = 0, len = args.length; i < len; i++) {
+      var value = isFunction(args[i]) && args[i](node);
+
+      if (value === 2) {
+        return 2;
+      }
+
+      result |= value;
+    }
+
+    return result;
+  };
 }
 
 function iterateNode(iterator, callback, from, until) {
@@ -1315,11 +1126,11 @@ function getCommonAncestor(a, b) {
 }
 
 function parentsAndSelf(element) {
-  if (element === window) {
+  if (element === env_window) {
     return [];
   }
 
-  for (var arr = []; element && element !== document && arr.push(element); element = element.parentNode || element.parent) {
+  for (var arr = []; element && element !== env_document && arr.push(element); element = element.parentNode || element.parent) {
     ;
   }
 
@@ -1327,24 +1138,24 @@ function parentsAndSelf(element) {
 }
 
 function selectIncludeSelf(selector, container) {
-  container = container || domUtil_root;
-  var matched = jQuery.uniqueSort(jQuery(container).find(selector).add(jQuery(container).filter(selector)).get());
+  container = container || root;
+  var matched = jquery.uniqueSort(jquery(container).find(selector).add(jquery(container).filter(selector)).get());
 
-  if (matched[0] || container === domUtil_root) {
+  if (matched[0] || container === root) {
     return matched;
   }
 
-  return jQuery(container).find(jQuery(selector)).get();
+  return jquery(container).find(jquery(selector)).get();
 }
 
 function selectClosestRelative(selector, container) {
-  container = container || domUtil_root;
-  var element = jQuery(selector, container)[0];
+  container = container || root;
+  var element = jquery(selector, container)[0];
 
   if (!element) {
-    var $matched = jQuery(selector);
+    var $matched = jquery(selector);
 
-    for (; container !== domUtil_root && !element; container = container.parentNode) {
+    for (; container !== root && !element; container = container.parentNode) {
       element = $matched.get().filter(function (v) {
         return containsOrEquals(container, v);
       })[0];
@@ -1353,31 +1164,15 @@ function selectClosestRelative(selector, container) {
 
   return element;
 }
-/* --------------------------------------
- * Create
- * -------------------------------------- */
-
-
-function createDocumentFragment(node) {
-  return is(node, DocumentFragment) || jQuery(document.createDocumentFragment()).append(node)[0];
-}
-
-function createTextNode(text) {
-  return document.createTextNode(text || "\u200B");
-}
-
-function createElement(name) {
-  return document.createElement(name);
-}
 
 function createNodeIterator(root, whatToShow, filter) {
   // @ts-ignore: assume filter is of correct signature
-  return document.createNodeIterator(root, whatToShow, isFunction(filter) || null, false);
+  return env_document.createNodeIterator(root, whatToShow, isFunction(filter) || null, false);
 }
 
 function createTreeWalker(root, whatToShow, filter) {
   // @ts-ignore: assume filter is of correct signature
-  return document.createTreeWalker(root, whatToShow, isFunction(filter) || null, false);
+  return env_document.createTreeWalker(root, whatToShow, isFunction(filter) || null, false);
 }
 /* --------------------------------------
  * Events
@@ -1417,8 +1212,8 @@ function dispatchDOMMouseEvent(eventName, point, e) {
     eventName = e.type;
   }
 
-  var target = point ? elementFromPoint(point.clientX, point.clientY) || domUtil_root : e.target;
-  var event = document.createEvent('MouseEvent');
+  var target = point ? elementFromPoint(point.clientX, point.clientY) || root : e.target;
+  var event = env_document.createEvent('MouseEvent');
   point = point || e;
   event.initMouseEvent(eventName, e.bubbles, e.cancelable, e.view, e.detail, point.screenX, point.screenY, point.clientX, point.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
   return target.dispatchEvent(event);
@@ -1470,7 +1265,7 @@ function getScrollOffset(winOrElm) {
 }
 
 function getScrollParent(element) {
-  for (var s; element !== domUtil_root && (s = getComputedStyle(element)) && s.overflow === 'visible' && matchWord(s.position, 'static relative'); element = element.parentNode) {
+  for (var s; element !== root && (s = getComputedStyle(element)) && s.overflow === 'visible' && matchWord(s.position, 'static relative'); element = element.parentNode) {
     ;
   }
 
@@ -1478,7 +1273,7 @@ function getScrollParent(element) {
 }
 
 function scrollBy(element, x, y) {
-  var winOrElm = element === domUtil_root || element === document.body ? window : element;
+  var winOrElm = element === root || element === env_document.body ? env_window : element;
   var orig = getScrollOffset(winOrElm);
 
   if (winOrElm.scrollBy) {
@@ -1499,7 +1294,7 @@ function getContentRect(element) {
   if (scrollbarWidth === undefined) {
     // detect native scrollbar size
     // height being picked because scrollbar may not be shown if container is too short
-    var dummy = jQuery('<div style="overflow:scroll;height:80px"><div style="height:100px"></div></div>').appendTo(document.body)[0];
+    var dummy = jquery('<div style="overflow:scroll;height:80px"><div style="height:100px"></div></div>').appendTo(env_document.body)[0];
     scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
     removeNode(dummy);
   }
@@ -1507,14 +1302,14 @@ function getContentRect(element) {
   var style = getComputedStyle(element);
   var hasOverflowX = element.offsetWidth < element.scrollWidth;
   var hasOverflowY = element.offsetHeight < element.scrollHeight;
-  var parentRect = getRect(element === document.body ? domUtil_root : element);
+  var parentRect = getRect(element === env_document.body ? root : element);
 
-  if ((style.overflow !== 'visible' || element === document.body) && (hasOverflowX || hasOverflowY)) {
-    if (style.overflowY === 'scroll' || (style.overflowY !== 'hidden' || element === document.body) && hasOverflowY) {
+  if ((style.overflow !== 'visible' || element === env_document.body) && (hasOverflowX || hasOverflowY)) {
+    if (style.overflowY === 'scroll' || (style.overflowY !== 'hidden' || element === env_document.body) && hasOverflowY) {
       parentRect.right -= scrollbarWidth;
     }
 
-    if (style.overflowX === 'scroll' || (style.overflowX !== 'hidden' || element === document.body) && hasOverflowX) {
+    if (style.overflowX === 'scroll' || (style.overflowX !== 'hidden' || element === env_document.body) && hasOverflowX) {
       parentRect.bottom -= scrollbarWidth;
     }
   }
@@ -1533,7 +1328,7 @@ function scrollIntoView(element, rect) {
   var deltaY = Math.max(0, rect.bottom - parentRect.bottom) || Math.min(rect.top - parentRect.top, 0);
   var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
 
-  if (parent !== domUtil_root) {
+  if (parent !== root) {
     var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y));
 
     if (parentResult) {
@@ -1559,7 +1354,7 @@ function createRange(startNode, startOffset, endNode, endOffset) {
   var range;
 
   if (is(startNode, Node)) {
-    range = document.createRange();
+    range = env_document.createRange();
 
     if (+startOffset !== startOffset) {
       range[startOffset === 'contents' || !startNode.parentNode ? 'selectNodeContents' : 'selectNode'](startNode);
@@ -1623,6 +1418,8 @@ function compareRangePosition(a, b, strict) {
 }
 
 function makeSelection(b, e) {
+  var selection = getSelection();
+
   if (!selection) {
     return;
   } // for newer browsers that supports setBaseAndExtent
@@ -1642,7 +1439,7 @@ function makeSelection(b, e) {
     // IE fails to clear ranges by removeAllRanges() in occasions mentioned in
     // http://stackoverflow.com/questions/22914075
     // @ts-ignore: non-standard member
-    var r = document.body.createTextRange();
+    var r = env_document.body.createTextRange();
     r.collapse();
     r.select();
     selection.removeAllRanges();
@@ -1654,7 +1451,7 @@ function makeSelection(b, e) {
     // IE may throws unspecified error even though the selection is successfully moved to the given range
     // if the range is not successfully selected retry after selecting other range
     if (!selection.rangeCount) {
-      selection.addRange(createRange(document.body));
+      selection.addRange(createRange(env_document.body));
       selection.removeAllRanges();
       selection.addRange(range);
     }
@@ -1663,7 +1460,7 @@ function makeSelection(b, e) {
 
 function getRect(elm, includeMargin) {
   var rect;
-  elm = elm || domUtil_root;
+  elm = elm || root;
 
   if (elm.getRect) {
     return elm.getRect();
@@ -1671,18 +1468,18 @@ function getRect(elm, includeMargin) {
 
   elm = elm.element || elm;
 
-  if (elm === domUtil_root || elm === window) {
-    var div = originDiv || (originDiv = jQuery('<div style="position:fixed; top:0; left:0;">')[0]);
+  if (elm === root || elm === env_window) {
+    var div = originDiv || (originDiv = jquery('<div style="position:fixed; top:0; left:0;">')[0]);
 
-    if (!containsOrEquals(document.body, div)) {
-      document.body.appendChild(div);
+    if (!containsOrEquals(env_document.body, div)) {
+      env_document.body.appendChild(div);
     } // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
     // when virtual keyboard is shown on mobile devices
 
 
     var o = getRect(div);
-    rect = toPlainRect(0, 0, domUtil_root.offsetWidth, domUtil_root.offsetHeight).translate(o.left, o.top);
-  } else if (!containsOrEquals(domUtil_root, elm)) {
+    rect = toPlainRect(0, 0, root.offsetWidth, root.offsetHeight).translate(o.left, o.top);
+  } else if (!containsOrEquals(root, elm)) {
     // IE10 throws Unspecified Error for detached elements
     rect = toPlainRect(0, 0, 0, 0);
   } else {
@@ -1755,22 +1552,22 @@ function mergeRect(a, b) {
 }
 
 function elementFromPoint(x, y, container) {
-  container = container || document.body;
+  container = container || env_document.body;
 
   if (elementsFromPoint) {
-    return any(elementsFromPoint.call(document, x, y), function (v) {
+    return any(elementsFromPoint.call(env_document, x, y), function (v) {
       return containsOrEquals(container, v) && getComputedStyle(v).pointerEvents !== 'none';
     }) || null;
   }
 
-  var element = document.elementFromPoint(x, y);
+  var element = env_document.elementFromPoint(x, y);
 
   if (!containsOrEquals(container, element) && pointInRect(x, y, getRect(container))) {
     var tmp = [];
 
     try {
       while (element && comparePosition(container, element, true)) {
-        var target = jQuery(element).parentsUntil(getCommonAncestor(container, element)).slice(-1)[0] || element;
+        var target = jquery(element).parentsUntil(getCommonAncestor(container, element)).slice(-1)[0] || element;
 
         if (target === tmp[tmp.length - 1]) {
           return null;
@@ -1779,10 +1576,10 @@ function elementFromPoint(x, y, container) {
 
         target.style.pointerEvents = 'none';
         tmp[tmp.length] = target;
-        element = document.elementFromPoint(x, y);
+        element = env_document.elementFromPoint(x, y);
       }
     } finally {
-      jQuery(tmp).css('pointer-events', '');
+      jquery(tmp).css('pointer-events', '');
     }
   }
 
@@ -1795,9 +1592,11 @@ function elementFromPoint(x, y, container) {
 
 
 
+
+
 function parseCSS(value) {
   var styles = {};
-  var div = document.createElement('div');
+  var div = env_document.createElement('div');
   div.setAttribute('style', value);
   each(div.style, function (i, v) {
     styles[v] = div.style[v];
@@ -1807,6 +1606,14 @@ function parseCSS(value) {
 
 function isCssUrlValue(value) {
   return value && value !== 'none' && /url\((?:'(.+)'|"(.+)"|([^)]+))\)/.test(value) && (RegExp.$1 || RegExp.$2 || RegExp.$3);
+}
+
+function normalizeCSSValue(curValue) {
+  if (curValue === 'matrix(1, 0, 0, 1, 0, 0)') {
+    return 'none';
+  }
+
+  return curValue;
 }
 
 function styleToJSON(style) {
@@ -1872,13 +1679,13 @@ function runCSSTransition(element, className, callback) {
     return v.element;
   });
   setClass(element, className, false);
-  jQuery(targets).css('transition', 'none');
+  jquery(targets).css('transition', 'none');
   setClass(element, className, true);
   var newStyle = arr.map(function (v) {
     return styleToJSON(getComputedStyle(v.element, v.pseudoElement));
   });
   setClass(element, className, false);
-  var appendPseudoToAnim = window.AnimationEvent && 'pseudoElement' in AnimationEvent.prototype;
+  var appendPseudoToAnim = env_window.AnimationEvent && 'pseudoElement' in AnimationEvent.prototype;
   var map = new Map();
   each(arr, function (i, v) {
     var pseudoElement = v.pseudoElement;
@@ -1886,16 +1693,8 @@ function runCSSTransition(element, className, callback) {
     var transitionProperties = map1.get(v);
     var dict = {};
     each(curStyle, function (j, v) {
-      var curValue = curStyle[v];
-      var newValue = newStyle[i][v];
-
-      if (curValue === 'matrix(1, 0, 0, 1, 0, 0)') {
-        curValue = 'none';
-      }
-
-      if (newValue === 'matrix(1, 0, 0, 1, 0, 0)') {
-        newValue = 'none';
-      }
+      var curValue = normalizeCSSValue(curStyle[v]);
+      var newValue = normalizeCSSValue(newStyle[i][v]);
 
       if (curValue !== newValue) {
         var prop = removeVendorPrefix(v);
@@ -1920,7 +1719,7 @@ function runCSSTransition(element, className, callback) {
       map.set(v.element, dict);
     }
   });
-  jQuery(targets).css('transition', '');
+  jquery(targets).css('transition', '');
   setClass(element, className, true);
 
   if (!map.size) {
@@ -1928,7 +1727,7 @@ function runCSSTransition(element, className, callback) {
     return resolve();
   }
 
-  return new Promise(function (resolve, reject) {
+  return new promise_polyfill(function (resolve, reject) {
     var unbind = bind(element, 'animationend transitionend', function (e) {
       var dict = map.get(e.target) || {}; // @ts-ignore: mixed type of Event
 
@@ -1949,8 +1748,271 @@ function runCSSTransition(element, className, callback) {
 }
 
 
+// CONCATENATED MODULE: ./src/observe.js
+
+
+
+
+var detachHandlers = new WeakMap();
+var optionsForChildList = {
+  subtree: true,
+  childList: true
+};
+
+function DetachHandlerState() {
+  this.handlers = [];
+  this.map = new Map();
+}
+
+function observe(element, options, callback) {
+  callback = throwNotFunction(callback || options);
+
+  if (isFunction(options)) {
+    options = optionsForChildList;
+  }
+
+  var processRecords = function processRecords(records) {
+    records = records.filter(function (v) {
+      // filter out changes due to sizzle engine
+      // to prevent excessive invocation due to querying elements through jQuery
+      return v.attributeName !== 'id' || (v.oldValue || '').slice(0, 6) !== 'sizzle' && v.target.id !== (v.oldValue || '');
+    });
+
+    if (records[0]) {
+      callback(records);
+    }
+  };
+
+  var observer = new MutationObserver(processRecords);
+  observer.observe(element, options);
+  return function () {
+    processRecords(observer.takeRecords());
+  };
+}
+
+function registerCleanup(callback) {
+  var state = mapGet(detachHandlers, root, DetachHandlerState);
+  state.handlers.push(throwNotFunction(callback));
+}
+
+function afterDetached(element, from, callback) {
+  if (isFunction(from)) {
+    callback = from;
+    from = root;
+  }
+
+  if (!mapGet(detachHandlers, from)) {
+    initDetachWatcher(from);
+  }
+
+  var promise;
+
+  if (!isFunction(callback)) {
+    promise = new promise_polyfill(function (resolve) {
+      callback = resolve;
+    });
+  }
+
+  var state = mapGet(detachHandlers, from, DetachHandlerState);
+  mapGet(state.map, element, Array).push(callback);
+  return promise;
+}
+
+function watchElements(element, selector, callback, fireInit) {
+  var collection = new Set();
+  var add = collection.add.bind(collection);
+  var remove = collection.delete.bind(collection);
+  var options = extend({}, optionsForChildList, {
+    attributes: selector.indexOf('[') >= 0
+  });
+  observe(element, options, function () {
+    var matched = selectIncludeSelf(selector, element);
+    var removedNodes = grep(collection, function (v) {
+      return matched.indexOf(v) < 0;
+    });
+    var addedNodes = matched.filter(function (v) {
+      return !collection.has(v);
+    });
+
+    if (addedNodes[0] || removedNodes[0]) {
+      addedNodes.forEach(add);
+      removedNodes.forEach(remove);
+      callback(addedNodes, removedNodes);
+    }
+  });
+
+  if (fireInit) {
+    domReady.then(function () {
+      var matched = selectIncludeSelf(selector, element);
+
+      if (matched[0]) {
+        matched.forEach(add);
+        callback(matched, []);
+      }
+    });
+  }
+}
+
+function watchAttributes(element, attributes, callback, fireInit) {
+  var options = {
+    subtree: true,
+    attributes: true,
+    attributeFilter: makeArray(attributes)
+  };
+  observe(element, options, function (records) {
+    var set = new Set();
+    each(records, function (i, v) {
+      set.add(v.target);
+    });
+    callback(makeArray(set));
+  });
+
+  if (fireInit) {
+    domReady.then(function () {
+      var matched = selectIncludeSelf('[' + options.attributeFilter.join('],[') + ']', element);
+
+      if (matched[0]) {
+        callback(matched);
+      }
+    });
+  }
+}
+
+function initDetachWatcher(element) {
+  observe(element, function (records) {
+    var state = mapGet(detachHandlers, element);
+    var removedNodes = map(records, function (v) {
+      return grep(v.removedNodes, function (v) {
+        return v.nodeType === 1 && !containsOrEquals(element, v);
+      });
+    });
+
+    if (removedNodes[0]) {
+      state.handlers.forEach(function (callback) {
+        callback(removedNodes.slice(0));
+      });
+      each(state.map, function (child, handlers) {
+        if (!containsOrEquals(element, child) && mapRemove(state.map, child)) {
+          handlers.forEach(function (callback) {
+            callback(child);
+          });
+        }
+      });
+    }
+  });
+}
+
+initDetachWatcher(root);
+
+// CONCATENATED MODULE: ./src/constants.js
+/**
+ *  Key code mapping for keyboard events.
+ *  @type {Record<number, string>}
+ */
+var KEYNAMES = {
+  8: 'backspace',
+  9: 'tab',
+  13: 'enter',
+  16: 'shift',
+  17: 'ctrl',
+  18: 'alt',
+  19: 'pause',
+  20: 'capsLock',
+  27: 'escape',
+  32: 'space',
+  33: 'pageUp',
+  34: 'pageDown',
+  35: 'end',
+  36: 'home',
+  37: 'leftArrow',
+  38: 'upArrow',
+  39: 'rightArrow',
+  40: 'downArrow',
+  45: 'insert',
+  46: 'delete',
+  48: '0',
+  49: '1',
+  50: '2',
+  51: '3',
+  52: '4',
+  53: '5',
+  54: '6',
+  55: '7',
+  56: '8',
+  57: '9',
+  65: 'a',
+  66: 'b',
+  67: 'c',
+  68: 'd',
+  69: 'e',
+  70: 'f',
+  71: 'g',
+  72: 'h',
+  73: 'i',
+  74: 'j',
+  75: 'k',
+  76: 'l',
+  77: 'm',
+  78: 'n',
+  79: 'o',
+  80: 'p',
+  81: 'q',
+  82: 'r',
+  83: 's',
+  84: 't',
+  85: 'u',
+  86: 'v',
+  87: 'w',
+  88: 'x',
+  89: 'y',
+  90: 'z',
+  91: 'leftWindow',
+  92: 'rightWindowKey',
+  93: 'select',
+  96: 'numpad0',
+  97: 'numpad1',
+  98: 'numpad2',
+  99: 'numpad3',
+  100: 'numpad4',
+  101: 'numpad5',
+  102: 'numpad6',
+  103: 'numpad7',
+  104: 'numpad8',
+  105: 'numpad9',
+  106: 'multiply',
+  107: 'add',
+  109: 'subtract',
+  110: 'decimalPoint',
+  111: 'divide',
+  112: 'f1',
+  113: 'f2',
+  114: 'f3',
+  115: 'f4',
+  116: 'f5',
+  117: 'f6',
+  118: 'f7',
+  119: 'f8',
+  120: 'f9',
+  121: 'f10',
+  122: 'f11',
+  123: 'f12',
+  144: 'numLock',
+  145: 'scrollLock',
+  186: 'semiColon',
+  187: 'equalSign',
+  188: 'comma',
+  189: 'dash',
+  190: 'period',
+  191: 'forwardSlash',
+  192: 'backtick',
+  219: 'openBracket',
+  220: 'backSlash',
+  221: 'closeBracket',
+  222: 'singleQuote'
+};
 // CONCATENATED MODULE: ./src/domLock.js
 function domLock_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { domLock_typeof = function _typeof(obj) { return typeof obj; }; } else { domLock_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return domLock_typeof(obj); }
+
 
 
 
@@ -2068,7 +2130,7 @@ definePrototype(DOMLock, {
 
     if (promises.size === 1) {
       var callback = {};
-      var deferred = new Promise(function (resolve, reject) {
+      var deferred = new promise_polyfill(function (resolve, reject) {
         callback.resolve = resolve;
         callback.reject = reject;
       });
@@ -2108,10 +2170,10 @@ definePrototype(DOMLock, {
     });
   }
 });
-lock(document);
+lock(env_document);
 
-window.onbeforeunload = function (e) {
-  if (locked(document)) {
+env_window.onbeforeunload = function (e) {
+  if (locked(env_document)) {
     e.returnValue = '';
     e.preventDefault();
   }
@@ -2126,16 +2188,13 @@ window.onbeforeunload = function (e) {
 
 
 
-var KEYNAMES = JSON.parse('{"8":"backspace","9":"tab","13":"enter","16":"shift","17":"ctrl","18":"alt","19":"pause","20":"capsLock","27":"escape","32":"space","33":"pageUp","34":"pageDown","35":"end","36":"home","37":"leftArrow","38":"upArrow","39":"rightArrow","40":"downArrow","45":"insert","46":"delete","48":"0","49":"1","50":"2","51":"3","52":"4","53":"5","54":"6","55":"7","56":"8","57":"9","65":"a","66":"b","67":"c","68":"d","69":"e","70":"f","71":"g","72":"h","73":"i","74":"j","75":"k","76":"l","77":"m","78":"n","79":"o","80":"p","81":"q","82":"r","83":"s","84":"t","85":"u","86":"v","87":"w","88":"x","89":"y","90":"z","91":"leftWindow","92":"rightWindowKey","93":"select","96":"numpad0","97":"numpad1","98":"numpad2","99":"numpad3","100":"numpad4","101":"numpad5","102":"numpad6","103":"numpad7","104":"numpad8","105":"numpad9","106":"multiply","107":"add","109":"subtract","110":"decimalPoint","111":"divide","112":"f1","113":"f2","114":"f3","115":"f4","116":"f5","117":"f6","118":"f7","119":"f8","120":"f9","121":"f10","122":"f11","123":"f12","144":"numLock","145":"scrollLock","186":"semiColon","187":"equalSign","188":"comma","189":"dash","190":"period","191":"forwardSlash","192":"backtick","219":"openBracket","220":"backSlash","221":"closeBracket","222":"singleQuote"}');
-var SELECTOR_FOCUSABLE = ':input, [contenteditable], a[href], area[href], iframe';
+
+var SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
 var META_KEYS = [16, 17, 18, 91, 93];
-var dom_root = document.documentElement;
-var dom_selection = window.getSelection();
 var focusPath = [];
 var focusFriends = new WeakMap();
 var focusElements = new Set();
 var modalElements = new Map();
-var domReady = new Promise(jQuery);
 var windowFocusedOut;
 var currentEvent;
 /* --------------------------------------
@@ -2167,7 +2226,7 @@ function textInputAllowed(v) {
 
 function focused(element, strict) {
   // @ts-ignore: activeElement is not null
-  return element === window ? !windowFocusedOut : focusElements.has(element) && (!strict || containsOrEquals(element, document.activeElement));
+  return element === env_window ? !windowFocusedOut : focusElements.has(element) && (!strict || containsOrEquals(element, env_document.activeElement));
 }
 
 function focusable(element) {
@@ -2181,23 +2240,21 @@ function focusable(element) {
 
 function focusLockedWithin(element) {
   return single(modalElements, function (v, i) {
-    return jQuery(v).find(element)[0] && i;
+    return jquery(v).find(element)[0] && i;
   });
 }
 
 function triggerFocusEvent(eventName, elements, relatedTarget, source) {
   each(elements, function (i, v) {
-    if (getContainer(v, true)) {
-      emitDOMEvent(eventName, null, v, {
-        relatedTarget: relatedTarget
-      }, false, source);
-    }
+    emitDOMEvent(eventName, null, v, {
+      relatedTarget: relatedTarget
+    }, false, source);
   });
 }
 
 function setFocus(element, focusOnInput, source, path) {
   if (focusOnInput && !is(element, SELECTOR_FOCUSABLE)) {
-    element = jQuery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
+    element = jquery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
   }
 
   path = path || focusPath;
@@ -2224,7 +2281,7 @@ function setFocus(element, focusOnInput, source, path) {
   // which can be detached while dispatching focusout event above
 
 
-  if (containsOrEquals(dom_root, element)) {
+  if (containsOrEquals(root, element)) {
     var added = parentsAndSelf(element).filter(function (v) {
       return !focusElements.has(v);
     });
@@ -2248,13 +2305,13 @@ function setFocus(element, focusOnInput, source, path) {
       triggerFocusEvent('focusin', added, null, source || new ZetaEventSource(added[0], path));
     }
 
-    var activeElement = document.activeElement;
+    var activeElement = env_document.activeElement;
 
     if (path[0] !== activeElement) {
       path[0].focus(); // ensure previously focused element is properly blurred
       // in case the new element is not focusable
 
-      if (activeElement && activeElement !== document.body && activeElement !== dom_root && document.activeElement === activeElement) {
+      if (activeElement && activeElement !== env_document.body && activeElement !== root && env_document.activeElement === activeElement) {
         // @ts-ignore: activeElement is HTMLElement
         activeElement.blur();
       }
@@ -2265,13 +2322,13 @@ function setFocus(element, focusOnInput, source, path) {
 }
 
 function setModal(element, within) {
-  var focusWithin = is(within, Node) || dom_root;
+  var focusWithin = is(within, Node) || root;
 
   if (!focused(focusWithin)) {
     setFocus(focusWithin);
   }
 
-  modalElements.set(element, focusPath.splice(0, focusWithin === dom_root || document.body ? focusPath.length : focusPath.indexOf(focusWithin)));
+  modalElements.set(element, focusPath.splice(0, focusWithin === root || env_document.body ? focusPath.length : focusPath.indexOf(focusWithin)));
   setFocus(element);
 }
 
@@ -2288,7 +2345,7 @@ function releaseFocus(b) {
 
 
 domReady.then(function () {
-  var body = document.body;
+  var body = env_document.body;
   var modifierCount;
   var modifiedKeyCode;
   var mouseInitialPoint;
@@ -2305,17 +2362,20 @@ domReady.then(function () {
   }
 
   function updateIMEState() {
-    var element = document.activeElement || dom_root;
+    var element = env_document.activeElement || root;
+    var selection = getSelection();
+
+    if (!selection) {
+      return;
+    }
 
     if ('selectionEnd' in element) {
       imeNode = element; // @ts-ignore: guranteed having selectionEnd property
 
       imeOffset = element.selectionEnd;
     } else {
-      // @ts-ignore: selection is not null
-      imeNode = dom_selection.anchorNode; // @ts-ignore: selection is not null
-
-      imeOffset = dom_selection.anchorOffset;
+      imeNode = selection.anchorNode;
+      imeOffset = selection.anchorOffset;
 
       if (imeNode && imeNode.nodeType === 1) {
         // IE puts selection at element level
@@ -2358,7 +2418,7 @@ domReady.then(function () {
       clientX: point.clientX,
       clientY: point.clientY,
       metakey: getEventName(nativeEvent)
-    });
+    }, true);
   }
 
   function triggerGestureEvent(gesture, nativeEvent) {
@@ -2366,22 +2426,7 @@ domReady.then(function () {
     return emitDOMEvent('gesture', nativeEvent, focusPath.slice(-1)[0], gesture, true);
   }
 
-  if (IS_IE10) {
-    // polyfill for pointer-events: none for IE10
-    bind(body, 'mousedown mouseup mousemove mouseenter mouseleave click dblclick contextmenu wheel', function (e) {
-      // @ts-ignore: e.target is Element
-      if (getComputedStyle(e.target).pointerEvents === 'none') {
-        e.stopPropagation();
-        e.stopImmediatePropagation(); // @ts-ignore: e.target is Element
-
-        if (!e.bubbles || !dispatchDOMMouseEvent(e.type, e, e)) {
-          e.preventDefault();
-        }
-      }
-    }, true);
-  }
-
-  bind(window, 'mousedown mouseup wheel compositionstart compositionend beforeinput textInput keydown keyup keypress touchstart touchend cut copy paste drop click dblclick contextmenu', function (e) {
+  bind(env_window, 'mousedown mouseup wheel compositionstart compositionend beforeinput textInput keydown keyup keypress touchstart touchend cut copy paste drop click dblclick contextmenu', function (e) {
     currentEvent = e;
     setTimeout(function () {
       currentEvent = null;
@@ -2399,7 +2444,7 @@ domReady.then(function () {
 
     setLastEventSource(e.target);
   }, true);
-  bind(dom_root, {
+  bind(root, {
     compositionstart: function compositionstart() {
       updateIMEState();
       imeText = '';
@@ -2524,7 +2569,7 @@ domReady.then(function () {
     },
     touchstart: function touchstart(e) {
       // @ts-ignore: e.target is Element
-      var container = getContainer(e.target);
+      var container = getEventContext(e.target);
       normalizeTouchEvents = container.normalizeTouchEvents;
       mouseInitialPoint = extend({}, e.touches[0]);
 
@@ -2576,7 +2621,7 @@ domReady.then(function () {
       }
 
       mouseInitialPoint = e;
-      mousedownFocus = document.activeElement;
+      mousedownFocus = env_document.activeElement;
     },
     mousemove: function mousemove(e) {
       if (mouseInitialPoint && measureLine(e, mouseInitialPoint).length > 5) {
@@ -2584,7 +2629,7 @@ domReady.then(function () {
       }
     },
     mouseup: function mouseup() {
-      if (mousedownFocus && document.activeElement !== mousedownFocus) {
+      if (mousedownFocus && env_document.activeElement !== mousedownFocus) {
         mousedownFocus.focus();
       }
     },
@@ -2633,14 +2678,14 @@ domReady.then(function () {
       }
     }
   }, true);
-  bind(window, {
+  bind(env_window, {
     wheel: function wheel(e) {
       // scrolling will happen on first scrollable element up the DOM tree
       // prevent scrolling if interaction on such element should be blocked by modal element
       var deltaX = -e.deltaX;
       var deltaY = -e.deltaY; // @ts-ignore: e.target is Element
 
-      for (var cur = e.target; cur && cur !== dom_root; cur = cur.parentNode) {
+      for (var cur = e.target; cur && cur !== root; cur = cur.parentNode) {
         // @ts-ignore: e.target is Element
         var style = getComputedStyle(cur); // @ts-ignore: e.target is Element
 
@@ -2659,14 +2704,14 @@ domReady.then(function () {
       }
     },
     blur: function blur(e) {
-      if (e.target === window) {
+      if (e.target === env_window) {
         windowFocusedOut = true;
       }
     }
   });
   registerCleanup(function () {
     each(modalElements, function (element, modelPath) {
-      if (!containsOrEquals(dom_root, element) && mapRemove(modalElements, element) && focused(element)) {
+      if (!containsOrEquals(root, element) && mapRemove(modalElements, element) && focused(element)) {
         var path = any(modalElements, function (w) {
           return w.indexOf(element) >= 0;
         }) || focusPath;
@@ -2676,17 +2721,21 @@ domReady.then(function () {
     });
 
     for (var i = focusPath.length - 1; i >= 0; i--) {
-      if (!containsOrEquals(dom_root, focusPath[i])) {
+      if (!containsOrEquals(root, focusPath[i])) {
         setFocus(focusPath[i + 1] || body);
         break;
       }
     }
   });
-  setFocus(document.activeElement);
+  setFocus(env_document.activeElement);
 });
 /* --------------------------------------
  * Exports
  * -------------------------------------- */
+
+function dom_focus(element) {
+  setFocus(element, true);
+}
 
 /* harmony default export */ const src_dom = ({
   get event() {
@@ -2694,7 +2743,7 @@ domReady.then(function () {
   },
 
   get context() {
-    return getContainer(focusPath[0]).context;
+    return getEventContext(focusPath[0]).context;
   },
 
   get activeElement() {
@@ -2709,7 +2758,7 @@ domReady.then(function () {
     return getEventSource();
   },
 
-  root: dom_root,
+  root: root,
   ready: domReady,
   textInputAllowed: textInputAllowed,
   focusable: focusable,
@@ -2717,9 +2766,7 @@ domReady.then(function () {
   setModal: setModal,
   retainFocus: retainFocus,
   releaseFocus: releaseFocus,
-  focus: function focus(element) {
-    setFocus(element, true);
-  },
+  focus: dom_focus,
   getEventSource: getEventSource,
   on: listenDOMEvent,
   emit: function emit(eventName, element, data, bubbles) {
@@ -2734,238 +2781,6 @@ domReady.then(function () {
   watchElements: watchElements,
   watchAttributes: watchAttributes
 });
-// CONCATENATED MODULE: ./src/observe.js
-
-
-
-
-var observe_root = document.documentElement;
-var detachHandlers = new WeakMap();
-var optionsForChildList = {
-  subtree: true,
-  childList: true
-};
-
-var MutationObserver = window.MutationObserver || function () {
-  function MutationObserver(handler) {
-    var self = this;
-    this.records = [];
-
-    this.handler = function () {
-      handler(self.takeRecords(), self);
-    };
-
-    throwNotFunction(handler);
-  }
-
-  MutationObserver.prototype = {
-    observe: function observe(element, init) {
-      var self = this;
-      var attributeFilter = init.attributeFilter;
-
-      if (attributeFilter) {
-        attributeFilter = attributeFilter.map(function (v) {
-          return String(v).toLowerCase();
-        });
-      }
-
-      bind(element, 'DOMNodeInserted DOMNodeRemoved DOMAttrModified DOMCharacterDataModified', function (e) {
-        var type = e.type.charAt(7); // @ts-ignore: non-standard member
-
-        var oldValue = e.prevValue;
-        var record = {};
-        record.addedNodes = [];
-        record.removedNodes = [];
-
-        if (type === 'M') {
-          // @ts-ignore: non-standard member
-          if (!attributeFilter || attributeFilter.indexOf(e.attrName.toLowerCase()) >= 0) {
-            record.type = 'attributes';
-            record.target = e.target; // @ts-ignore: non-standard member
-
-            record.attributeName = e.attrName;
-
-            if (init.attributeOldValue) {
-              record.oldValue = oldValue;
-            }
-          }
-        } else if (type === 'a') {
-          record.type = 'characterData';
-          record.target = e.target;
-
-          if (init.characterDataOldValue) {
-            record.oldValue = oldValue;
-          }
-        } else {
-          record.type = 'childList'; // @ts-ignore: e.target is Element
-
-          record.target = e.target.parentNode;
-          record[type === 'I' ? 'addedNodes' : 'removedNodes'][0] = e.target;
-        }
-
-        var shouldIgnore = any(self.records, function (v) {
-          return v.type === 'childList' && v.addedNodes.some(function (v) {
-            return containsOrEquals(v, record.target);
-          });
-        });
-
-        if (!shouldIgnore && init[record.type] && (init.subtree || record.target === element)) {
-          self.records[self.records.length] = record;
-          setImmediateOnce(self.handler);
-        }
-      });
-    },
-    takeRecords: function takeRecords() {
-      return this.records.splice(0);
-    }
-  };
-  return MutationObserver;
-}();
-
-function DetachHandlerState() {
-  this.handlers = [];
-  this.map = new Map();
-}
-
-function observe(element, options, callback) {
-  callback = throwNotFunction(callback || options);
-
-  if (isFunction(options)) {
-    options = optionsForChildList;
-  }
-
-  var processRecords = function processRecords(records) {
-    records = records.filter(function (v) {
-      // filter out changes due to sizzle engine
-      // to prevent excessive invocation due to querying elements through jQuery
-      return v.attributeName !== 'id' || (v.oldValue || '').slice(0, 6) !== 'sizzle' && v.target.id !== (v.oldValue || '');
-    });
-
-    if (records[0]) {
-      callback(records);
-    }
-  };
-
-  var observer = new MutationObserver(processRecords);
-  observer.observe(element, options);
-  return function () {
-    processRecords(observer.takeRecords());
-  };
-}
-
-function registerCleanup(callback) {
-  var state = mapGet(detachHandlers, observe_root, DetachHandlerState);
-  state.handlers.push(throwNotFunction(callback));
-}
-
-function afterDetached(element, from, callback) {
-  if (isFunction(from)) {
-    callback = from;
-    from = observe_root;
-  }
-
-  if (!mapGet(detachHandlers, from)) {
-    initDetachWatcher(from);
-  }
-
-  var promise;
-
-  if (!isFunction(callback)) {
-    promise = new Promise(function (resolve) {
-      callback = resolve;
-    });
-  }
-
-  var state = mapGet(detachHandlers, from, DetachHandlerState);
-  mapGet(state.map, element, Array).push(callback);
-  return promise;
-}
-
-function watchElements(element, selector, callback, fireInit) {
-  var collection = new Set();
-  var add = collection.add.bind(collection);
-  var remove = collection.delete.bind(collection);
-  var options = extend({}, optionsForChildList, {
-    attributes: selector.indexOf('[') >= 0
-  });
-  observe(element, options, function () {
-    var matched = selectIncludeSelf(selector, element);
-    var removedNodes = grep(collection, function (v) {
-      return matched.indexOf(v) < 0;
-    });
-    var addedNodes = matched.filter(function (v) {
-      return !collection.has(v);
-    });
-
-    if (addedNodes[0] || removedNodes[0]) {
-      addedNodes.forEach(add);
-      removedNodes.forEach(remove);
-      callback(addedNodes, removedNodes);
-    }
-  });
-
-  if (fireInit) {
-    src_dom.ready.then(function () {
-      var matched = selectIncludeSelf(selector, element);
-
-      if (matched[0]) {
-        matched.forEach(add);
-        callback(matched, []);
-      }
-    });
-  }
-}
-
-function watchAttributes(element, attributes, callback, fireInit) {
-  var options = {
-    subtree: true,
-    attributes: true,
-    attributeFilter: makeArray(attributes)
-  };
-  observe(element, options, function (records) {
-    var set = new Set();
-    each(records, function (i, v) {
-      set.add(v.target);
-    });
-    callback(makeArray(set));
-  });
-
-  if (fireInit) {
-    src_dom.ready.then(function () {
-      var matched = selectIncludeSelf('[' + options.attributeFilter.join('],[') + ']', element);
-
-      if (matched[0]) {
-        callback(matched);
-      }
-    });
-  }
-}
-
-function initDetachWatcher(element) {
-  observe(element, function (records) {
-    var state = mapGet(detachHandlers, element);
-    var removedNodes = map(records, function (v) {
-      return grep(v.removedNodes, function (v) {
-        return v.nodeType === 1 && !containsOrEquals(element, v);
-      });
-    });
-
-    if (removedNodes[0]) {
-      state.handlers.forEach(function (callback) {
-        callback(removedNodes.slice(0));
-      });
-      each(state.map, function (child, handlers) {
-        if (!containsOrEquals(element, child) && mapRemove(state.map, child)) {
-          handlers.forEach(function (callback) {
-            callback(child);
-          });
-        }
-      });
-    }
-  });
-}
-
-initDetachWatcher(observe_root);
 
 // CONCATENATED MODULE: ./src/events.js
 
@@ -2976,7 +2791,6 @@ initDetachWatcher(observe_root);
 
 var events_ = createPrivateStore();
 
-var events_root = document.documentElement;
 var containers = new WeakMap();
 var domEventTrap = new ZetaEventContainer();
 var domContainer = new ZetaEventContainer();
@@ -2994,7 +2808,7 @@ function ZetaEventSource(target, path) {
   self.path = path;
   self.source = 'script';
 
-  if (containsOrEquals(path[0] || events_root, target) || path.indexOf(target) >= 0) {
+  if (containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0) {
     self.source = eventSource ? eventSource.source : getEventSourceName();
   }
 
@@ -3036,36 +2850,33 @@ function getEventSource(element) {
 }
 
 function getEventSourceName() {
-  var event = src_dom.event || window.event;
+  var event = src_dom.event || env_window.event;
   var type = event && event.type || '';
   return type[0] === 'k' || type.substr(0, 3) === 'com' ? 'keyboard' : type[0] === 't' ? 'touch' : type[0] === 'm' || matchWord(type, 'wheel click dblclick contextmenu') ? 'mouse' : matchWord(type, 'drop cut copy paste') || 'script';
 }
 
-function getContainer(element, exact) {
-  if (exact) {
-    return mapGet(containers, element);
-  }
-
+function getEventContext(element) {
   for (var cur = element; cur && !containers.has(cur); cur = cur.parentNode) {
     ;
   }
 
-  return mapGet(containers, cur) || domContainer;
+  var container = mapGet(containers, cur) || domContainer;
+  return events_(container).options;
 }
 
 function emitDOMEvent(eventName, nativeEvent, target, data, bubbles, source) {
   var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, nativeEvent, bubbles, source);
-  return emitter.emit(domEventTrap, 'tap', getContainer(target).element, true) || emitter.emit();
+  return emitter.emit(domEventTrap, 'tap', target, true) || emitter.emit();
 }
 
 function listenDOMEvent(element, event, handler) {
   if (!is(element, Node)) {
     handler = event;
     event = element;
-    element = events_root;
+    element = root;
   }
 
-  domContainer.add(element, isPlainObject(event) || kv(event, handler));
+  return domContainer.add(element, event, handler);
 }
 
 function registerAsyncEvent(eventName, container, target, data, bubbles, mergeData) {
@@ -3195,7 +3006,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
     contextContainer.event = prevEvent;
   }
 
-  if (!emitter.result && handlerName === 'keystroke' && data.char && src_dom.textInputAllowed(emitter.target)) {
+  if (!emitter.result && handlerName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
     emitterCallHandlers(emitter, component, 'textInput', null, data.char);
   }
 
@@ -3253,18 +3064,20 @@ definePrototype(ZetaEvent, {
 
 function ZetaEventContainer(element, context, options) {
   var self = this;
-
-  events_(self, {
-    components: new Map()
-  });
-
-  extend(self, {
-    element: element || events_root,
+  options = extend({
+    element: element || root,
     context: context || null,
-    autoDestroy: containsOrEquals(events_root, element),
+    autoDestroy: containsOrEquals(root, element),
     normalizeTouchEvents: false,
     captureDOMEvents: false
   }, options);
+
+  events_(self, {
+    options: options,
+    components: new Map()
+  });
+
+  extend(self, options);
 
   if (element && self.captureDOMEvents) {
     domEventTrap.setContext(element, self);
@@ -3305,36 +3118,26 @@ definePrototype(ZetaEventContainer, {
       var dict = handlers[i] || (handlers[i] = {});
       dict[key] = throwNotFunction(v);
     });
-    return key;
-  },
-  delete: function _delete(target, key) {
-    var self = this;
+    return function () {
+      each(handlers, function (i, v) {
+        delete v[key];
 
-    var components = events_(self).components;
-
-    var component = mapGet(components, target);
-
-    if (component) {
-      if (key) {
-        var handlers = component.handlers;
-        each(handlers, function (i, v) {
-          delete v[key];
-
-          if (!keys(v)[0]) {
-            delete this[i];
-          }
-        });
-
-        if (keys(handlers)[0]) {
-          return;
+        if (!keys(v)[0]) {
+          delete this[i];
         }
-      }
+      });
 
-      components.delete(target);
-
-      if (self.captureDOMEvents) {
-        containers.delete(component.element);
+      if (!keys(handlers)[0]) {
+        self.delete(target);
       }
+    };
+  },
+  delete: function _delete(target) {
+    var self = this;
+    var component = mapRemove(events_(self).components, target);
+
+    if (component && self.captureDOMEvents) {
+      containers.delete(component.element);
     }
   },
   emit: function emit(eventName, target, data, bubbles) {
@@ -3383,7 +3186,6 @@ function containerCreateContext(container, element, context) {
 
 
 // CONCATENATED MODULE: ./src/tree.js
-
 
 
 
@@ -3838,7 +3640,14 @@ function TraversableNodeTree(root, constructor, options) {
   NodeTree.call(this, TraversableNode, root, constructor, options);
 }
 
-definePrototype(TraversableNodeTree, NodeTree);
+definePrototype(TraversableNodeTree, NodeTree, {
+  isNodeVisible: function isNodeVisible() {
+    return true;
+  },
+  acceptNode: function acceptNode() {
+    return 1;
+  }
+});
 
 function InheritedNodeTree(root, constructor, options) {
   NodeTree.call(this, InheritedNode, root, constructor, options);
@@ -3846,12 +3655,182 @@ function InheritedNodeTree(root, constructor, options) {
 
 definePrototype(InheritedNodeTree, NodeTree);
 
+function TreeWalker(root, whatToShow, filter) {
+  var self = this;
+  self.whatToShow = whatToShow || -1;
+  self.filter = combineNodeFilters(tree_(root).tree.acceptNode, filter);
+  self.currentNode = root;
+  self.root = root;
+}
+
+function treeWalkerIsNodeVisible(inst, node) {
+  return node && tree_(node).tree.isNodeVisible(node, inst) && node;
+}
+
+function treeWalkerAcceptNode(inst, node, checkVisibility) {
+  if (checkVisibility && node !== inst.root && !treeWalkerIsNodeVisible(inst, node)) {
+    return 2;
+  }
+
+  return inst.filter(node);
+}
+
+treeWalkerAcceptNode.$1 = 0;
+
+function treeWalkerNodeAccepted(inst, node, checkVisibility) {
+  treeWalkerAcceptNode.$1 = treeWalkerAcceptNode(inst, node, checkVisibility);
+
+  if (treeWalkerAcceptNode.$1 === 1) {
+    inst.currentNode = node;
+    return true;
+  }
+}
+
+function treeWalkerTraverseChildren(inst, pChild, pSib) {
+  var node = inst.currentNode[pChild];
+
+  while (node) {
+    if (treeWalkerNodeAccepted(inst, node, true)) {
+      return node;
+    }
+
+    if (treeWalkerAcceptNode.$1 === 3 && node[pChild]) {
+      node = node[pChild];
+      continue;
+    }
+
+    while (!node[pSib]) {
+      node = treeWalkerIsNodeVisible(inst, node.parentNode);
+
+      if (!node || node === inst.root || node === inst.currentNode) {
+        return null;
+      }
+    }
+
+    node = node[pSib];
+  }
+}
+
+function treeWalkerTraverseSibling(inst, pChild, pSib) {
+  var node = inst.currentNode;
+
+  while (node && node !== inst.root) {
+    var sibling = node[pSib];
+
+    while (sibling) {
+      if (treeWalkerNodeAccepted(inst, sibling)) {
+        return sibling;
+      }
+
+      sibling = treeWalkerAcceptNode.$1 === 2 || !sibling[pChild] ? sibling[pSib] : sibling[pChild];
+    }
+
+    node = treeWalkerIsNodeVisible(inst, node.parentNode);
+
+    if (!node || node === inst.root || treeWalkerAcceptNode(inst, node, true) === 1) {
+      return null;
+    }
+  }
+}
+
+definePrototype(TreeWalker, {
+  previousSibling: function previousSibling() {
+    return treeWalkerTraverseSibling(this, 'lastChild', 'previousSibling');
+  },
+  nextSibling: function nextSibling() {
+    return treeWalkerTraverseSibling(this, 'firstChild', 'nextSibling');
+  },
+  firstChild: function firstChild() {
+    return treeWalkerTraverseChildren(this, 'firstChild', 'nextSibling');
+  },
+  lastChild: function lastChild() {
+    return treeWalkerTraverseChildren(this, 'lastChild', 'previousSibling');
+  },
+  parentNode: function parentNode() {
+    // @ts-ignore: type inference issue
+    for (var node = this.currentNode; node && node !== this.root; node = node.parentNode) {
+      // @ts-ignore: type inference issue
+      var parentNode = node.parentNode;
+
+      if (treeWalkerNodeAccepted(this, parentNode, true)) {
+        return parentNode;
+      }
+    }
+  },
+  previousNode: function previousNode() {
+    var self = this;
+
+    for (var node = self.currentNode; node && node !== self.root;) {
+      // @ts-ignore: type inference issue
+      for (var sibling = node.previousSibling; sibling; sibling = node.previousSibling) {
+        node = sibling;
+        var rv = treeWalkerAcceptNode(self, sibling); // @ts-ignore: type inference issue
+
+        while (rv !== 2 && treeWalkerIsNodeVisible(self, node.firstChild)) {
+          // @ts-ignore: type inference issue
+          node = node.lastChild;
+          rv = treeWalkerAcceptNode(self, node, true);
+        }
+
+        if (rv === 1) {
+          // @ts-ignore: type inference issue
+          self.currentNode = node;
+          return node;
+        }
+      } // @ts-ignore: type inference issue
+
+
+      node = treeWalkerIsNodeVisible(self, node.parentNode);
+
+      if (!node || node === self.root) {
+        return null;
+      }
+
+      if (treeWalkerNodeAccepted(self, node, true)) {
+        return node;
+      }
+    }
+  },
+  nextNode: function nextNode() {
+    var self = this;
+    var rv = 1;
+
+    for (var node = self.currentNode; node;) {
+      // @ts-ignore: type inference issue
+      while (rv !== 2 && node.firstChild) {
+        // @ts-ignore: type inference issue
+        node = node.firstChild;
+
+        if (treeWalkerNodeAccepted(self, node, true)) {
+          return node;
+        }
+
+        rv = treeWalkerAcceptNode.$1;
+      } // @ts-ignore: type inference issue
+
+
+      while (node && node !== self.root && !node.nextSibling) {
+        // @ts-ignore: type inference issue
+        node = treeWalkerIsNodeVisible(self, node.parentNode);
+      }
+
+      if (!node || node === self.root) {
+        return null;
+      } // @ts-ignore: type inference issue
+
+
+      node = node.nextSibling;
+
+      if (treeWalkerNodeAccepted(self, node, true)) {
+        return node;
+      }
+
+      rv = treeWalkerAcceptNode.$1;
+    }
+  }
+});
+
 // CONCATENATED MODULE: ./src/index.js
-function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
-
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 
 
@@ -3860,22 +3839,14 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 
 
-
-var src_IS_IOS = IS_IOS;
-var src_IS_IE10 = IS_IE10;
-var src_IS_IE = IS_IE;
-var src_IS_MAC = IS_MAC;
-var src_IS_TOUCH = IS_TOUCH;
-
-var util = _objectSpread(_objectSpread({}, util_namespaceObject), domUtil_namespaceObject);
+var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 
 /* harmony default export */ const src = ({
-  IS_IOS: src_IS_IOS,
-  IS_IE10: src_IS_IE10,
-  IS_IE: src_IS_IE,
-  IS_MAC: src_IS_MAC,
-  IS_TOUCH: src_IS_TOUCH,
-  shim: shim_namespaceObject,
+  IS_IOS: IS_IOS,
+  IS_IE10: IS_IE10,
+  IS_IE: IS_IE,
+  IS_MAC: IS_MAC,
+  IS_TOUCH: IS_TOUCH,
   util: util,
   dom: src_dom,
   css: cssUtil_namespaceObject,
@@ -3883,9 +3854,17 @@ var util = _objectSpread(_objectSpread({}, util_namespaceObject), domUtil_namesp
   InheritedNode: InheritedNode,
   InheritedNodeTree: InheritedNodeTree,
   TraversableNode: TraversableNode,
-  TraversableNodeTree: TraversableNodeTree
+  TraversableNodeTree: TraversableNodeTree,
+  TreeWalker: TreeWalker
 });
 
+
+/***/ }),
+
+/***/ 609:
+/***/ (function(module) {
+
+module.exports = __WEBPACK_EXTERNAL_MODULE__609__;
 
 /***/ }),
 
@@ -3893,13 +3872,6 @@ var util = _objectSpread(_objectSpread({}, util_namespaceObject), domUtil_namesp
 /***/ (function(module) {
 
 module.exports = __WEBPACK_EXTERNAL_MODULE__804__;
-
-/***/ }),
-
-/***/ 44:
-/***/ (function(module) {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE__44__;
 
 /***/ })
 
@@ -3961,7 +3933,7 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__44__;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(650);
+/******/ 	return __webpack_require__(917);
 /******/ })()
 ;
 });
