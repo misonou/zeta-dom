@@ -72,14 +72,14 @@ function findParent(tree, element) {
     if (element !== tree.element) {
         var sTree = _(tree);
         element = element.parentNode;
-        for (; element !== tree.element; element = element.parentNode) {
+        for (; element && element !== tree.element; element = element.parentNode) {
             var result = sTree.nodes.get(element) || sTree.detached.get(element);
             if (result) {
                 return result;
             }
         }
     }
-    return _(tree.rootNode);
+    return containsOrEquals(tree, element) && _(tree.rootNode);
 }
 
 function checkNodeState(sNode) {
@@ -109,7 +109,7 @@ function removeNode(sNode, keepNode) {
 }
 
 function insertChildNode(sParent, sChild) {
-    if (sParent === sChild || sChild.parentNode === sParent.node) {
+    if (!sParent || sParent === sChild || sChild.parentNode === sParent.node) {
         return false;
     }
     if (sChild.parentNode) {
