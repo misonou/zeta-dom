@@ -138,7 +138,7 @@ declare namespace Zeta {
         readonly element: HTMLElement;
     }
 
-    interface Iterator<T> {
+    interface NodeIterator<T> {
         /**
          * Moves the iterator to previous node. If there is no previous node iterable, the iterator will stay on the same node.
          * @returns The previous node, or null if there is no such node.
@@ -152,7 +152,7 @@ declare namespace Zeta {
         nextNode(): T | null;
     }
 
-    interface TreeWalker<T> extends Iterator<T> {
+    interface TreeWalker<T> extends NodeIterator<T> {
         parentNode(): T | null;
         firstChild(): T | null;
         lastChild(): T | null;
@@ -491,6 +491,7 @@ declare namespace Zeta {
         getNode(element: Element): T | null;
         setNode(element: Element): T;
         removeNode(node: T): void;
+        update(): void;
 
         on<E extends keyof NodeTreeEventMap>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap, NodeTree<T>>);
         on(handler: ZetaEventHandlers<keyof NodeTreeEventMap, NodeTreeEventMap, NodeTree<T>>);
@@ -507,6 +508,8 @@ declare namespace Zeta {
     declare class InheritedNodeTree<T extends InheritedNode> extends NodeTree<T> {
         constructor(element: Element, constructor?: new (...args) => T, options?: InheritedNodeTreeOptions<T>);
         constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: InheritedNodeTreeOptions<T>);
+
+        descedants(node: T | Element): Iterator<T>;
     }
 
     declare abstract class VirtualNode implements HasElement {
@@ -526,11 +529,9 @@ declare namespace Zeta {
 
     declare abstract class InheritedNode extends VirtualNode {
         constructor(tree: NodeTree, element: Element);
-
-        getComputedValues(): Dictionary;
     }
 
-    declare class TreeWalker<T extends TraversableNode> implements Iterator<T> {
+    declare class TreeWalker<T extends TraversableNode> implements NodeIterator<T> {
         constructor(root: T, whatToShow?: number, filter?: IteratorNodeFilter<T>);
 
         readonly root: T;

@@ -87,14 +87,14 @@ export function combineNodeFilters(...args: Zeta.IteratorNodeFilter[]): Zeta.Ite
  * @param [callback] Function to be called on each node.
  * @param [from] If given, invocation of the callback will be skipped until the specified node.
  */
-export function iterateNode<T>(iterator: Zeta.Iterator<T>, callback?: (node: T) => void, from?: T): void;
+export function iterateNode<T>(iterator: Zeta.NodeIterator<T>, callback?: (node: T) => void, from?: T): void;
 
 /**
  * Creates an array containing each node in the iterated order.
  * @param iterator Any iterable object with the previousNode and nextNode methods.
  * @returns An array containing all nodes.
  */
-export function iterateNodeToArray<T>(iterator: Zeta.Iterator<T>): T[];
+export function iterateNodeToArray<T>(iterator: Zeta.NodeIterator<T>): T[];
 
 /**
  * Creates an array containing resulting items from each node in the iterated order.
@@ -104,7 +104,7 @@ export function iterateNodeToArray<T>(iterator: Zeta.Iterator<T>): T[];
  * @param [until] If given, iteration will be stopped once the specified node is iterated, callback will not be fired for this node.
  * @returns An array containing resulting items.
  */
-export function iterateNodeToArray<T, R>(iterator: Zeta.Iterator<T>, callback: Zeta.IterateCallbackOrNull<T, R>, from?: T, until?: T): Zeta.IterateCallbackOrNull<T, R> extends null ? T[] : R[];
+export function iterateNodeToArray<T, R>(iterator: Zeta.NodeIterator<T>, callback: Zeta.IterateCallbackOrNull<T, R>, from?: T, until?: T): Zeta.IterateCallbackOrNull<T, R> extends null ? T[] : R[];
 
 
 /* --------------------------------------
@@ -131,7 +131,7 @@ export function selectClosestRelative(sel: string, node: Node): Element;
  * @param whatToShow A bitmask specifying which types of DOM node should be iterated.
  * @returns A DOM node iterator.
  */
-export function createNodeIterator<T extends number>(root: Element, whatToShow: T, filter?: Zeta.IteratorNodeFilter<T extends 1 ? Element : T extends 4 ? Text : Node>): Zeta.Iterator<T extends 1 ? Element : T extends 4 ? Text : Node>;
+export function createNodeIterator<T extends number>(root: Element, whatToShow: T, filter?: Zeta.IteratorNodeFilter<T extends 1 ? Element : T extends 4 ? Text : Node>): Zeta.NodeIterator<T extends 1 ? Element : T extends 4 ? Text : Node>;
 
 /**
  * Creates a DOM tree walker. It is essentially the same as Document#createTreeWalker but allows arguments to be optional.
