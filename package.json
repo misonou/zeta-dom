@@ -2,12 +2,13 @@
   "name": "zeta-dom",
   "version": "0.1.0",
   "description": "",
+  "type": "module",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "scripts": {
     "build": "webpack",
     "version": "npm run build && git add -A dist",
-    "release": "node ./npm-publish.js"
+    "release": "node ./npm-publish.cjs"
   },
   "author": "misonou",
   "license": "ISC",
