@@ -336,12 +336,7 @@ function InheritedNode(tree, element) {
     initNode(tree, this, element);
 }
 
-definePrototype(InheritedNode, VirtualNode, {
-    getComputedValues: function () {
-        checkNodeState(_(this));
-        return extend({}, this);
-    }
-});
+definePrototype(InheritedNode, VirtualNode);
 
 function NodeTree(baseClass, root, constructor, options) {
     var self = this;
@@ -359,7 +354,7 @@ function NodeTree(baseClass, root, constructor, options) {
 }
 
 definePrototype(NodeTree, {
-    on: function(event, handler) {
+    on: function (event, handler) {
         _(this).container.add(this, isPlainObject(event) || kv(event, handler));
     },
     getNode: function (element) {
@@ -377,6 +372,10 @@ definePrototype(NodeTree, {
     removeNode: function (node) {
         assertSameTree(this, node, true);
         removeNode(_(node));
+    },
+    update: function () {
+        collectMutations();
+        updateTree(this);
     }
 });
 
