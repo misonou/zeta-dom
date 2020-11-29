@@ -1,5 +1,10 @@
 const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+
+const outputPath = path.join(process.cwd(), 'dist');
+const packagePath = path.join(process.cwd(), 'build');
 
 module.exports = {
     entry: {
@@ -8,7 +13,7 @@ module.exports = {
     },
     devtool: 'source-map',
     output: {
-        path: path.resolve(__dirname, 'dist'),
+        path: outputPath,
         filename: '[name].js',
         library: 'zeta',
         libraryTarget: 'umd',
@@ -28,6 +33,37 @@ module.exports = {
             }
         ]
     },
+    plugins: [
+        new CleanWebpackPlugin({
+            cleanOnceBeforeBuildPatterns: [`${packagePath}/**/*`]
+        }),
+        new CopyWebpackPlugin({
+            patterns: [
+                {
+                    from: 'src',
+                    to: `${packagePath}`
+                },
+                {
+                    from: 'dist',
+                    to: `${packagePath}/dist`
+                },
+                {
+                    from: 'README.md',
+                    to: `${packagePath}`,
+                },
+                {
+                    from: 'package.json',
+                    to: `${packagePath}`,
+                    transform: function (content) {
+                        var packageJSON = JSON.parse(content);
+                        packageJSON.main = 'index.js';
+                        packageJSON.types = 'index.d.ts';
+                        return JSON.stringify(packageJSON, null, 2);
+                    }
+                }
+            ]
+        })
+    ],
     optimization: {
         minimize: true,
         minimizer: [
