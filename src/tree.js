@@ -397,7 +397,24 @@ function InheritedNodeTree(root, constructor, options) {
     NodeTree.call(this, InheritedNode, root, constructor, options);
 }
 
-definePrototype(InheritedNodeTree, NodeTree);
+definePrototype(InheritedNodeTree, NodeTree, {
+    descendants: function (node) {
+        if (is(node, Node)) {
+            node = this.setNode(node);
+        } else {
+            assertSameTree(this, node, true);
+        }
+        var arr = [node];
+        var next = function () {
+            var cur = arr.shift();
+            if (cur) {
+                arr.unshift.apply(arr, checkNodeState(_(cur)).childNodes);
+            }
+            return { done: !cur, value: cur };
+        };
+        return { next };
+    }
+});
 
 function TreeWalker(root, whatToShow, filter) {
     var self = this;
