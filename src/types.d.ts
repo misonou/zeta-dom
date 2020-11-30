@@ -509,7 +509,7 @@ declare namespace Zeta {
         constructor(element: Element, constructor?: new (...args) => T, options?: InheritedNodeTreeOptions<T>);
         constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: InheritedNodeTreeOptions<T>);
 
-        descedants(node: T | Element): Iterator<T>;
+        descendants(node: T | Element): Iterator<T>;
     }
 
     declare abstract class VirtualNode implements HasElement {
