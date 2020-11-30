@@ -143,11 +143,11 @@ function insertTraversableNode(sNode) {
         if (childNodes[0]) {
             var s1 = _(childNodes[0]);
             var s2 = _(childNodes[childNodes.length - 1]);
-            var previousSilbing = s1.previousSilbing;
+            var previousSibling = s1.previousSibling;
             var nextSibling = s2.nextSibling;
-            (_(previousSilbing) || empty).nextSibling = nextSibling;
-            (_(nextSibling) || empty).previousSilbing = previousSilbing;
-            (s1 || empty).previousSilbing = null;
+            (_(previousSibling) || empty).nextSibling = nextSibling;
+            (_(nextSibling) || empty).previousSibling = previousSibling;
+            (s1 || empty).previousSibling = null;
             (s2 || empty).nextSibling = null;
         }
         var parentChildNodes = result[2];
@@ -156,9 +156,9 @@ function insertTraversableNode(sNode) {
             var p1 = parentChildNodes[pos - 1];
             var p2 = parentChildNodes[pos + 1];
             sNode.nextSibling = p2;
-            sNode.previousSilbing = p1;
+            sNode.previousSibling = p1;
             (_(p1) || empty).nextSibling = sNode.node;
-            (_(p2) || empty).previousSilbing = sNode.node;
+            (_(p2) || empty).previousSibling = sNode.node;
         }
     }
     return !!result;
@@ -189,7 +189,7 @@ function removeTraversableNode(sNode) {
         var states = map(childNodes, function (v) {
             return _(v);
         });
-        states[0].previousSilbing = parentChildNodes[pos - 1];
+        states[0].previousSibling = parentChildNodes[pos - 1];
         states[states.length - 1].nextSibling = parentChildNodes[pos + 1];
         each(states, function (i, v) {
             v.parentNode = parent;
@@ -224,7 +224,7 @@ function reorderTraversableChildNodes(sNode) {
         if (!equal(childNodes, copy)) {
             each(childNodes, function (i, v) {
                 extend(_(v), {
-                    previousSilbing: childNodes[i - 1],
+                    previousSibling: childNodes[i - 1],
                     nextSibling: childNodes[i + 1]
                 });
             });
@@ -324,8 +324,8 @@ definePrototype(TraversableNode, VirtualNode, {
         var arr = checkNodeState(_(this)).childNodes;
         return arr[arr.length - 1] || null;
     },
-    get previousSilbing() {
-        return checkNodeState(_(this)).previousSilbing || null;
+    get previousSibling() {
+        return checkNodeState(_(this)).previousSibling || null;
     },
     get nextSibling() {
         return checkNodeState(_(this)).nextSibling || null;

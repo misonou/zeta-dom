@@ -522,8 +522,8 @@ declare namespace Zeta {
         readonly parentNode: TraversableNode | null;
         readonly firstChild: TraversableNode | null;
         readonly lastChild: TraversableNode | null;
-        readonly previousSilbing: TraversableNode | null;
-        readonly nextSilbing: TraversableNode | null;
+        readonly previousSibling: TraversableNode | null;
+        readonly nextSibling: TraversableNode | null;
         readonly childNodes: TraversableNode[];
     }
 
@@ -545,8 +545,8 @@ declare namespace Zeta {
         parentNode(): T | null;
         firstChild(): T | null;
         lastChild(): T | null;
-        previousSilbing(): T | null;
-        nextSilbing(): T | null;
+        previousSibling(): T | null;
+        nextSibling(): T | null;
     }
 }
 
