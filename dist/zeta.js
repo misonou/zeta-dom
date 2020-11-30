@@ -1,19 +1,19 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("promise-polyfill"), require("jQuery"));
+		module.exports = factory();
 	else if(typeof define === 'function' && define.amd)
-		define("zeta", ["promise-polyfill", "jQuery"], factory);
+		define("zeta", [], factory);
 	else if(typeof exports === 'object')
-		exports["zeta"] = factory(require("promise-polyfill"), require("jQuery"));
+		exports["zeta"] = factory();
 	else
-		root["zeta"] = factory(root["promise-polyfill"], root["jQuery"]);
-})(self, function(__WEBPACK_EXTERNAL_MODULE__804__, __WEBPACK_EXTERNAL_MODULE__609__) {
+		root["zeta"] = factory();
+})(self, function() {
 return /******/ (function() { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
 /***/ 917:
-/***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+/***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
@@ -174,7 +174,7 @@ var IS_TOUCH = ('ontouchstart' in env_window);
 // @ts-nocheck
 
 /** @type {PromiseConstructor} */
-var promise_polyfill_Promise = window.Promise || __webpack_require__(804).default;
+var promise_polyfill_Promise = window.Promise || require('promise-polyfill').default;
 
 /* harmony default export */ const promise_polyfill = (promise_polyfill_Promise);
 // CONCATENATED MODULE: ./src/util.js
@@ -893,7 +893,7 @@ function watchable(obj) {
 // @ts-nocheck
 
 /** @type {JQueryStatic} */
-var jQuery = window.jQuery || __webpack_require__(609);
+var jQuery = window.jQuery || require('jquery');
 
 /* harmony default export */ const jquery = (jQuery);
 // CONCATENATED MODULE: ./src/domUtil.js
@@ -3269,7 +3269,7 @@ function findParent(tree, element) {
 
     element = element.parentNode;
 
-    for (; element !== tree.element; element = element.parentNode) {
+    for (; element && element !== tree.element; element = element.parentNode) {
       var result = sTree.nodes.get(element) || sTree.detached.get(element);
 
       if (result) {
@@ -3278,7 +3278,7 @@ function findParent(tree, element) {
     }
   }
 
-  return tree_(tree.rootNode);
+  return containsOrEquals(tree, element) && tree_(tree.rootNode);
 }
 
 function checkNodeState(sNode) {
@@ -3314,7 +3314,7 @@ function _removeNode(sNode, keepNode) {
 }
 
 function insertChildNode(sParent, sChild) {
-  if (sParent === sChild || sChild.parentNode === sParent.node) {
+  if (!sParent || sParent === sChild || sChild.parentNode === sParent.node) {
     return false;
   }
 
@@ -3588,12 +3588,7 @@ function InheritedNode(tree, element) {
   initNode(tree, this, element);
 }
 
-definePrototype(InheritedNode, VirtualNode, {
-  getComputedValues: function getComputedValues() {
-    checkNodeState(tree_(this));
-    return extend({}, this);
-  }
-});
+definePrototype(InheritedNode, VirtualNode);
 
 function NodeTree(baseClass, root, constructor, options) {
   var self = this;
@@ -3633,6 +3628,10 @@ definePrototype(NodeTree, {
     assertSameTree(this, node, true);
 
     _removeNode(tree_(node));
+  },
+  update: function update() {
+    collectMutations();
+    updateTree(this);
   }
 });
 
@@ -3653,7 +3652,34 @@ function InheritedNodeTree(root, constructor, options) {
   NodeTree.call(this, InheritedNode, root, constructor, options);
 }
 
-definePrototype(InheritedNodeTree, NodeTree);
+definePrototype(InheritedNodeTree, NodeTree, {
+  descendants: function descendants(node) {
+    if (is(node, Node)) {
+      node = this.setNode(node);
+    } else {
+      assertSameTree(this, node, true);
+    }
+
+    var arr = [node];
+
+    var next = function next() {
+      var cur = arr.shift();
+
+      if (cur) {
+        arr.unshift.apply(arr, checkNodeState(tree_(cur)).childNodes);
+      }
+
+      return {
+        done: !cur,
+        value: cur
+      };
+    };
+
+    return {
+      next: next
+    };
+  }
+});
 
 function TreeWalker(root, whatToShow, filter) {
   var self = this;
@@ -3858,20 +3884,6 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
   TreeWalker: TreeWalker
 });
 
-
-/***/ }),
-
-/***/ 609:
-/***/ (function(module) {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE__609__;
-
-/***/ }),
-
-/***/ 804:
-/***/ (function(module) {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE__804__;
 
 /***/ })
 
