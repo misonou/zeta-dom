@@ -94,18 +94,22 @@ function insertNode(sNode) {
     return (sNode.traversable ? insertTraversableNode : insertInheritedNode)(sNode);
 }
 
-function removeNode(sNode, keepNode) {
-    if (!keepNode) {
-        var sTree = _(sNode.tree);
-        var element = sNode.node.element;
-        if (!mapRemove(sTree.nodes, element)) {
-            // the node is already removed from the tree
-            // therefore nothing to do
-            return false;
-        }
+function removeNode(sNode, hardRemove) {
+    return (sNode.traversable ? removeTraversableNode : removeInheritedNode)(sNode, hardRemove);
+}
+
+function removeNodeFromMap(sNode, permanent) {
+    var sTree = _(sNode.tree);
+    var element = sNode.node.element;
+    if (!mapRemove(sTree.nodes, element)) {
+        // the node is already removed from the tree
+        // therefore nothing to do
+        return false;
+    }
+    if (!permanent) {
         sTree.detached.set(element, sNode);
     }
-    return (sNode.traversable ? removeTraversableNode : removeInheritedNode)(sNode);
+    return removeNode(sNode, true);
 }
 
 function insertChildNode(sParent, sChild) {
@@ -113,7 +117,7 @@ function insertChildNode(sParent, sChild) {
         return false;
     }
     if (sChild.parentNode) {
-        removeNode(sChild, true);
+        removeNode(sChild);
     }
     var childNodes = sChild.childNodes;
     var parentChildNodes = sParent.childNodes;
@@ -176,31 +180,47 @@ function insertInheritedNode(sNode) {
     return !!result;
 }
 
-function removeTraversableNode(sNode) {
+function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
     var parent = sNode.parentNode;
     if (!parent) {
         return false;
     }
-    var childNodes = sNode.childNodes.splice();
+    var newParent = (hardRemove || findParent(sNode) || '').node;
+    if (newParent === parent) {
+        return false;
+    }
+    var childNodes = [];
     var parentChildNodes = _(parent).childNodes;
     var pos = parentChildNodes.indexOf(sNode.node);
-    sNode.parentNode = null;
-    if (childNodes[0]) {
-        var states = map(childNodes, function (v) {
-            return _(v);
-        });
-        states[0].previousSibling = parentChildNodes[pos - 1];
-        states[states.length - 1].nextSibling = parentChildNodes[pos + 1];
-        each(states, function (i, v) {
-            v.parentNode = parent;
-        });
+    if (hardRemove) {
+        childNodes = sNode.childNodes.splice(0);
+        if (!ignoreSibling && childNodes[0]) {
+            var states = map(childNodes, function (v) {
+                return _(v);
+            });
+            states[0].previousSibling = parentChildNodes[pos - 1];
+            states[states.length - 1].nextSibling = parentChildNodes[pos + 1];
+            each(states, function (i, v) {
+                v.parentNode = parent;
+            });
+        }
     }
+    if (!ignoreSibling && parentChildNodes[1]) {
+        var empty = {};
+        var s1 = _(parentChildNodes[pos - 1]);
+        var s2 = _(parentChildNodes[pos + 1]);
+        (s1 || empty).nextSibling = childNodes[0] || (s2 || empty).node;
+        (s2 || empty).previousSibling = childNodes[childNodes.length - 1] || (s1 || empty).node;
+    }
+    sNode.parentNode = newParent;
+    sNode.previousSibling = null;
+    sNode.nextSibling = null;
     parentChildNodes.splice.apply(parentChildNodes, [pos, 1].concat(childNodes));
     return true;
 }
 
-function removeInheritedNode(sNode) {
-    var updated = removeTraversableNode(sNode);
+function removeInheritedNode(sNode, hardRemove) {
+    var updated = removeTraversableNode(sNode, hardRemove, true);
     each(sNode.childNodes, function (i, v) {
         setPrototypeOf(v, sNode.parentNode);
     });
@@ -246,7 +266,7 @@ function updateTree(tree) {
                 updated |= reorderTraversableChildNodes(sNode);
             }
             // @ts-ignore: boolean arithmetics
-            updated |= (connected ? insertNode : removeNode)(sNode);
+            updated |= (connected ? insertNode : removeNodeFromMap)(sNode);
             sNode.version = newVersion;
             if (connected) {
                 var iterator = createTreeWalker(element, 1, function (v) {
@@ -371,7 +391,7 @@ definePrototype(NodeTree, {
     },
     removeNode: function (node) {
         assertSameTree(this, node, true);
-        removeNode(_(node));
+        removeNodeFromMap(_(node), true);
     },
     update: function () {
         collectMutations();
