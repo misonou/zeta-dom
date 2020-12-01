@@ -1,7 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
 import { root } from "./env.js";
 import { each, extend, grep, isFunction, makeArray, map, mapGet, mapRemove, throwNotFunction } from "./util.js";
-import { containsOrEquals, domReady, selectIncludeSelf } from "./domUtil.js";
+import { containsOrEquals, domReady, is, selectIncludeSelf } from "./domUtil.js";
 
 const detachHandlers = new WeakMap();
 const optionsForChildList = {
@@ -42,7 +42,7 @@ function registerCleanup(callback) {
 }
 
 function afterDetached(element, from, callback) {
-    if (isFunction(from)) {
+    if (!is(from, Node)) {
         callback = from;
         from = root;
     }
