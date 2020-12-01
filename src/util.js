@@ -1,4 +1,4 @@
-import Promise from "./include/promise-polyfill.js";
+import Promise from "./include/promise-polyfill.cjs";
 import { window } from "./env.js";
 
 const keys = Object.keys;

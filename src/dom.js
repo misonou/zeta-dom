@@ -1,6 +1,6 @@
 import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle } from "./env.js";
 import { KEYNAMES } from "./constants.js";
-import $ from "./include/jquery.js";
+import $ from "./include/jquery.cjs";
 import { any, each, extend, lcfirst, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
 import { bind, containsOrEquals, dispatchDOMMouseEvent, domReady, is, isVisible, makeSelection, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";

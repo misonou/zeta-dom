@@ -1,4 +1,4 @@
-import Promise from "./include/promise-polyfill.js";
+import Promise from "./include/promise-polyfill.cjs";
 import { root } from "./env.js";
 import { each, extend, grep, isFunction, makeArray, map, mapGet, mapRemove, throwNotFunction } from "./util.js";
 import { containsOrEquals, domReady, is, selectIncludeSelf } from "./domUtil.js";
