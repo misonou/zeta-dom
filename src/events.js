@@ -303,7 +303,7 @@ definePrototype(ZetaEventContainer, {
             each(handlers, function (i, v) {
                 delete v[key];
                 if (!keys(v)[0]) {
-                    delete this[i];
+                    delete handlers[i];
                 }
             });
             if (!keys(handlers)[0]) {
