@@ -59,7 +59,7 @@ function isArrayLike(obj) {
     if (isFunction(obj) || obj === window) {
         return false;
     }
-    var length = !!obj && 'length' in obj && obj.length;
+    var length = !!obj && obj.length;
     return isArray(obj) || length === 0 || (typeof length === 'number' && length > 0 && (length - 1) in obj);
 }
 
