@@ -1,0 +1,10 @@
+{
+    "testEnvironment": "jsdom",
+    "transform": {},
+    "setupFilesAfterEnv": [
+        "<rootDir>/tests/setup.js"
+    ],
+    "modulePathIgnorePatterns": [
+        "<rootDir>/build/"
+    ]
+}
