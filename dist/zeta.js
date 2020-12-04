@@ -1,20 +1,20 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
+		module.exports = factory(require("promise-polyfill"), require("jQuery"));
 	else if(typeof define === 'function' && define.amd)
-		define("zeta", [], factory);
+		define("zeta", ["promise-polyfill", "jQuery"], factory);
 	else if(typeof exports === 'object')
-		exports["zeta"] = factory();
+		exports["zeta"] = factory(require("promise-polyfill"), require("jQuery"));
 	else
-		root["zeta"] = factory();
-})(self, function() {
+		root["zeta"] = factory(root["promise-polyfill"], root["jQuery"]);
+})(self, function(__WEBPACK_EXTERNAL_MODULE__804__, __WEBPACK_EXTERNAL_MODULE__609__) {
 return /******/ (function() { // webpackBootstrap
-/******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 917:
+/***/ 411:
 /***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
+"use strict";
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
@@ -170,13 +170,8 @@ var IS_IE10 = !!env_window.ActiveXObject;
 var IS_IE = IS_IE10 || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
 var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
 var IS_TOUCH = ('ontouchstart' in env_window);
-// CONCATENATED MODULE: ./src/include/promise-polyfill.js
-// @ts-nocheck
-
-/** @type {PromiseConstructor} */
-var promise_polyfill_Promise = window.Promise || require('promise-polyfill').default;
-
-/* harmony default export */ const promise_polyfill = (promise_polyfill_Promise);
+// EXTERNAL MODULE: ./src/include/promise-polyfill.cjs
+var promise_polyfill = __webpack_require__(511);
 // CONCATENATED MODULE: ./src/util.js
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -244,7 +239,7 @@ function isArrayLike(obj) {
     return false;
   }
 
-  var length = !!obj && 'length' in obj && obj.length;
+  var length = !!obj && obj.length;
   return isArray(obj) || length === 0 || typeof length === 'number' && length > 0 && length - 1 in obj;
 }
 
@@ -889,13 +884,8 @@ function watchable(obj) {
 }
 
 
-// CONCATENATED MODULE: ./src/include/jquery.js
-// @ts-nocheck
-
-/** @type {JQueryStatic} */
-var jQuery = window.jQuery || require('jquery');
-
-/* harmony default export */ const jquery = (jQuery);
+// EXTERNAL MODULE: ./src/include/jquery.cjs
+var jquery = __webpack_require__(304);
 // CONCATENATED MODULE: ./src/domUtil.js
 
 
@@ -1791,18 +1781,14 @@ function observe(element, options, callback) {
 }
 
 function registerCleanup(callback) {
-  var state = mapGet(detachHandlers, root, DetachHandlerState);
+  var state = initDetachWatcher(root);
   state.handlers.push(throwNotFunction(callback));
 }
 
 function afterDetached(element, from, callback) {
-  if (isFunction(from)) {
+  if (!is(from, Node)) {
     callback = from;
     from = root;
-  }
-
-  if (!mapGet(detachHandlers, from)) {
-    initDetachWatcher(from);
   }
 
   var promise;
@@ -1813,7 +1799,7 @@ function afterDetached(element, from, callback) {
     });
   }
 
-  var state = mapGet(detachHandlers, from, DetachHandlerState);
+  var state = initDetachWatcher(from);
   mapGet(state.map, element, Array).push(callback);
   return promise;
 }
@@ -1879,30 +1865,32 @@ function watchAttributes(element, attributes, callback, fireInit) {
 }
 
 function initDetachWatcher(element) {
-  observe(element, function (records) {
-    var state = mapGet(detachHandlers, element);
-    var removedNodes = map(records, function (v) {
-      return grep(v.removedNodes, function (v) {
-        return v.nodeType === 1 && !containsOrEquals(element, v);
+  return mapGet(detachHandlers, element, function () {
+    var state = new DetachHandlerState();
+    observe(element, function (records) {
+      var removedNodes = map(records, function (v) {
+        return grep(v.removedNodes, function (v) {
+          return v.nodeType === 1 && !containsOrEquals(element, v);
+        });
       });
-    });
 
-    if (removedNodes[0]) {
-      state.handlers.forEach(function (callback) {
-        callback(removedNodes.slice(0));
-      });
-      each(state.map, function (child, handlers) {
-        if (!containsOrEquals(element, child) && mapRemove(state.map, child)) {
-          handlers.forEach(function (callback) {
-            callback(child);
-          });
-        }
-      });
-    }
+      if (removedNodes[0]) {
+        state.handlers.forEach(function (callback) {
+          callback(removedNodes.slice(0));
+        });
+        each(state.map, function (child, handlers) {
+          if (!containsOrEquals(element, child) && mapRemove(state.map, child)) {
+            handlers.forEach(function (callback) {
+              callback(child);
+            });
+          }
+        });
+      }
+    });
+    return state;
   });
 }
 
-initDetachWatcher(root);
 
 // CONCATENATED MODULE: ./src/constants.js
 /**
@@ -3123,7 +3111,7 @@ definePrototype(ZetaEventContainer, {
         delete v[key];
 
         if (!keys(v)[0]) {
-          delete this[i];
+          delete handlers[i];
         }
       });
 
@@ -3295,22 +3283,26 @@ function insertNode(sNode) {
   return (sNode.traversable ? insertTraversableNode : insertInheritedNode)(sNode);
 }
 
-function _removeNode(sNode, keepNode) {
-  if (!keepNode) {
-    var sTree = tree_(sNode.tree);
+function tree_removeNode(sNode, hardRemove) {
+  return (sNode.traversable ? removeTraversableNode : removeInheritedNode)(sNode, hardRemove);
+}
 
-    var element = sNode.node.element;
+function removeNodeFromMap(sNode, permanent) {
+  var sTree = tree_(sNode.tree);
 
-    if (!mapRemove(sTree.nodes, element)) {
-      // the node is already removed from the tree
-      // therefore nothing to do
-      return false;
-    }
+  var element = sNode.node.element;
 
+  if (!mapRemove(sTree.nodes, element)) {
+    // the node is already removed from the tree
+    // therefore nothing to do
+    return false;
+  }
+
+  if (!permanent) {
     sTree.detached.set(element, sNode);
   }
 
-  return (sNode.traversable ? removeTraversableNode : removeInheritedNode)(sNode);
+  return tree_removeNode(sNode, true);
 }
 
 function insertChildNode(sParent, sChild) {
@@ -3319,7 +3311,7 @@ function insertChildNode(sParent, sChild) {
   }
 
   if (sChild.parentNode) {
-    _removeNode(sChild, true);
+    tree_removeNode(sChild);
   }
 
   var childNodes = sChild.childNodes;
@@ -3359,11 +3351,11 @@ function insertTraversableNode(sNode) {
 
       var s2 = tree_(childNodes[childNodes.length - 1]);
 
-      var previousSilbing = s1.previousSilbing;
+      var previousSibling = s1.previousSibling;
       var nextSibling = s2.nextSibling;
-      (tree_(previousSilbing) || empty).nextSibling = nextSibling;
-      (tree_(nextSibling) || empty).previousSilbing = previousSilbing;
-      (s1 || empty).previousSilbing = null;
+      (tree_(previousSibling) || empty).nextSibling = nextSibling;
+      (tree_(nextSibling) || empty).previousSibling = previousSibling;
+      (s1 || empty).previousSibling = null;
       (s2 || empty).nextSibling = null;
     }
 
@@ -3374,9 +3366,9 @@ function insertTraversableNode(sNode) {
       var p1 = parentChildNodes[pos - 1];
       var p2 = parentChildNodes[pos + 1];
       sNode.nextSibling = p2;
-      sNode.previousSilbing = p1;
+      sNode.previousSibling = p1;
       (tree_(p1) || empty).nextSibling = sNode.node;
-      (tree_(p2) || empty).previousSilbing = sNode.node;
+      (tree_(p2) || empty).previousSibling = sNode.node;
     }
   }
 
@@ -3397,37 +3389,60 @@ function insertInheritedNode(sNode) {
   return !!result;
 }
 
-function removeTraversableNode(sNode) {
+function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
   var parent = sNode.parentNode;
 
   if (!parent) {
     return false;
   }
 
-  var childNodes = sNode.childNodes.splice();
+  var newParent = (hardRemove || findParent(sNode) || '').node;
+
+  if (newParent === parent) {
+    return false;
+  }
+
+  var childNodes = [];
 
   var parentChildNodes = tree_(parent).childNodes;
 
   var pos = parentChildNodes.indexOf(sNode.node);
-  sNode.parentNode = null;
 
-  if (childNodes[0]) {
-    var states = map(childNodes, function (v) {
-      return tree_(v);
-    });
-    states[0].previousSilbing = parentChildNodes[pos - 1];
-    states[states.length - 1].nextSibling = parentChildNodes[pos + 1];
-    each(states, function (i, v) {
-      v.parentNode = parent;
-    });
+  if (hardRemove) {
+    childNodes = sNode.childNodes.splice(0);
+
+    if (!ignoreSibling && childNodes[0]) {
+      var states = map(childNodes, function (v) {
+        return tree_(v);
+      });
+      states[0].previousSibling = parentChildNodes[pos - 1];
+      states[states.length - 1].nextSibling = parentChildNodes[pos + 1];
+      each(states, function (i, v) {
+        v.parentNode = parent;
+      });
+    }
   }
 
+  if (!ignoreSibling && parentChildNodes[1]) {
+    var empty = {};
+
+    var s1 = tree_(parentChildNodes[pos - 1]);
+
+    var s2 = tree_(parentChildNodes[pos + 1]);
+
+    (s1 || empty).nextSibling = childNodes[0] || (s2 || empty).node;
+    (s2 || empty).previousSibling = childNodes[childNodes.length - 1] || (s1 || empty).node;
+  }
+
+  sNode.parentNode = newParent;
+  sNode.previousSibling = null;
+  sNode.nextSibling = null;
   parentChildNodes.splice.apply(parentChildNodes, [pos, 1].concat(childNodes));
   return true;
 }
 
-function removeInheritedNode(sNode) {
-  var updated = removeTraversableNode(sNode);
+function removeInheritedNode(sNode, hardRemove) {
+  var updated = removeTraversableNode(sNode, hardRemove, true);
   each(sNode.childNodes, function (i, v) {
     setPrototypeOf(v, sNode.parentNode);
   });
@@ -3454,7 +3469,7 @@ function reorderTraversableChildNodes(sNode) {
     if (!equal(childNodes, copy)) {
       each(childNodes, function (i, v) {
         extend(tree_(v), {
-          previousSilbing: childNodes[i - 1],
+          previousSibling: childNodes[i - 1],
           nextSibling: childNodes[i + 1]
         });
       });
@@ -3481,7 +3496,7 @@ function updateTree(tree) {
       } // @ts-ignore: boolean arithmetics
 
 
-      updated |= (connected ? insertNode : _removeNode)(sNode);
+      updated |= (connected ? insertNode : removeNodeFromMap)(sNode);
       sNode.version = newVersion;
 
       if (connected) {
@@ -3574,8 +3589,8 @@ definePrototype(TraversableNode, VirtualNode, {
     return arr[arr.length - 1] || null;
   },
 
-  get previousSilbing() {
-    return checkNodeState(tree_(this)).previousSilbing || null;
+  get previousSibling() {
+    return checkNodeState(tree_(this)).previousSibling || null;
   },
 
   get nextSibling() {
@@ -3626,8 +3641,7 @@ definePrototype(NodeTree, {
   },
   removeNode: function removeNode(node) {
     assertSameTree(this, node, true);
-
-    _removeNode(tree_(node));
+    removeNodeFromMap(tree_(node), true);
   },
   update: function update() {
     collectMutations();
@@ -3885,6 +3899,46 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 });
 
 
+/***/ }),
+
+/***/ 304:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+// @ts-nocheck
+
+/** @type {JQueryStatic} */
+const jQuery = window.jQuery || __webpack_require__(609);
+module.exports = jQuery;
+
+
+/***/ }),
+
+/***/ 511:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+// @ts-nocheck
+
+/** @type {PromiseConstructor} */
+const Promise = window.Promise || __webpack_require__(804).default;
+module.exports = Promise;
+
+
+/***/ }),
+
+/***/ 609:
+/***/ (function(module) {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__609__;
+
+/***/ }),
+
+/***/ 804:
+/***/ (function(module) {
+
+"use strict";
+module.exports = __WEBPACK_EXTERNAL_MODULE__804__;
+
 /***/ })
 
 /******/ 	});
@@ -3945,7 +3999,7 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(917);
+/******/ 	return __webpack_require__(411);
 /******/ })()
 ;
 });
