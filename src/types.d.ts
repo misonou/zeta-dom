@@ -311,6 +311,12 @@ declare namespace Zeta {
         sourceKeyName: string;
     }
 
+    interface EventEmitOptions {
+        bubbles?: boolean;
+        source?: Zeta.ZetaEventSource;
+        originalEvent?: Event;
+    };
+
     interface ZetaEventContainerOptions {
         /**
          * Sets whether all event handlers are automatically removed when the root element is detached.
@@ -398,43 +404,34 @@ declare namespace Zeta {
         destroy(): void;
 
         /**
-         * Emits an event to a DOM element or a custom event target.
-         * @param event Name of the event.
-         * @param target A DOM element or a custom event target which the event should be dispatched on.
-         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
-         * @param bubbles Specifies whether the event should bubble up through the component tree. Default is true.
-         */
-        emit(event: string, target?: any, data?: any, bubbles?: boolean): Promise<any> | false;
-
-        /**
          * Re-emits an event to components.
          * If the event is handled by component, a promise object is returned.
          * @param event An instance of ZetaEvent representing the event to be re-emitted.
-         * @param [target] A DOM element which the event should be dispatched on.
-         * @param [data] Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
-         * @param [bubbles] Specifies whether the event should bubble up through the component tree. Default is true.
+         * @param target A DOM element which the event should be dispatched on.
+         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(event: ZetaEvent, target?: any, data?: any, bubbles?: boolean): Promise<any> | false;
+        emit(event: ZetaEvent, target?: any, data?: any, options?: boolean | EventEmitOptions): Promise<any> | false;
 
         /**
          * Emits an event to components synchronously.
          * If the event is handled by component, a promise object is returned.
          * @param eventName Event name.
-         * @param [target] A DOM element which the event should be dispatched on.
-         * @param [data] Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
-         * @param [bubbles] Specifies whether the event should bubble up through the component tree. Default is true.
+         * @param target A DOM element which the event should be dispatched on.
+         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(eventName: string, target?: any, data?: any, bubbles?: boolean): Promise<any> | false;
+        emit(eventName: string, target?: any, data?: any, options?: boolean | EventEmitOptions): Promise<any> | false;
 
         /**
          * Emits an event to components asynchronously.
          * @param eventName Event name.
-         * @param [target] A DOM element which the event should be dispatched on.
-         * @param [data] Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
-         * @param [bubbles] Specifies whether the event should bubble up through the component tree. Default is true.
-         * @param [mergeData] A callback to aggregates data from the previous undispatched event of the same name on the same target.
+         * @param target A DOM element which the event should be dispatched on.
+         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
+         * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
          */
-        emitAsync(eventName: string, target?: any, data?: any, bubbles?: boolean, mergeData?: (v, a) => any): void;
+        emitAsync(eventName: string, target?: any, data?: any, options?: boolean | EventEmitOptions, mergeData?: (v, a) => any): void;
 
         /**
          * Gets the custom object that represents the given element,

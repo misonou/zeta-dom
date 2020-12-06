@@ -73,8 +73,15 @@ function getEventContext(element) {
     return _(container).options;
 }
 
-function emitDOMEvent(eventName, nativeEvent, target, data, bubbles, source) {
-    var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, nativeEvent, bubbles, source);
+function normalizeEventOptions(options) {
+    if (typeof options === 'boolean') {
+        return { bubbles: options };
+    }
+    return extend({}, options);
+}
+
+function emitDOMEvent(eventName, target, data, options) {
+    var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
     return emitter.emit(domEventTrap, 'tap', target, true) || emitter.emit();
 }
 
@@ -87,13 +94,13 @@ function listenDOMEvent(element, event, handler) {
     return domContainer.add(element, event, handler);
 }
 
-function registerAsyncEvent(eventName, container, target, data, bubbles, mergeData) {
+function registerAsyncEvent(eventName, container, target, data, options, mergeData) {
     var map = mapGet(asyncEventData, container, Map);
     var dict = mapGet(map, target || container.element, Object);
     if (dict[eventName] && (isFunction(mergeData) || (data === undefined && dict[eventName].data === undefined))) {
         dict[eventName].data = mergeData && mergeData(dict[eventName].data, data);
     } else {
-        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, null, bubbles);
+        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options));
         asyncEvents.push(dict[eventName]);
         setImmediateOnce(emitAsyncEvents);
     }
@@ -129,21 +136,21 @@ function emitAsyncEvents(container) {
  * ZetaEventEmitter
  * -------------------------------------- */
 
-function ZetaEventEmitter(eventName, container, target, data, originalEvent, bubbles, source) {
+function ZetaEventEmitter(eventName, container, target, data, options) {
     target = target || container.element;
-    source = source || new ZetaEventSource(target);
+    var source = options.source || new ZetaEventSource(target);
     var properties = {
         source: source.source,
         sourceKeyName: source.sourceKeyName,
         timestamp: performance.now(),
-        originalEvent: originalEvent || null
+        originalEvent: options.originalEvent || null
     };
     extend(this, {
         container: container,
         eventName: eventName,
         target: target,
         data: data,
-        bubbles: !!bubbles,
+        bubbles: !!options.bubbles,
         properties: properties,
         sourceObj: source
     }, properties);
@@ -319,8 +326,9 @@ definePrototype(ZetaEventContainer, {
         }
     },
     emit: function (eventName, target, data, bubbles) {
-        var emitter = is(eventName, ZetaEvent) ? _(eventName) : new ZetaEventEmitter(eventName, this, target, data, null, bubbles);
-        return emitter.emit(this, null, target, bubbles);
+        var options = normalizeEventOptions(bubbles);
+        var emitter = is(eventName, ZetaEvent) ? _(eventName) : new ZetaEventEmitter(eventName, this, target, data, options);
+        return emitter.emit(this, null, target, options.bubbles);
     },
     emitAsync: function (eventName, target, data, bubbles, mergeData) {
         registerAsyncEvent(eventName, this, target, data, bubbles, mergeData);

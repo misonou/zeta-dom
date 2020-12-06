@@ -70,16 +70,7 @@ export function retainFocus(a: Element, b: Element): void;
 
 export function releaseFocus(a: Element, b: Element): void;
 
-/**
- * Emits an event to a DOM element.
- * @param eventName Name of the event.
- * @param target A DOM element or a custom event target which the event should be dispatched on.
- * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
- * @param bubbles Specifies whether the event should bubble up through the component tree. Default is true.
- */
-export declare function emit(eventName: string, target: Element, data?: any, bubbles?: boolean, source?: string): Promise<any> | undefined;
-
-export { getEventSource, listenDOMEvent as on } from "./events";
+export { getEventSource, listenDOMEvent as on, emitDOMEvent as emit } from "./events";
 
 export * from "./domLock";
 

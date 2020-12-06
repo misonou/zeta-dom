@@ -13,9 +13,9 @@ export declare function getEventSource(element?: Element): Zeta.ZetaEventSourceN
  * @param nativeEvent A native event object dispatched from browser.
  * @param target A DOM element or a custom event target which the event should be dispatched on.
  * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
- * @param bubbles Specifies whether the event should bubble up through the component tree. Default is true.
+ * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
  */
-export declare function emitDOMEvent(eventName: string, nativeEvent: Event | null, target: Element, data?: any, bubbles?: boolean, source?: string): Promise<any> | undefined;
+export declare function emitDOMEvent(eventName: string, target: Element, data?: any, options?: boolean | Zeta.EventEmitOptions): Promise<any> | undefined;
 
 /**
  * Registers event handlers to the root element.

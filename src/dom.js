@@ -67,10 +67,13 @@ function focusLockedWithin(element) {
 }
 
 function triggerFocusEvent(eventName, elements, relatedTarget, source) {
+    var data = {
+        relatedTarget: relatedTarget
+    };
     each(elements, function (i, v) {
-        emitDOMEvent(eventName, null, v, {
-            relatedTarget: relatedTarget
-        }, false, source);
+        emitDOMEvent(eventName, v, data, {
+            source: source
+        });
     });
 }
 
@@ -201,7 +204,10 @@ domReady.then(function () {
     }
 
     function triggerUIEvent(eventName, data, target) {
-        return emitDOMEvent(eventName, currentEvent, target || focusPath[0], data, true);
+        return emitDOMEvent(eventName, target || focusPath[0], data, {
+            bubbles: true,
+            originalEvent: currentEvent
+        });
     }
 
     function triggerKeystrokeEvent(keyName, char) {
@@ -216,38 +222,42 @@ domReady.then(function () {
         }
     }
 
-    function triggerMouseEvent(eventName, nativeEvent) {
-        var point = mouseInitialPoint || nativeEvent;
-        return emitDOMEvent(eventName, nativeEvent, nativeEvent.target, {
-            target: nativeEvent.target,
+    function triggerMouseEvent(eventName) {
+        var point = mouseInitialPoint || currentEvent;
+        var data = {
+            target: currentEvent.target,
             clientX: point.clientX,
             clientY: point.clientY,
-            metakey: getEventName(nativeEvent)
-        }, true);
+            metakey: getEventName(currentEvent) || ''
+        };
+        return triggerUIEvent(eventName, data, currentEvent.target);
     }
 
-    function triggerGestureEvent(gesture, nativeEvent) {
+    function triggerGestureEvent(gesture) {
         mouseInitialPoint = null;
-        return emitDOMEvent('gesture', nativeEvent, focusPath.slice(-1)[0], gesture, true);
+        return triggerUIEvent('gesture', gesture, focusPath.slice(-1)[0]);
     }
 
-    bind(window, 'mousedown mouseup wheel compositionstart compositionend beforeinput textInput keydown keyup keypress touchstart touchend cut copy paste drop click dblclick contextmenu', function (e) {
-        currentEvent = e;
-        setTimeout(function () {
-            currentEvent = null;
-        });
-        setLastEventSource(null);
-        if (!focusable(e.target)) {
-            e.stopImmediatePropagation();
-            e.preventDefault();
-            if (matchWord(e.type, 'touchstart mousedown keydown')) {
-                emitDOMEvent('focusreturn', null, focusPath.slice(-1)[0]);
+    function handleUIEventWrapper(type, callback) {
+        return function (e) {
+            currentEvent = e;
+            setTimeout(function () {
+                currentEvent = null;
+            });
+            setLastEventSource(null);
+            if (!focusable(e.target)) {
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                if (matchWord(type, 'touchstart mousedown keydown')) {
+                    emitDOMEvent('focusreturn', focusPath.slice(-1)[0]);
+                }
             }
-        }
-        setLastEventSource(e.target);
-    }, true);
+            setLastEventSource(e.target);
+            callback(e);
+        };
+    }
 
-    bind(root, {
+    var uiEvents = {
         compositionstart: function () {
             updateIMEState();
             imeText = '';
@@ -367,11 +377,11 @@ domReady.then(function () {
             if (!e.touches[1]) {
                 // @ts-ignore: e.target is Element
                 if (normalizeTouchEvents && focused(container.element)) {
-                    triggerMouseEvent('mousedown', e);
+                    triggerMouseEvent('mousedown');
                 }
                 pressTimeout = setTimeout(function () {
                     if (mouseInitialPoint) {
-                        triggerMouseEvent('longPress', e);
+                        triggerMouseEvent('longPress');
                         mouseInitialPoint = null;
                     }
                 }, 1000);
@@ -384,10 +394,10 @@ domReady.then(function () {
                 if (!e.touches[1]) {
                     var line = measureLine(e.touches[0], mouseInitialPoint);
                     if (line.length > 50 && approxMultipleOf(line.deg, 90)) {
-                        triggerGestureEvent('swipe' + (approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Bottom' : 'Top')), e);
+                        triggerGestureEvent('swipe' + (approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Bottom' : 'Top')));
                     }
                 } else if (!e.touches[2]) {
-                    triggerGestureEvent('pinchZoom', e);
+                    triggerGestureEvent('pinchZoom');
                 }
             }
         },
@@ -395,7 +405,7 @@ domReady.then(function () {
             clearTimeout(pressTimeout);
             if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
                 setFocus(e.target);
-                triggerMouseEvent('click', e);
+                triggerMouseEvent('click');
                 dispatchDOMMouseEvent('click', mouseInitialPoint, e);
                 e.preventDefault();
             }
@@ -403,7 +413,7 @@ domReady.then(function () {
         mousedown: function (e) {
             setFocus(e.target);
             if ((e.buttons || e.which) === 1) {
-                triggerMouseEvent('mousedown', e);
+                triggerMouseEvent('mousedown');
             }
             mouseInitialPoint = e;
             mousedownFocus = document.activeElement;
@@ -429,15 +439,22 @@ domReady.then(function () {
         },
         click: function (e) {
             if (!IS_TOUCH && mouseInitialPoint) {
-                triggerMouseEvent('click', e);
+                triggerMouseEvent('click');
             }
         },
         contextmenu: function (e) {
-            triggerMouseEvent('rightClick', e);
+            triggerMouseEvent('rightClick');
         },
         dblclick: function (e) {
-            triggerMouseEvent('dblclick', e);
-        },
+            triggerMouseEvent('dblclick');
+        }
+    };
+
+    each(uiEvents, function (i, v) {
+        bind(root, i, matchWord(i, 'mousemove touchmove') ? v : handleUIEventWrapper(i, v), true);
+    });
+
+    bind(root, {
         focusin: function (e) {
             windowFocusedOut = false;
             if (focusable(e.target)) {
@@ -549,9 +566,7 @@ export default {
 
     getEventSource,
     on: listenDOMEvent,
-    emit: function (eventName, element, data, bubbles) {
-        return emitDOMEvent(eventName, null, element, data, bubbles);
-    },
+    emit: emitDOMEvent,
 
     lock,
     locked,
