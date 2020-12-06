@@ -1,5 +1,5 @@
 import Promise from "./include/promise-polyfill.cjs";
-import { window, document } from "./env.js";
+import { window, root } from "./env.js";
 import { any, createPrivateStore, definePrototype, extend, makeArray, mapRemove, reject, resolve } from "./util.js";
 import { parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
@@ -133,9 +133,9 @@ definePrototype(DOMLock, {
     }
 });
 
-lock(document);
+lock(root);
 window.onbeforeunload = function (e) {
-    if (locked(document)) {
+    if (locked(root)) {
         e.returnValue = '';
         e.preventDefault();
     }
