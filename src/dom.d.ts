@@ -48,7 +48,7 @@ export function textInputAllowed(element: Element): boolean;
  * which prevents focus to be moved outside the model element.
  * @param element A DOM element.
  */
-export function focusable(element: Element): boolean;
+export function focusable(element: Element): Element | false;
 
 /**
  * Determines whether current window is in focus.

@@ -249,7 +249,7 @@ export function scrollIntoView(element: Element, margin: number): { x: number; y
  * @param range An object that encloses part of contents in DOM.
  * @returns A DOM range.
  */
-export function createRange(range: Zeta.HasRange | Node): Range;
+export function createRange(range: Zeta.HasRange | Range | Node): Range;
 
 /**
  * Creates a range that select inner content of a DOM node.
