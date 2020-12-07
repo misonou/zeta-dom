@@ -72,7 +72,8 @@ function triggerFocusEvent(eventName, elements, relatedTarget, source) {
     };
     each(elements, function (i, v) {
         emitDOMEvent(eventName, v, data, {
-            source: source
+            source: source,
+            handleable: false
         });
     });
 }

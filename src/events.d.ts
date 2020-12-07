@@ -15,7 +15,7 @@ export declare function getEventSource(element?: Element): Zeta.ZetaEventSourceN
  * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
  * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
  */
-export declare function emitDOMEvent(eventName: string, target: Element, data?: any, options?: boolean | Zeta.EventEmitOptions): Promise<any> | undefined;
+export declare function emitDOMEvent(eventName: string, target: Element, data?: any, options?: boolean | Zeta.EventEmitOptions): any;
 
 /**
  * Registers event handlers to the root element.

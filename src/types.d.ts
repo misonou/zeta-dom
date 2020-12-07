@@ -6,6 +6,7 @@ declare namespace Zeta {
     type ElementLike = Element | HasElement;
     type HtmlContent = string | Node | Node[] | NodeList | JQuery<any> | JQuery.htmlString;
 
+    type Dictionary<T = any> = Record<string, T>;
     type DeepReadonly<T> = { readonly [P in keyof T]: DeepReadonly<T[P]> };
     type WatchableInstance<T> = T & Watchable<T>;
 
@@ -159,8 +160,6 @@ declare namespace Zeta {
         previousSibling(): T | null;
         nextSibling(): T | null;
     }
-
-    type Dictionary<T = any> = Record<string, T>;
 
 
     /* --------------------------------------
@@ -317,8 +316,35 @@ declare namespace Zeta {
     }
 
     interface EventEmitOptions {
+        /**
+         * Specifies if the event should bubble up.
+         * Default is false.
+         */
         bubbles?: boolean;
+
+        /**
+         * Specifies whether the event can be handled, such that by returning a result value,
+         * subsequent event handlers would be skipped and the returned value will be passed to
+         * the caller of the emit function. Default is true.
+         */
+        handleable?: boolean;
+
+        /**
+         * Specifies if the emit function should wrap the return value from event handlers as a Promise.
+         * Default is true.
+         */
+        asyncResult?: boolean;
+
+        /**
+         * Specifies the event source that controls how the event should bubble up, as well as
+         * the `source` and `sourceKeyName` properties of the event object that would be passed
+         * to event handlers.
+         */
         source?: Zeta.ZetaEventSource;
+
+        /**
+         * Provides a native Event object the event is associated with.
+         */
         originalEvent?: Event;
     };
 
@@ -416,7 +442,7 @@ declare namespace Zeta {
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(event: ZetaEvent, target?: any, data?: any, options?: boolean | EventEmitOptions): Promise<any> | false;
+        emit(event: ZetaEvent, target?: any, data?: any, options?: boolean | EventEmitOptions): any;
 
         /**
          * Emits an event to components synchronously.
@@ -426,7 +452,7 @@ declare namespace Zeta {
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(eventName: string, target?: any, data?: any, options?: boolean | EventEmitOptions): Promise<any> | false;
+        emit(eventName: string, target?: any, data?: any, options?: boolean | EventEmitOptions): any;
 
         /**
          * Emits an event to components asynchronously.

@@ -75,9 +75,12 @@ function getEventContext(element) {
 
 function normalizeEventOptions(options) {
     if (typeof options === 'boolean') {
-        return { bubbles: options };
+        options = { bubbles: options };
     }
-    return extend({}, options);
+    return extend({
+        handleable: true,
+        asyncResult: true
+    }, options);
 }
 
 function emitDOMEvent(eventName, target, data, options) {
@@ -145,7 +148,7 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
         timestamp: performance.now(),
         originalEvent: options.originalEvent || null
     };
-    extend(this, {
+    extend(this, options, properties, {
         container: container,
         eventName: eventName,
         target: target,
@@ -153,7 +156,7 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
         bubbles: !!options.bubbles,
         properties: properties,
         sourceObj: source
-    }, properties);
+    });
 }
 
 definePrototype(ZetaEventEmitter, {
@@ -166,22 +169,24 @@ definePrototype(ZetaEventEmitter, {
         var components = _(container).components;
         // @ts-ignore: type inference issue
         var targets = !bubbles ? [target || self.target] : self.originalEvent && target === undefined ? self.sourceObj.path : parentsAndSelf(target || self.target);
-        return single(targets, function (v) {
+        single(targets, function (v) {
             var component = components.get(v);
             return component && emitterCallHandlers(self, component, self.eventName, eventName, self.data);
         });
+        return self.result;
     }
 });
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
     handlerName = handlerName || eventName;
     if (matchWord(handlerName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data)) {
-        return emitter.result;
+        return true;
     }
     if (data === undefined) {
         data = removeAsyncEvent(eventName, component.container, context);
     }
     var handlers = component.handlers[handlerName];
+    var handled;
     if (handlers) {
         var context = component.context;
         var contextContainer = is(context, ZetaEventContainer) || component.container;
@@ -190,24 +195,27 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         var prevEvent = contextContainer.event;
         contextContainer.event = event;
         eventSource = emitter.sourceObj;
-        try {
-            var returnValue = single(handlers, function (v) {
-                return v.call(context, event, context);
-            });
-            if (returnValue !== undefined) {
-                emitter.result = resolve(returnValue);
+        handled = single(handlers, function (v) {
+            try {
+                var returnValue = v.call(context, event, context);
+                if (returnValue !== undefined) {
+                    event.handled(returnValue);
+                }
+            } catch (e) {
+                console.error(e);
+                if (emitter.asyncResult) {
+                    event.handled(reject(e));
+                }
             }
-        } catch (e) {
-            console.error(e);
-            emitter.result = reject(e);
-        }
+            return emitter.handled;
+        });
         eventSource = prevEventSource;
         contextContainer.event = prevEvent;
     }
-    if (!emitter.result && handlerName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
-        emitterCallHandlers(emitter, component, 'textInput', null, data.char);
+    if (!handled && handlerName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
+        return emitterCallHandlers(emitter, component, 'textInput', null, data.char);
     }
-    return emitter.result;
+    return handled;
 }
 
 /* --------------------------------------
@@ -231,21 +239,20 @@ function ZetaEvent(event, eventName, component, data) {
 }
 
 definePrototype(ZetaEvent, {
-    handled: function (promise) {
+    handled: function (value) {
         var event = _(this);
-        if (!event.result) {
-            event.result = resolve(promise);
+        if (event.handleable && !event.handled) {
+            event.handled = true;
+            event.result = event.asyncResult ? resolve(value) : value;
         }
     },
     isHandled: function () {
-        return !!_(this).result;
+        return !!_(this).handled;
     },
     preventDefault: function () {
         var event = this.originalEvent;
         if (event) {
             event.preventDefault();
-        } else {
-            _(this).defaultPrevented = true;
         }
     },
     isDefaultPrevented: function () {
