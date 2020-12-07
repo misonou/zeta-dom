@@ -175,7 +175,7 @@ definePrototype(ZetaEventEmitter, {
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
     handlerName = handlerName || eventName;
-    if (matchWord(handlerName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data)) {
+    if (matchWord(handlerName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data)) {
         return emitter.result;
     }
     if (data === undefined) {
