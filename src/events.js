@@ -219,6 +219,7 @@ function ZetaEvent(event, eventName, component, data) {
     self.eventName = eventName;
     self.type = eventName;
     self.context = component.context;
+    self.currentTarget = component.element;
     self.target = containsOrEquals(event.target, component.element) ? component.element : event.target;
     self.data = null;
     if (isPlainObject(data)) {

@@ -222,15 +222,20 @@ declare namespace Zeta {
         readonly type: string;
 
         /**
-         * Gets the DOM element that received this event.
+         * Gets the DOM element that triggered this event.
          */
         readonly target: HTMLElement;
+
+        /**
+         * Gets the DOM element which current event handler is bound to.
+         */
+        readonly currentTarget: HTMLElement;
 
         /**
          * Gets the user action which triggers this event.
          * If this event is not directly triggered from DOM events, i.e. it is fan out from other components, the value is always script.
          */
-        readonly source: ZetaEventSource;
+        readonly source: ZetaEventSourceName;
 
         /**
          * Gets the key or key combinations if this event is triggered by keyboard.
