@@ -578,30 +578,9 @@ function mergeRect(a, b) {
 
 function elementFromPoint(x, y, container) {
     container = container || document.body;
-    if (elementsFromPoint) {
-        return any(elementsFromPoint.call(document, x, y), function (v) {
-            return containsOrEquals(container, v) && getComputedStyle(v).pointerEvents !== 'none';
-        }) || null;
-    }
-    var element = document.elementFromPoint(x, y);
-    if (!containsOrEquals(container, element) && pointInRect(x, y, getRect(container))) {
-        var tmp = [];
-        try {
-            while (element && comparePosition(container, element, true)) {
-                var target = $(element).parentsUntil(getCommonAncestor(container, element)).slice(-1)[0] || element;
-                if (target === tmp[tmp.length - 1]) {
-                    return null;
-                }
-                // @ts-ignore: assume we are working with HTMLElement
-                target.style.pointerEvents = 'none';
-                tmp[tmp.length] = target;
-                element = document.elementFromPoint(x, y);
-            }
-        } finally {
-            $(tmp).css('pointer-events', '');
-        }
-    }
-    return containsOrEquals(container, element) ? element : null;
+    return any(elementsFromPoint.call(document, x, y), function (v) {
+        return containsOrEquals(container, v) && getComputedStyle(v).pointerEvents !== 'none';
+    }) || null;
 }
 
 
