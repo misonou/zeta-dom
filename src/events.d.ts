@@ -23,14 +23,14 @@ export declare function emitDOMEvent(eventName: string, target: Element, data?: 
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<T extends Zeta.ZetaDOMEventName>(event: T, handler: Zeta.ZetaEventHandler<T, Zeta.ZetaDOMEventMap>): () => void;
+export declare function listenDOMEvent<T extends Zeta.ZetaDOMEventName>(event: T, handler: Zeta.ZetaEventHandler<T, Zeta.ZetaDOMEventMap>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to the root element.
  * @param handlers An object which each entry represent the handler to be registered on the event.
  * @returns A function that will unregister the handler when called.
  */
-export declare function listenDOMEvent(handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): () => void;
+export declare function listenDOMEvent(handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to a DOM element.
@@ -39,7 +39,7 @@ export declare function listenDOMEvent(handlers: Zeta.ZetaEventHandlers<Zeta.Zet
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<T extends Zeta.ZetaDOMEventName>(element: Element, event: T, handler: Zeta.ZetaEventHandler<T, Zeta.ZetaDOMEventMap>): () => void;
+export declare function listenDOMEvent<T extends Zeta.ZetaDOMEventName>(element: Element, event: T, handler: Zeta.ZetaEventHandler<T, Zeta.ZetaDOMEventMap>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to a DOM element.
@@ -47,6 +47,6 @@ export declare function listenDOMEvent<T extends Zeta.ZetaDOMEventName>(element:
  * @param handlers An object which each entry represent the handler to be registered on the event.
  * @returns A function that will unregister the handler when called.
  */
-export declare function listenDOMEvent(element: Element, handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): () => void;
-export declare function getEventContext(element: Element): Zeta.ZetaEventContainerOptions & { element: Element; context: any };
+export declare function listenDOMEvent(element: Element, handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): Zeta.UnregisterCallback;
+export declare function getEventContext(element: Element): Zeta.EventContainerOptions & { element: Element; context: any };
 export declare function setLastEventSource(element: Element | EventTarget | null): void;

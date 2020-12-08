@@ -19,6 +19,8 @@ declare namespace Zeta {
     type AnyConstructor = new (...args) => any;
     type AdditionalMembers<T, U> = { [P in keyof U]: U[P] extends AnyFunction ? (this: T & U, ...args) => any : U[P] };
 
+    type UnregisterCallback = () => void;
+
     type NodeOfType<T extends number> = {
         [1]: Element;
         [2]: Attr;
@@ -168,7 +170,7 @@ declare namespace Zeta {
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaDOMEventName = 'init' | 'destroy' | 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'typing' | 'textInput' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | Zeta.KeyNameSpecial | Zeta.ClickName;
+    type ZetaDOMEventName = 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'textInput' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | 'cancelled' | 'error' | Zeta.KeyNameSpecial | Zeta.ClickName;
 
     type ZetaDOMEventMap = { [P in Zeta.ClickName]: ZetaMouseEvent } & {
         focusin: ZetaFocusEvent;
@@ -183,7 +185,9 @@ declare namespace Zeta {
 
     type ZetaEventType<E extends string, M> = (M & { [s: string]: ZetaEvent })[E];
 
-    type ZetaEventHandler<E extends string, M = {}, T = Element> = (this: T, e: ZetaEventType<E, M> & ZetaEventContext<T>, self: T) => any;
+    type ZetaEventHandlerReturnType<T> = T extends ZetaAsyncHandleableEvent<infer R> ? Promise<R> | R : T extends ZetaHandleableEvent<infer R> ? R : any
+
+    type ZetaEventHandler<E extends string, M = {}, T = Element> = (this: T, e: ZetaEventType<E, M> & ZetaEventContext<T>, self: T) => ZetaEventHandlerReturnType<ZetaEventType<E, M>> | void;
 
     type ZetaEventHandlers<E extends string, M = {}, T = Element> = { [P in E]?: ZetaEventHandler<P, M, T> };
 
@@ -203,13 +207,26 @@ declare namespace Zeta {
         on<E extends keyof M>(event: E, handler: ZetaEventHandler<E, M, T>);
 
         /**
+         * Adds an event handler to a specific event on the given target.
+         * @param event Name of the event.
+         * @param handler A callback function to be fired when the specified event is triggered.
+         */
+        on<E extends keyof M>(target: T, event: E, handler: ZetaEventHandler<E, M, T>);
+
+        /**
          * Adds event handlers to multiple events.
          * @param handlers A dictionary which the keys are event names and values are the callback for each event.
          */
         on(handlers: ZetaEventHandlers<keyof M, M, T>);
+
+        /**
+         * Adds event handlers to multiple events on the given target.
+         * @param handlers A dictionary which the keys are event names and values are the callback for each event.
+         */
+        on(target: T, handlers: ZetaEventHandlers<keyof M, M, T>);
     }
 
-    interface ZetaEvent {
+    interface ZetaEventBase {
         /**
          * Gets the event name.
          */
@@ -256,19 +273,40 @@ declare namespace Zeta {
          * Gets the native DOM event that triggers this event.
          */
         readonly originalEvent: Event | null;
+    }
 
+    interface ZetaHandleableEvent<T = any> extends ZetaEventBase {
         /**
          * Signals that this event or user action is already handled and should not be observed by other components.
-         * @param [promise] A value or a promise object for async handlng.
+         * @param value A value for handling.
          */
-        handled(promise?: Promise<any> | any): void;
+        handled(value: T): void;
 
         /**
          * Gets whether this event or user action is already handled.
          * @returns true if handled.
          */
         isHandled(): boolean;
+    }
 
+    interface ZetaAsyncHandleableEvent<T = any> extends ZetaEventBase {
+        /**
+         * Signals that this event or user action is already handled and should not be observed by other components.
+         * @param promise A value or a promise object for async handling.
+         */
+        handled(promise?: Promise<T> | T): void;
+
+        /**
+         * Gets whether this event or user action is already handled.
+         * @returns true if handled.
+         */
+        isHandled(): boolean;
+    }
+
+    interface ZetaEvent extends ZetaAsyncHandleableEvent {
+    }
+
+    interface ZetaNativeUIEvent extends ZetaAsyncHandleableEvent {
         /**
          * Suppresses the default behavior by the browser.
          */
@@ -281,29 +319,29 @@ declare namespace Zeta {
         isDefaultPrevented(): boolean;
     }
 
-    interface ZetaFocusEvent extends ZetaEvent {
+    interface ZetaFocusEvent extends ZetaEventBase {
         readonly relatedTarget: HTMLElement;
     }
 
-    interface ZetaMouseEvent extends ZetaEvent {
+    interface ZetaMouseEvent extends ZetaNativeUIEvent {
         readonly clientX: number;
         readonly clientY: number;
         readonly metakey: string;
     }
 
-    interface ZetaWheelEvent extends ZetaEvent {
+    interface ZetaWheelEvent extends ZetaNativeUIEvent {
         readonly data: -1 | 1;
     }
 
-    interface ZetaKeystrokeEvent extends ZetaEvent {
+    interface ZetaKeystrokeEvent extends ZetaNativeUIEvent {
         readonly data: string;
     }
 
-    interface ZetaGestureEvent extends ZetaEvent {
+    interface ZetaGestureEvent extends ZetaNativeUIEvent {
         readonly data: string;
     }
 
-    interface ZetaTextInputEvent extends ZetaEvent {
+    interface ZetaTextInputEvent extends ZetaNativeUIEvent {
         readonly data: string;
     }
 
@@ -348,7 +386,7 @@ declare namespace Zeta {
         originalEvent?: Event;
     };
 
-    interface ZetaEventContainerOptions {
+    interface EventContainerOptions {
         /**
          * Sets whether all event handlers are automatically removed when the root element is detached.
          */
@@ -373,7 +411,7 @@ declare namespace Zeta {
          * @param context An object to be exposed through `dom.context` if the `captureDOMEvents` option is set to `true`.
          * @param options A dictionary containing options specifying the behavior of the container.
          */
-        constructor(root?: Element, context?: any, options?: ZetaEventContainerOptions);
+        constructor(root?: Element, context?: any, options?: EventContainerOptions);
 
         /**
          * Gets the root element this container associates with.
@@ -388,7 +426,7 @@ declare namespace Zeta {
         /**
          * Gets the event currently being fired within this container.
          */
-        readonly event: ZetaEvent & ZetaEventContext<T> | null;
+        readonly event: ZetaEventBase & ZetaEventContext<T> | null;
 
         /**
          * Gets whether all event handlers are automatically removed when the root element is detached.
@@ -411,7 +449,7 @@ declare namespace Zeta {
          * @param handlers An object which each entry represent the handler to be registered on the event.
          * @returns A function that will unregister the handler when called.
          */
-        add(target: any, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): () => void;
+        add(target: any, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): UnregisterCallback;
 
         /**
          * Registers event handlers to a DOM element or a custom event target.
@@ -420,7 +458,7 @@ declare namespace Zeta {
          * @param handler A callback function to be fired when the specified event is triggered.
          * @returns A function that will unregister the handlers when called.
          */
-        add<E extends string>(target: any, event: E, handlers: ZetaEventHandler<E, ZetaDOMEventMap, T>): () => void;
+        add<E extends string>(target: any, event: E, handlers: ZetaEventHandler<E, ZetaDOMEventMap, T>): UnregisterCallback;
 
         /**
          * Removes the DOM element or custom event target from the container.
@@ -442,7 +480,7 @@ declare namespace Zeta {
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(event: ZetaEvent, target?: any, data?: any, options?: boolean | EventEmitOptions): any;
+        emit(event: ZetaEventBase, target?: any, data?: any, options?: boolean | EventEmitOptions): any;
 
         /**
          * Emits an event to components synchronously.
@@ -508,7 +546,7 @@ declare namespace Zeta {
         update: NodeTreeUpdateEvent;
     }
 
-    interface NodeTreeUpdateEvent extends ZetaEvent {
+    interface NodeTreeUpdateEvent extends ZetaEventBase {
         readonly updatedNodes: VirtualNode[];
     }
 
@@ -522,7 +560,9 @@ declare namespace Zeta {
         update(): void;
 
         on<E extends keyof NodeTreeEventMap>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap, NodeTree<T>>);
+        on<E extends keyof NodeTreeEventMap>(tree: NodeTree<T>, event: E, handler: ZetaEventHandler<E, NodeTreeEventMap, NodeTree<T>>);
         on(handler: ZetaEventHandlers<keyof NodeTreeEventMap, NodeTreeEventMap, NodeTree<T>>);
+        on(tree: NodeTree<T>, handler: ZetaEventHandlers<keyof NodeTreeEventMap, NodeTreeEventMap, NodeTree<T>>);
     }
 
     declare class TraversableNodeTree<T extends TraversableNode> extends NodeTree<T> {
