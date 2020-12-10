@@ -1,4 +1,4 @@
-import { initBody, root } from "./testUtil";
+import { initBody, mockFn, root, verifyCalls } from "./testUtil";
 import { InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree, TreeWalker } from "../src/tree";
 
 /** @type {<T extends Zeta.VirtualNode>(tree: Zeta.NodeTree<T>, ...nodes: Element[]) => T[]} */
@@ -122,6 +122,84 @@ describe('NodeTree.update', () => {
     });
 });
 
+describe('TraversableNodeTree.acceptNode', () => {
+    it('should be called when traversing', () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        const cb = mockFn().mockReturnValue(1);
+        const tree = new TraversableNodeTree(node1);
+        tree.acceptNode = cb;
+        setNodes(tree, node1, node2);
+
+        const iterator = new TreeWalker(tree.rootNode);
+        iterator.nextNode();
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should be called with correct this and arguments', () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        const cb = mockFn().mockReturnValue(1);
+        const tree = new TraversableNodeTree(node1);
+        tree.acceptNode = function () {
+            return cb(this, ...arguments);
+        };
+        const [vnode1, vnode2] = setNodes(tree, node1, node2);
+        const iterator = new TreeWalker(tree.rootNode);
+        iterator.nextNode();
+        verifyCalls(cb, [
+            [expect.sameObject(tree), expect.sameObject(vnode2), expect.sameObject(iterator)]
+        ]);
+    });
+
+    it('should be called before TreeWalker.filter', () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        const cb = mockFn().mockReturnValue(1);
+        const tree = new TraversableNodeTree(node1);
+        tree.acceptNode = function () {
+            return cb('tree.acceptNode');
+        };
+        setNodes(tree, node1, node2);
+
+        const iterator = new TreeWalker(tree.rootNode, -1, () => cb('iterator.acceptNode'));
+        iterator.nextNode();
+        verifyCalls(cb, [
+            ['tree.acceptNode'],
+            ['iterator.acceptNode']
+        ]);
+    });
+
+    it('should stop TreeWalker.filter to be called if node is skipped', () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        const cb = mockFn().mockReturnValue(3);
+        const tree = new TraversableNodeTree(node1);
+        tree.acceptNode = function () {
+            return cb('tree.acceptNode');
+        };
+        setNodes(tree, node1, node2);
+
+        const iterator = new TreeWalker(tree.rootNode, -1, () => cb('iterator.acceptNode'));
+        iterator.nextNode();
+        verifyCalls(cb, [
+            ['tree.acceptNode']
+        ]);
+    });
+});
+
 describe('InheritedNodeTree.descendants', () => {
     it('should iterate all descendants in node order', () => {
         const { node1, node2, node3, node4, node5 } = initBody(`
@@ -169,25 +247,6 @@ describe('TreeWalker.nextNode', () => {
         expect(iterator.nextNode()).toEqual(vnode4);
         expect(iterator.nextNode()).toBeNull();
         expect(iterator.nextNode()).toBeNull();
-    });
-
-    it('should call tree.acceptNode when traversing to next node', () => {
-        const { node1, node2 } = initBody(`
-            <div id="node1">
-                <div id="node2"></div>
-            </div>
-        `);
-        const tree = new TraversableNodeTree(node1);
-        tree.acceptNode = function () {
-            message.push('acceptNode');
-            return 1;
-        };
-        setNodes(tree, node1, node2);
-
-        const message = [];
-        const iterator = new TreeWalker(tree.rootNode);
-        iterator.nextNode();
-        expect(message).toEqual(['acceptNode']);
     });
 
     it('should honor the return value of tree.acceptNode', () => {

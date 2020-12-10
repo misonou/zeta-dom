@@ -2,7 +2,7 @@ import dom from "./dom.js";
 import { combineNodeFilters, comparePosition, containsOrEquals, createTreeWalker, is, iterateNode, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventContainer } from "./events.js";
 import { observe } from "./observe.js";
-import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, isPlainObject, kv, map, mapGet, mapRemove } from "./util.js";
+import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, isFunction, isPlainObject, kv, map, mapGet, mapRemove } from "./util.js";
 
 const _ = createPrivateStore();
 const setPrototypeOf = Object.setPrototypeOf;
@@ -438,7 +438,7 @@ definePrototype(InheritedNodeTree, NodeTree, {
 function TreeWalker(root, whatToShow, filter) {
     var self = this;
     self.whatToShow = whatToShow || -1;
-    self.filter = combineNodeFilters(_(root).tree.acceptNode, filter);
+    self.filter = filter;
     self.currentNode = root;
     self.root = root;
 }
@@ -451,7 +451,12 @@ function treeWalkerAcceptNode(inst, node, checkVisibility) {
     if (checkVisibility && node !== inst.root && !treeWalkerIsNodeVisible(inst, node)) {
         return 2;
     }
-    return inst.filter(node);
+    var rv = _(node).tree.acceptNode(node, inst);
+    if (rv !== 1) {
+        return rv;
+    }
+    var filter = isFunction(inst.filter);
+    return filter ? filter(node) : 1;
 }
 treeWalkerAcceptNode.$1 = 0;
 
