@@ -6,7 +6,7 @@
  * @param callback A callback to be fired when mutation occurs.
  * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function observe(element: Element, callback: (records: MutationRecord[]) => any): () => void;
+export function observe(element: Node, callback: (records: MutationRecord[]) => any): () => void;
 
 /**
  * Observe DOM mutations with specified options from the specified element.
@@ -15,7 +15,7 @@ export function observe(element: Element, callback: (records: MutationRecord[]) 
  * @param callback A callback to be fired when mutation occurs.
  * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function observe(element: Element, options: MutationObserverInit, callback: (records: MutationRecord[]) => any): () => void;
+export function observe(element: Node, options: MutationObserverInit, callback: (records: MutationRecord[]) => any): () => void;
 
 /**
  * Registers a callback to be fired when descandent elements matching the selector is added or removed from the element.

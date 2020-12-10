@@ -15,7 +15,7 @@ declare namespace Zeta {
     type MapResultValue<T> = T | T[] | null | undefined;
     type IterateCallbackOrNull<T, R> = null | ((node: T) => MapResultValue<R>);
 
-    type AnyFunction = (...args) => any;
+    type AnyFunction = ((...args) => any) | AnyConstructor;
     type AnyConstructor = new (...args) => any;
     type AdditionalMembers<T, U> = { [P in keyof U]: U[P] extends AnyFunction ? (this: T & U, ...args) => any : U[P] };
 
@@ -581,10 +581,10 @@ declare namespace Zeta {
     }
 
     declare abstract class VirtualNode implements HasElement {
-        readonly element: Element;
+        readonly element: HTMLElement;
     }
 
-    declare abstract class TraversableNode extends VirtualNode {
+    declare class TraversableNode extends VirtualNode {
         constructor(tree: NodeTree, element: Element);
 
         readonly parentNode: TraversableNode | null;
@@ -595,7 +595,7 @@ declare namespace Zeta {
         readonly childNodes: TraversableNode[];
     }
 
-    declare abstract class InheritedNode extends VirtualNode {
+    declare class InheritedNode extends VirtualNode {
         constructor(tree: NodeTree, element: Element);
     }
 

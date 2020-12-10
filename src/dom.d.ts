@@ -68,7 +68,7 @@ export function setModal(element: Element): void;
 
 export function retainFocus(a: Element, b: Element): void;
 
-export function releaseFocus(a: Element, b: Element): void;
+export function releaseFocus(b: Element): void;
 
 export { getEventSource, listenDOMEvent as on, emitDOMEvent as emit } from "./events";
 
