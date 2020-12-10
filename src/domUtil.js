@@ -1,4 +1,4 @@
-import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray } from "./util.js";
+import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep } from "./util.js";
 import $ from "./include/jquery.cjs";
 import { window, document, root, getSelection, getComputedStyle } from "./env.js";
 
@@ -152,11 +152,16 @@ function acceptNode(iterator, node) {
 }
 
 function combineNodeFilters() {
-    var args = makeArray(arguments);
+    var args = grep(makeArray(arguments), isFunction);
+    if (!args[1]) {
+        return args[0] || function () {
+            return 1;
+        };
+    }
     return function (node) {
         var result = 1;
         for (var i = 0, len = args.length; i < len; i++) {
-            var value = isFunction(args[i]) && args[i](node);
+            var value = args[i].call(null, node);
             if (value === 2) {
                 return 2;
             }

@@ -87,7 +87,7 @@ export function acceptNode(iterator: Zeta.NodeIterator<Node>, node: Node): Zeta.
  * If any one of the filter returns 3 meaning to skip the given node, the combined filter will also return 3.
  * @param args Node filters to be chained.
  */
-export function combineNodeFilters(...args: Zeta.IteratorNodeFilter[]): Zeta.IteratorNodeFilter;
+export function combineNodeFilters<T>(...args: (Zeta.IteratorNodeFilter<T> | undefined)[]): Zeta.IteratorNodeFilter<T>;
 
 /**
  * Iterates and invoke the given callback for each node.
@@ -112,7 +112,7 @@ export function iterateNodeToArray<T>(iterator: Zeta.NodeIterator<T>): T[];
  * @param [until] If given, iteration will be stopped once the specified node is iterated, callback will not be fired for this node.
  * @returns An array containing resulting items.
  */
-export function iterateNodeToArray<T, R>(iterator: Zeta.NodeIterator<T>, callback: Zeta.IterateCallbackOrNull<T, R>, from?: T, until?: T): Zeta.IterateCallbackOrNull<T, R> extends null ? T[] : R[];
+export function iterateNodeToArray<T, R>(iterator: Zeta.NodeIterator<T>, callback: Zeta.IterateCallbackOrNull<T, R>, from?: T, until?: T | ((node: NonNullable<T>) => boolean)): Zeta.IterateCallbackOrNull<T, R> extends null ? T[] : R[];
 
 
 /* --------------------------------------
