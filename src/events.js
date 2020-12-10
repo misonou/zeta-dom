@@ -369,7 +369,7 @@ function containerCreateContext(container, element, context) {
         throw new Error('Element has already been set to another context');
     }
     if (container.captureDOMEvents && is(element, Element)) {
-        containers.set(element, self);
+        containers.set(element, container);
     }
     return cur;
 }
