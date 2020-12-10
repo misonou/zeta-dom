@@ -73,6 +73,14 @@ export function connected(a: Element, b: Element): boolean;
 export function containsOrEquals(a: Node | Zeta.HasElement, b: Node | Zeta.HasElement): boolean;
 
 /**
+ * Tests whether a node is accepted by a NodeIterator or TreeWalker.
+ * @param iterator A NodeIterator or TreeWalker object.
+ * @param node A DOM node to be tested.
+ * @returns Returns a number representing the node should be visited, skipped, or the whole subtree should be skipped.
+ */
+export function acceptNode(iterator: Zeta.NodeIterator<Node>, node: Node): Zeta.IteratorNodeFilterResult;
+
+/**
  * Combines multiple node filters.
  *
  * If any one of the filter returns 2 meaning to skip the given node and its descendants, the combined filter will also return 2 and no subsequent filters will be called.

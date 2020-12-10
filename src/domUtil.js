@@ -592,6 +592,7 @@ export {
     comparePosition,
     connected,
     containsOrEquals,
+    acceptNode,
     combineNodeFilters,
     iterateNode,
     iterateNodeToArray,
