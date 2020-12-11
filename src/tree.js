@@ -256,10 +256,11 @@ function reorderTraversableChildNodes(sNode) {
 
 function updateTree(tree) {
     var sTree = _(tree);
-    var updatedNodes = map(sTree.nodes, function (sNode, element) {
+    var updatedNodes = [];
+    each(sTree.nodes, function (element, sNode) {
         var newVersion = sNode.state.version;
-        var updated = false;
         if (sNode.version !== newVersion) {
+            var updated = false;
             var connected = containsOrEquals(tree, element);
             if (sNode.traversable) {
                 // @ts-ignore: boolean arithmetics
@@ -268,6 +269,9 @@ function updateTree(tree) {
             // @ts-ignore: boolean arithmetics
             updated |= (connected ? insertNode : removeNodeFromMap)(sNode);
             sNode.version = newVersion;
+            if (updated) {
+                updatedNodes[updatedNodes.length] = sNode.node;
+            }
             if (connected) {
                 var iterator = createTreeWalker(element, 1, function (v) {
                     return v !== element && sTree.nodes.has(v) ? 2 : 1;
@@ -276,11 +280,11 @@ function updateTree(tree) {
                     var recovered = mapRemove(sTree.detached, element);
                     if (recovered) {
                         insertNode(recovered);
+                        updatedNodes[updatedNodes.length] = recovered.node;
                     }
                 });
             }
         }
-        return updated ? sNode.node : null;
     });
     sTree.version = version;
     if (updatedNodes[0]) {

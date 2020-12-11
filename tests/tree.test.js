@@ -122,6 +122,28 @@ describe('NodeTree.update', () => {
     });
 });
 
+describe('NodeTree update event', () => {
+    it('should include re-attached nodes', () => {
+        const { node1, node2, node3 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+                <div id="node3"></div>
+            </div>
+        `);
+        const tree = new InheritedNodeTree(node1);
+        const [vnode1, vnode2, vnode3] = setNodes(tree, node1, node2, node3);
+        node1.removeChild(node2);
+        tree.update();
+
+        tree.on('update', e => {
+            expect(e.updatedNodes).toContain(vnode2);
+        });
+        node1.appendChild(node2);
+        tree.update();
+        expect.hasAssertions();
+    });
+});
+
 describe('TraversableNodeTree.acceptNode', () => {
     it('should be called when traversing', () => {
         const { node1, node2 } = initBody(`
