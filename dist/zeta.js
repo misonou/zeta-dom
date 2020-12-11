@@ -105,6 +105,7 @@ __webpack_require__.d(util_namespaceObject, {
 var domUtil_namespaceObject = {};
 __webpack_require__.r(domUtil_namespaceObject);
 __webpack_require__.d(domUtil_namespaceObject, {
+  "acceptNode": function() { return acceptNode; },
   "bind": function() { return bind; },
   "bindUntil": function() { return bindUntil; },
   "combineNodeFilters": function() { return combineNodeFilters; },
@@ -994,8 +995,7 @@ function is(element, selector) {
   }
 
   if (selector.toFixed) {
-    var nodeType = element.nodeType;
-    return (nodeType & selector) === nodeType && element;
+    return element.nodeType === selector && element;
   }
 
   return (selector === '*' || tagName(element) === selector || jquery(element).is(selector)) && element;
@@ -1059,12 +1059,19 @@ function acceptNode(iterator, node) {
 }
 
 function combineNodeFilters() {
-  var args = makeArray(arguments);
+  var args = grep(makeArray(arguments), isFunction);
+
+  if (!args[1]) {
+    return args[0] || function () {
+      return 1;
+    };
+  }
+
   return function (node) {
     var result = 1;
 
     for (var i = 0, len = args.length; i < len; i++) {
-      var value = isFunction(args[i]) && args[i](node);
+      var value = args[i].call(null, node);
 
       if (value === 2) {
         return 2;
@@ -1543,37 +1550,9 @@ function mergeRect(a, b) {
 
 function elementFromPoint(x, y, container) {
   container = container || env_document.body;
-
-  if (elementsFromPoint) {
-    return any(elementsFromPoint.call(env_document, x, y), function (v) {
-      return containsOrEquals(container, v) && getComputedStyle(v).pointerEvents !== 'none';
-    }) || null;
-  }
-
-  var element = env_document.elementFromPoint(x, y);
-
-  if (!containsOrEquals(container, element) && pointInRect(x, y, getRect(container))) {
-    var tmp = [];
-
-    try {
-      while (element && comparePosition(container, element, true)) {
-        var target = jquery(element).parentsUntil(getCommonAncestor(container, element)).slice(-1)[0] || element;
-
-        if (target === tmp[tmp.length - 1]) {
-          return null;
-        } // @ts-ignore: assume we are working with HTMLElement
-
-
-        target.style.pointerEvents = 'none';
-        tmp[tmp.length] = target;
-        element = env_document.elementFromPoint(x, y);
-      }
-    } finally {
-      jquery(tmp).css('pointer-events', '');
-    }
-  }
-
-  return containsOrEquals(container, element) ? element : null;
+  return any(elementsFromPoint.call(env_document, x, y), function (v) {
+    return containsOrEquals(container, v) && getComputedStyle(v).pointerEvents !== 'none';
+  }) || null;
 }
 
 
@@ -2158,10 +2137,10 @@ definePrototype(DOMLock, {
     });
   }
 });
-lock(env_document);
+lock(root);
 
 env_window.onbeforeunload = function (e) {
-  if (locked(env_document)) {
+  if (locked(root)) {
     e.returnValue = '';
     e.preventDefault();
   }
@@ -2233,10 +2212,14 @@ function focusLockedWithin(element) {
 }
 
 function triggerFocusEvent(eventName, elements, relatedTarget, source) {
+  var data = {
+    relatedTarget: relatedTarget
+  };
   each(elements, function (i, v) {
-    emitDOMEvent(eventName, null, v, {
-      relatedTarget: relatedTarget
-    }, false, source);
+    emitDOMEvent(eventName, v, data, {
+      source: source,
+      handleable: false
+    });
   });
 }
 
@@ -2383,7 +2366,10 @@ domReady.then(function () {
   }
 
   function triggerUIEvent(eventName, data, target) {
-    return emitDOMEvent(eventName, currentEvent, target || focusPath[0], data, true);
+    return emitDOMEvent(eventName, target || focusPath[0], data, {
+      bubbles: true,
+      originalEvent: currentEvent
+    });
   }
 
   function triggerKeystrokeEvent(keyName, char) {
@@ -2399,40 +2385,45 @@ domReady.then(function () {
     }
   }
 
-  function triggerMouseEvent(eventName, nativeEvent) {
-    var point = mouseInitialPoint || nativeEvent;
-    return emitDOMEvent(eventName, nativeEvent, nativeEvent.target, {
-      target: nativeEvent.target,
+  function triggerMouseEvent(eventName) {
+    var point = mouseInitialPoint || currentEvent;
+    var data = {
+      target: currentEvent.target,
       clientX: point.clientX,
       clientY: point.clientY,
-      metakey: getEventName(nativeEvent)
-    }, true);
+      metakey: getEventName(currentEvent) || ''
+    };
+    return triggerUIEvent(eventName, data, currentEvent.target);
   }
 
-  function triggerGestureEvent(gesture, nativeEvent) {
+  function triggerGestureEvent(gesture) {
     mouseInitialPoint = null;
-    return emitDOMEvent('gesture', nativeEvent, focusPath.slice(-1)[0], gesture, true);
+    return triggerUIEvent('gesture', gesture, focusPath.slice(-1)[0]);
   }
 
-  bind(env_window, 'mousedown mouseup wheel compositionstart compositionend beforeinput textInput keydown keyup keypress touchstart touchend cut copy paste drop click dblclick contextmenu', function (e) {
-    currentEvent = e;
-    setTimeout(function () {
-      currentEvent = null;
-    });
-    setLastEventSource(null);
+  function handleUIEventWrapper(type, callback) {
+    return function (e) {
+      currentEvent = e;
+      setTimeout(function () {
+        currentEvent = null;
+      });
+      setLastEventSource(null);
 
-    if (!focusable(e.target)) {
-      e.stopImmediatePropagation();
-      e.preventDefault();
+      if (!focusable(e.target)) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
 
-      if (matchWord(e.type, 'touchstart mousedown keydown')) {
-        emitDOMEvent('focusreturn', null, focusPath.slice(-1)[0]);
+        if (matchWord(type, 'touchstart mousedown keydown')) {
+          emitDOMEvent('focusreturn', focusPath.slice(-1)[0]);
+        }
       }
-    }
 
-    setLastEventSource(e.target);
-  }, true);
-  bind(root, {
+      setLastEventSource(e.target);
+      callback(e);
+    };
+  }
+
+  var uiEvents = {
     compositionstart: function compositionstart() {
       updateIMEState();
       imeText = '';
@@ -2564,12 +2555,12 @@ domReady.then(function () {
       if (!e.touches[1]) {
         // @ts-ignore: e.target is Element
         if (normalizeTouchEvents && focused(container.element)) {
-          triggerMouseEvent('mousedown', e);
+          triggerMouseEvent('mousedown');
         }
 
         pressTimeout = setTimeout(function () {
           if (mouseInitialPoint) {
-            triggerMouseEvent('longPress', e);
+            triggerMouseEvent('longPress');
             mouseInitialPoint = null;
           }
         }, 1000);
@@ -2584,10 +2575,10 @@ domReady.then(function () {
           var line = measureLine(e.touches[0], mouseInitialPoint);
 
           if (line.length > 50 && approxMultipleOf(line.deg, 90)) {
-            triggerGestureEvent('swipe' + (approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Bottom' : 'Top'), e);
+            triggerGestureEvent('swipe' + (approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Bottom' : 'Top'));
           }
         } else if (!e.touches[2]) {
-          triggerGestureEvent('pinchZoom', e);
+          triggerGestureEvent('pinchZoom');
         }
       }
     },
@@ -2596,7 +2587,7 @@ domReady.then(function () {
 
       if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
         setFocus(e.target);
-        triggerMouseEvent('click', e);
+        triggerMouseEvent('click');
         dispatchDOMMouseEvent('click', mouseInitialPoint, e);
         e.preventDefault();
       }
@@ -2605,7 +2596,7 @@ domReady.then(function () {
       setFocus(e.target);
 
       if ((e.buttons || e.which) === 1) {
-        triggerMouseEvent('mousedown', e);
+        triggerMouseEvent('mousedown');
       }
 
       mouseInitialPoint = e;
@@ -2633,15 +2624,20 @@ domReady.then(function () {
     },
     click: function click(e) {
       if (!IS_TOUCH && mouseInitialPoint) {
-        triggerMouseEvent('click', e);
+        triggerMouseEvent('click');
       }
     },
     contextmenu: function contextmenu(e) {
-      triggerMouseEvent('rightClick', e);
+      triggerMouseEvent('rightClick');
     },
     dblclick: function dblclick(e) {
-      triggerMouseEvent('dblclick', e);
-    },
+      triggerMouseEvent('dblclick');
+    }
+  };
+  each(uiEvents, function (i, v) {
+    bind(root, i, matchWord(i, 'mousemove touchmove') ? v : handleUIEventWrapper(i, v), true);
+  });
+  bind(root, {
     focusin: function focusin(e) {
       windowFocusedOut = false;
 
@@ -2757,9 +2753,7 @@ function dom_focus(element) {
   focus: dom_focus,
   getEventSource: getEventSource,
   on: listenDOMEvent,
-  emit: function emit(eventName, element, data, bubbles) {
-    return emitDOMEvent(eventName, null, element, data, bubbles);
-  },
+  emit: emitDOMEvent,
   lock: lock,
   locked: locked,
   cancelLock: cancelLock,
@@ -2852,8 +2846,21 @@ function getEventContext(element) {
   return events_(container).options;
 }
 
-function emitDOMEvent(eventName, nativeEvent, target, data, bubbles, source) {
-  var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, nativeEvent, bubbles, source);
+function normalizeEventOptions(options) {
+  if (typeof options === 'boolean') {
+    options = {
+      bubbles: options
+    };
+  }
+
+  return extend({
+    handleable: true,
+    asyncResult: true
+  }, options);
+}
+
+function emitDOMEvent(eventName, target, data, options) {
+  var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
   return emitter.emit(domEventTrap, 'tap', target, true) || emitter.emit();
 }
 
@@ -2867,14 +2874,14 @@ function listenDOMEvent(element, event, handler) {
   return domContainer.add(element, event, handler);
 }
 
-function registerAsyncEvent(eventName, container, target, data, bubbles, mergeData) {
+function registerAsyncEvent(eventName, container, target, data, options, mergeData) {
   var map = mapGet(asyncEventData, container, Map);
   var dict = mapGet(map, target || container.element, Object);
 
   if (dict[eventName] && (isFunction(mergeData) || data === undefined && dict[eventName].data === undefined)) {
     dict[eventName].data = mergeData && mergeData(dict[eventName].data, data);
   } else {
-    dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, null, bubbles);
+    dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options));
     asyncEvents.push(dict[eventName]);
     setImmediateOnce(emitAsyncEvents);
   }
@@ -2915,24 +2922,24 @@ function emitAsyncEvents(container) {
  * -------------------------------------- */
 
 
-function ZetaEventEmitter(eventName, container, target, data, originalEvent, bubbles, source) {
+function ZetaEventEmitter(eventName, container, target, data, options) {
   target = target || container.element;
-  source = source || new ZetaEventSource(target);
+  var source = options.source || new ZetaEventSource(target);
   var properties = {
     source: source.source,
     sourceKeyName: source.sourceKeyName,
     timestamp: performance.now(),
-    originalEvent: originalEvent || null
+    originalEvent: options.originalEvent || null
   };
-  extend(this, {
+  extend(this, options, properties, {
     container: container,
     eventName: eventName,
     target: target,
     data: data,
-    bubbles: !!bubbles,
+    bubbles: !!options.bubbles,
     properties: properties,
     sourceObj: source
-  }, properties);
+  });
 }
 
 definePrototype(ZetaEventEmitter, {
@@ -2948,25 +2955,25 @@ definePrototype(ZetaEventEmitter, {
 
 
     var targets = !bubbles ? [target || self.target] : self.originalEvent && target === undefined ? self.sourceObj.path : parentsAndSelf(target || self.target);
-    return single(targets, function (v) {
+    single(targets, function (v) {
       var component = components.get(v);
       return component && emitterCallHandlers(self, component, self.eventName, eventName, self.data);
     });
+    return self.result;
   }
 });
 
-function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
-  handlerName = handlerName || eventName;
-
-  if (matchWord(handlerName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data)) {
-    return emitter.result;
+function emitterCallHandlers(emitter, component, eventName, handlerName, data, isAliasEvent) {
+  if (matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data, handlerName, null, true)) {
+    return true;
   }
 
   if (data === undefined) {
     data = removeAsyncEvent(eventName, component.container, context);
   }
 
-  var handlers = component.handlers[handlerName];
+  var handlers = component.handlers[handlerName || eventName];
+  var handled;
 
   if (handlers) {
     var context = component.context;
@@ -2976,29 +2983,33 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
     var prevEvent = contextContainer.event;
     contextContainer.event = event;
     eventSource = emitter.sourceObj;
+    emitter.isAliasEvent = isAliasEvent;
+    handled = single(handlers, function (v) {
+      try {
+        var returnValue = v.call(context, event, context);
 
-    try {
-      var returnValue = single(handlers, function (v) {
-        return v.call(context, event, context);
-      });
+        if (returnValue !== undefined) {
+          event.handled(returnValue);
+        }
+      } catch (e) {
+        console.error(e);
 
-      if (returnValue !== undefined) {
-        emitter.result = resolve(returnValue);
+        if (emitter.asyncResult) {
+          event.handled(reject(e));
+        }
       }
-    } catch (e) {
-      console.error(e);
-      emitter.result = reject(e);
-    }
 
+      return emitter.handled;
+    });
     eventSource = prevEventSource;
     contextContainer.event = prevEvent;
   }
 
-  if (!emitter.result && handlerName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
-    emitterCallHandlers(emitter, component, 'textInput', null, data.char);
+  if (!handled && eventName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
+    return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char, true);
   }
 
-  return emitter.result;
+  return handled;
 }
 /* --------------------------------------
  * ZetaEvent
@@ -3010,6 +3021,7 @@ function ZetaEvent(event, eventName, component, data) {
   self.eventName = eventName;
   self.type = eventName;
   self.context = component.context;
+  self.currentTarget = component.element;
   self.target = containsOrEquals(event.target, component.element) ? component.element : event.target;
   self.data = null;
 
@@ -3023,23 +3035,22 @@ function ZetaEvent(event, eventName, component, data) {
 }
 
 definePrototype(ZetaEvent, {
-  handled: function handled(promise) {
+  handled: function handled(value) {
     var event = events_(this);
 
-    if (!event.result) {
-      event.result = resolve(promise);
+    if (event.handleable && !event.handled) {
+      event.handled = true;
+      event.result = event.asyncResult ? resolve(value) : value;
     }
   },
   isHandled: function isHandled() {
-    return !!events_(this).result;
+    return !!events_(this).handled;
   },
   preventDefault: function preventDefault() {
     var event = this.originalEvent;
 
     if (event) {
       event.preventDefault();
-    } else {
-      events_(this).defaultPrevented = true;
     }
   },
   isDefaultPrevented: function isDefaultPrevented() {
@@ -3129,8 +3140,12 @@ definePrototype(ZetaEventContainer, {
     }
   },
   emit: function emit(eventName, target, data, bubbles) {
-    var emitter = is(eventName, ZetaEvent) ? events_(eventName) : new ZetaEventEmitter(eventName, this, target, data, null, bubbles);
-    return emitter.emit(this, null, target, bubbles);
+    var options = normalizeEventOptions(bubbles);
+    var emitter = is(eventName, ZetaEvent) ? events_(eventName) : new ZetaEventEmitter(eventName, this, target, data, options);
+
+    if (!emitter.isAliasEvent) {
+      return emitter.emit(this, null, target, options.bubbles);
+    }
   },
   emitAsync: function emitAsync(eventName, target, data, bubbles, mergeData) {
     registerAsyncEvent(eventName, this, target, data, bubbles, mergeData);
@@ -3166,7 +3181,7 @@ function containerCreateContext(container, element, context) {
   }
 
   if (container.captureDOMEvents && is(element, Element)) {
-    containers.set(element, self);
+    containers.set(element, container);
   }
 
   return cur;
@@ -3483,11 +3498,12 @@ function reorderTraversableChildNodes(sNode) {
 function updateTree(tree) {
   var sTree = tree_(tree);
 
-  var updatedNodes = map(sTree.nodes, function (sNode, element) {
+  var updatedNodes = [];
+  each(sTree.nodes, function (element, sNode) {
     var newVersion = sNode.state.version;
-    var updated = false;
 
     if (sNode.version !== newVersion) {
+      var updated = false;
       var connected = containsOrEquals(tree, element);
 
       if (sNode.traversable) {
@@ -3499,6 +3515,10 @@ function updateTree(tree) {
       updated |= (connected ? insertNode : removeNodeFromMap)(sNode);
       sNode.version = newVersion;
 
+      if (updated) {
+        updatedNodes[updatedNodes.length] = sNode.node;
+      }
+
       if (connected) {
         var iterator = createTreeWalker(element, 1, function (v) {
           return v !== element && sTree.nodes.has(v) ? 2 : 1;
@@ -3508,12 +3528,11 @@ function updateTree(tree) {
 
           if (recovered) {
             insertNode(recovered);
+            updatedNodes[updatedNodes.length] = recovered.node;
           }
         });
       }
     }
-
-    return updated ? sNode.node : null;
   });
   sTree.version = version;
 
@@ -3698,7 +3717,7 @@ definePrototype(InheritedNodeTree, NodeTree, {
 function TreeWalker(root, whatToShow, filter) {
   var self = this;
   self.whatToShow = whatToShow || -1;
-  self.filter = combineNodeFilters(tree_(root).tree.acceptNode, filter);
+  self.filter = filter;
   self.currentNode = root;
   self.root = root;
 }
@@ -3712,7 +3731,14 @@ function treeWalkerAcceptNode(inst, node, checkVisibility) {
     return 2;
   }
 
-  return inst.filter(node);
+  var rv = tree_(node).tree.acceptNode(node, inst);
+
+  if (rv !== 1) {
+    return rv;
+  }
+
+  var filter = isFunction(inst.filter);
+  return filter ? filter(node) : 1;
 }
 
 treeWalkerAcceptNode.$1 = 0;
