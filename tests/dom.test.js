@@ -299,4 +299,39 @@ describe('keystroke event', () => {
         //     [objectContaining({ currentTarget: input, type: 'textInput', data: 'A' }), _]
         // ]);
     });
+
+    it('should be fired in correct order when tapped and re-emitted', async () => {
+        const { input } = initBody(`
+            <input id="input" type="text" />
+        `);
+        const cb = mockFn();
+        /** @type {Zeta.ZetaEventContainer<Zeta.HasElement>} */
+        const container = new ZetaEventContainer(body, {}, {
+            captureDOMEvents: true
+        });
+        const context = { element: input };
+        container.setContext(input, context);
+        container.add(input, { a: cb, keystroke: cb, textInput: cb });
+        container.tap(function (e) {
+            cb(...arguments);
+            container.emit(e);
+        });
+        // @ts-ignore
+        dom.on(input, { a: cb, keystroke: cb, textInput: cb });
+        input.focus();
+        cb.mockReset();
+
+        await type(input, 'a');
+        verifyCalls(cb, [
+            [objectContaining({ context: container, type: 'a' }), _],
+            [objectContaining({ context: container, type: 'keystroke', data: 'a' }), _],
+            [objectContaining({ context: context, type: 'a' }), _],
+            [objectContaining({ context: context, type: 'keystroke', data: 'a' }), _],
+            [objectContaining({ context: context, type: 'textInput', data: 'a' }), _],
+            [objectContaining({ context: container, type: 'textInput', data: 'a' }), _],
+            [objectContaining({ context: input, type: 'a' }), _],
+            [objectContaining({ context: input, type: 'keystroke', data: 'a' }), _],
+            [objectContaining({ context: input, type: 'textInput', data: 'a' }), _],
+        ]);
+    });
 });

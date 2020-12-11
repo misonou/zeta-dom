@@ -177,15 +177,14 @@ definePrototype(ZetaEventEmitter, {
     }
 });
 
-function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
-    handlerName = handlerName || eventName;
-    if (matchWord(handlerName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data)) {
+function emitterCallHandlers(emitter, component, eventName, handlerName, data, isAliasEvent) {
+    if (matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data, handlerName, null, true)) {
         return true;
     }
     if (data === undefined) {
         data = removeAsyncEvent(eventName, component.container, context);
     }
-    var handlers = component.handlers[handlerName];
+    var handlers = component.handlers[handlerName || eventName];
     var handled;
     if (handlers) {
         var context = component.context;
@@ -195,6 +194,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         var prevEvent = contextContainer.event;
         contextContainer.event = event;
         eventSource = emitter.sourceObj;
+        emitter.isAliasEvent = isAliasEvent;
         handled = single(handlers, function (v) {
             try {
                 var returnValue = v.call(context, event, context);
@@ -212,8 +212,8 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         eventSource = prevEventSource;
         contextContainer.event = prevEvent;
     }
-    if (!handled && handlerName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
-        return emitterCallHandlers(emitter, component, 'textInput', null, data.char);
+    if (!handled && eventName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
+        return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char, true);
     }
     return handled;
 }
@@ -336,7 +336,9 @@ definePrototype(ZetaEventContainer, {
     emit: function (eventName, target, data, bubbles) {
         var options = normalizeEventOptions(bubbles);
         var emitter = is(eventName, ZetaEvent) ? _(eventName) : new ZetaEventEmitter(eventName, this, target, data, options);
-        return emitter.emit(this, null, target, options.bubbles);
+        if (!emitter.isAliasEvent) {
+            return emitter.emit(this, null, target, options.bubbles);
+        }
     },
     emitAsync: function (eventName, target, data, bubbles, mergeData) {
         registerAsyncEvent(eventName, this, target, data, bubbles, mergeData);
