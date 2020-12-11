@@ -2,7 +2,7 @@ import { combineNodeFilters, comparePosition, getClass, is, setClass } from "../
 import { initBody } from "./testUtil";
 
 describe('is', () => {
-    xit('[need fix] should check DOM node with node type enum', () => {
+    it('should check DOM node with node type enum', () => {
         // fix @ 19d1d38
         const cases = [
             document.createElement('div'),
