@@ -1,5 +1,5 @@
 import { window, root } from "./env.js";
-import { createPrivateStore, definePrototype, each, extend, is, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, randomId, reject, resolve, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { createPrivateStore, definePrototype, each, extend, is, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, noop, randomId, reject, resolve, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { afterDetached } from "./observe.js";
 import dom, { textInputAllowed } from "./dom.js";
@@ -181,17 +181,19 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data, i
     if (matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data, handlerName, null, true)) {
         return true;
     }
+    var sourceContainer = component.container;
     if (data === undefined) {
-        data = removeAsyncEvent(eventName, component.container, context);
+        data = removeAsyncEvent(eventName, sourceContainer, context);
     }
     var handlers = component.handlers[handlerName || eventName];
     var handled;
     if (handlers) {
         var context = component.context;
-        var contextContainer = is(context, ZetaEventContainer) || component.container;
+        var contextContainer = is(context, ZetaEventContainer) || sourceContainer;
         var event = new ZetaEvent(emitter, eventName, component, data);
         var prevEventSource = eventSource;
         var prevEvent = contextContainer.event;
+        sourceContainer.initEvent(event);
         contextContainer.event = event;
         eventSource = emitter.sourceObj;
         emitter.isAliasEvent = isAliasEvent;
@@ -272,7 +274,8 @@ function ZetaEventContainer(element, context, options) {
         context: context || null,
         autoDestroy: containsOrEquals(root, element),
         normalizeTouchEvents: false,
-        captureDOMEvents: false
+        captureDOMEvents: false,
+        initEvent: noop
     }, options);
     _(self, {
         options: options,

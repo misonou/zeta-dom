@@ -192,7 +192,9 @@ declare namespace Zeta {
 
     type ZetaEventHandlers<E extends string, M = {}, T = Element> = { [P in E]?: ZetaEventHandler<P, M, T> };
 
-    interface ZetaEventContext<T> {
+    type ZetaEventContext<T> = T extends ZetaEventContextBase<any> ? T : ZetaEventContextBase<T>;
+
+    interface ZetaEventContextBase<T> {
         /**
          * Gets a custom object that represents a functional sub-component.
          */
@@ -388,7 +390,7 @@ declare namespace Zeta {
         originalEvent?: Event;
     };
 
-    interface EventContainerOptions {
+    interface EventContainerOptions<T> {
         /**
          * Sets whether all event handlers are automatically removed when the root element is detached.
          */
@@ -404,16 +406,21 @@ declare namespace Zeta {
          * If yes, DOM events will be dispatched to registered components within this container in prior to global event handlers registered by `dom.on`.
          */
         captureDOMEvents?: boolean;
+
+        /**
+         * Process event object before event is dispatched to handlers registered on this container.
+         */
+        initEvent?: (e: ZetaEventBase & ZetaEventContext<T>) => void;
     }
 
-    declare class ZetaEventContainer<T extends ElementLike = Element> implements HasElement {
+    declare class ZetaEventContainer<T = Element> implements HasElement {
         /**
          * Createa a new event container for listening or dispatching events.
          * @param root A DOM element of which DOM events fired on descedant elements will be captured.
          * @param context An object to be exposed through `dom.context` if the `captureDOMEvents` option is set to `true`.
          * @param options A dictionary containing options specifying the behavior of the container.
          */
-        constructor(root?: Element, context?: any, options?: EventContainerOptions);
+        constructor(root?: Element, context?: any, options?: EventContainerOptions<T>);
 
         /**
          * Gets the root element this container associates with.
