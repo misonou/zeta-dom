@@ -153,8 +153,8 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
         eventName: eventName,
         target: target,
         data: data,
-        bubbles: !!options.bubbles,
         properties: properties,
+        current: [],
         sourceObj: source
     });
 }
@@ -166,19 +166,20 @@ definePrototype(ZetaEventEmitter, {
         if (bubbles === undefined) {
             bubbles = self.bubbles;
         }
+        var emitting = self.current[0] || self;
         var components = _(container).components;
         // @ts-ignore: type inference issue
         var targets = !bubbles ? [target || self.target] : self.originalEvent && target === undefined ? self.sourceObj.path : parentsAndSelf(target || self.target);
         single(targets, function (v) {
             var component = components.get(v);
-            return component && emitterCallHandlers(self, component, self.eventName, eventName, self.data);
+            return component && emitterCallHandlers(self, component, emitting.eventName, eventName, emitting.data);
         });
         return self.result;
     }
 });
 
-function emitterCallHandlers(emitter, component, eventName, handlerName, data, isAliasEvent) {
-    if (matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data, handlerName, null, true)) {
+function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
+    if (!handlerName && matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data, handlerName)) {
         return true;
     }
     var sourceContainer = component.container;
@@ -196,7 +197,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data, i
         sourceContainer.initEvent(event);
         contextContainer.event = event;
         eventSource = emitter.sourceObj;
-        emitter.isAliasEvent = isAliasEvent;
+        emitter.current.unshift({ eventName, data });
         handled = single(handlers, function (v) {
             try {
                 var returnValue = v.call(context, event, context);
@@ -211,11 +212,12 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data, i
             }
             return emitter.handled;
         });
+        emitter.current.shift();
         eventSource = prevEventSource;
         contextContainer.event = prevEvent;
     }
-    if (!handled && eventName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
-        return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char, true);
+    if (!handled && !emitter.current[0] && eventName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
+        return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char);
     }
     return handled;
 }
@@ -338,10 +340,8 @@ definePrototype(ZetaEventContainer, {
     },
     emit: function (eventName, target, data, bubbles) {
         var options = normalizeEventOptions(bubbles);
-        var emitter = is(eventName, ZetaEvent) ? _(eventName) : new ZetaEventEmitter(eventName, this, target, data, options);
-        if (!emitter.isAliasEvent) {
-            return emitter.emit(this, null, target, options.bubbles);
-        }
+        var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, this, target, data, options);
+        return emitter.emit(this, null, target, options.bubbles);
     },
     emitAsync: function (eventName, target, data, bubbles, mergeData) {
         registerAsyncEvent(eventName, this, target, data, bubbles, mergeData);

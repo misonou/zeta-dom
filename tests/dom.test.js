@@ -323,12 +323,11 @@ describe('keystroke event', () => {
 
         await type(input, 'a');
         verifyCalls(cb, [
-            [objectContaining({ context: container, type: 'a' }), _],
             [objectContaining({ context: container, type: 'keystroke', data: 'a' }), _],
             [objectContaining({ context: context, type: 'a' }), _],
             [objectContaining({ context: context, type: 'keystroke', data: 'a' }), _],
-            [objectContaining({ context: context, type: 'textInput', data: 'a' }), _],
             [objectContaining({ context: container, type: 'textInput', data: 'a' }), _],
+            [objectContaining({ context: context, type: 'textInput', data: 'a' }), _],
             [objectContaining({ context: input, type: 'a' }), _],
             [objectContaining({ context: input, type: 'keystroke', data: 'a' }), _],
             [objectContaining({ context: input, type: 'textInput', data: 'a' }), _],
