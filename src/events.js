@@ -2,7 +2,7 @@ import { window, root } from "./env.js";
 import { createPrivateStore, definePrototype, each, extend, is, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, noop, randomId, reject, resolve, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { afterDetached } from "./observe.js";
-import dom, { textInputAllowed } from "./dom.js";
+import dom, { textInputAllowed, getShortcut } from "./dom.js";
 
 const _ = createPrivateStore();
 const containers = new WeakMap();
@@ -216,8 +216,13 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         eventSource = prevEventSource;
         contextContainer.event = prevEvent;
     }
-    if (!handled && !emitter.current[0] && eventName === 'keystroke' && data.char && textInputAllowed(emitter.target)) {
-        return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char);
+    if (!handled && !emitter.current[0] && eventName === 'keystroke') {
+        if (data.char && textInputAllowed(emitter.target)) {
+            return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char);
+        }
+        return single(getShortcut(data.data), function (v) {
+            return emitterCallHandlers(emitter, component, v, handlerName);  
+        });
     }
     return handled;
 }

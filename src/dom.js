@@ -14,6 +14,7 @@ const focusPath = [];
 const focusFriends = new WeakMap();
 const focusElements = new Set();
 const modalElements = new Map();
+const shortcuts = {};
 
 var windowFocusedOut;
 var currentEvent;
@@ -156,6 +157,31 @@ function releaseFocus(b) {
 /* --------------------------------------
  * DOM event handling
  * -------------------------------------- */
+
+function getShortcut(key) {
+    return keys(shortcuts[key] || {});
+}
+
+function setShortcut(command, keystroke) {
+    if (isPlainObject(command)) {
+        each(command, setShortcut);
+    } else {
+        var dict = shortcuts[command] || (shortcuts[command] = {});
+        var copy = extend({}, dict);
+        each(keystroke, function (i, v) {
+            if (copy[v]) {
+                delete copy[v];
+            } else {
+                dict[v] = true;
+                (shortcuts[v] || (shortcuts[v] = {}))[command] = true;
+            }
+        });
+        each(copy, function (v) {
+            delete shortcuts[command][v];
+            delete shortcuts[v][command];
+        });
+    }
+}
 
 function trackPointer(callback) {
     var lastPoint = currentEvent;
@@ -611,9 +637,18 @@ domReady.then(function () {
             }
         }
     });
+
+    listenDOMEvent('escape', function () {
+        setFocus(document.body);
+    });
     setFocus(document.activeElement);
 });
 
+setShortcut({
+    undo: 'ctrlZ',
+    redo: 'ctrlY ctrlShiftZ',
+    selectAll: 'ctrlA'
+});
 
 /* --------------------------------------
  * Exports
@@ -651,6 +686,8 @@ export default {
     focus,
     beginDrag,
     beginPinchZoom,
+    getShortcut,
+    setShortcut,
 
     getEventSource,
     on: listenDOMEvent,
@@ -671,6 +708,8 @@ export {
     textInputAllowed,
     beginDrag,
     beginPinchZoom,
+    getShortcut,
+    setShortcut,
     focusable,
     focused,
     setModal,

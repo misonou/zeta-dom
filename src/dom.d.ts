@@ -70,6 +70,12 @@ export function retainFocus(a: Element, b: Element): void;
 
 export function releaseFocus(b: Element): void;
 
+export function getShortcut(key: string): string[];
+
+export function setShortcut(command: string, keystroke: string | string[]): void;
+
+export function setShortcut(setting: Zeta.Dictionary<string | string[]>): void;
+
 export function beginDrag(progressCallback?: (x: number, y: number) => void): PromiseLike<void>;
 
 export function beginDrag(within: Element, progressCallback?: (x: number, y: number) => void): PromiseLike<void>;
