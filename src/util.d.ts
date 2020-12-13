@@ -9,6 +9,14 @@ export function noop(...args): void;
 export function either(x: any, b: any): boolean;
 
 /**
+ * Tests whether a given object is an instance of the specified function.
+ * @param a An input object to test against.
+ * @param b A function.
+ * @returns Returns the same object if it is an instance of the function; otherwise false.
+ */
+export function is<T extends Function>(a: any, b: T): InstanceType<T> | false;
+
+/**
  * Tests whether the value is an array.
  * @param obj An input value to be tested.
  * @returns The same instance of array if it is a simple object; otherwise false.

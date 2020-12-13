@@ -1,8 +1,8 @@
 import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import $ from "./include/jquery.cjs";
-import { any, each, extend, lcfirst, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
-import { bind, containsOrEquals, dispatchDOMMouseEvent, domReady, is, isVisible, makeSelection, parentsAndSelf } from "./domUtil.js";
+import { any, each, extend, is, lcfirst, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
+import { bind, containsOrEquals, dispatchDOMMouseEvent, domReady, isVisible, makeSelection, matchSelector, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
 import { afterDetached, observe, registerCleanup, watchAttributes, watchElements } from "./observe.js";
@@ -39,7 +39,7 @@ function measureLine(p1, p2) {
 }
 
 function textInputAllowed(v) {
-    return v.isContentEditable || is(v, 'input,textarea,select');
+    return v.isContentEditable || matchSelector(v, 'input,textarea,select');
 }
 
 /* --------------------------------------
@@ -79,7 +79,7 @@ function triggerFocusEvent(eventName, elements, relatedTarget, source) {
 }
 
 function setFocus(element, focusOnInput, source, path) {
-    if (focusOnInput && !is(element, SELECTOR_FOCUSABLE)) {
+    if (focusOnInput && !matchSelector(element, SELECTOR_FOCUSABLE)) {
         element = $(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
     }
     path = path || focusPath;

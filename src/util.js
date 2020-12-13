@@ -38,6 +38,10 @@ function either(x, y) {
     return x ^ y;
 }
 
+function is(obj, fn) {
+    return obj instanceof fn && obj;
+}
+
 function isArray(obj) {
     return Array.isArray(obj) && obj;
 }
@@ -657,6 +661,7 @@ export {
     // miscellanous
     noop,
     either,
+    is,
     isArray,
     isFunction,
     isThenable,

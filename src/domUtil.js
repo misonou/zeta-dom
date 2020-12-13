@@ -99,6 +99,13 @@ function is(element, selector) {
     if (selector.toFixed) {
         return element.nodeType === selector && element;
     }
+    return matchSelector(element, selector);
+}
+
+function matchSelector(element, selector) {
+    if (!element || !selector) {
+        return false;
+    }
     return (selector === '*' || tagName(element) === selector || $(element).is(selector)) && element;
 }
 
@@ -593,6 +600,7 @@ export {
     tagName,
     is,
     isVisible,
+    matchSelector,
     comparePosition,
     connected,
     containsOrEquals,

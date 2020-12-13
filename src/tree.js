@@ -1,8 +1,8 @@
 import dom from "./dom.js";
-import { combineNodeFilters, comparePosition, containsOrEquals, createTreeWalker, is, iterateNode, parentsAndSelf } from "./domUtil.js";
+import { comparePosition, containsOrEquals, createTreeWalker, iterateNode, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventContainer } from "./events.js";
 import { observe } from "./observe.js";
-import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, isFunction, isPlainObject, kv, map, mapGet, mapRemove } from "./util.js";
+import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, is, isFunction, isPlainObject, kv, map, mapGet, mapRemove } from "./util.js";
 
 const _ = createPrivateStore();
 const setPrototypeOf = Object.setPrototypeOf;
@@ -296,10 +296,10 @@ function handleMutations(mutations) {
     var empty = {};
     each(mutations, function (i, v) {
         var addedElm = grep(v.addedNodes, function (v) {
-            return is(v, 1);
+            return is(v, Element);
         });
         var removedElm = grep(v.removedNodes, function (v) {
-            return is(v, 1);
+            return is(v, Element);
         });
         if (addedElm[0] || removedElm[0]) {
             version++;
