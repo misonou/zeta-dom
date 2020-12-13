@@ -70,6 +70,12 @@ export function retainFocus(a: Element, b: Element): void;
 
 export function releaseFocus(b: Element): void;
 
+export function beginDrag(progressCallback?: (x: number, y: number) => void): PromiseLike<void>;
+
+export function beginDrag(within: Element, progressCallback?: (x: number, y: number) => void): PromiseLike<void>;
+
+export function beginPinchZoom(progressCallback?: (deg: number, scale: number, translateX: number, translateY: number) => void): PromiseLike<void>;
+
 export { getEventSource, listenDOMEvent as on, emitDOMEvent as emit } from "./events";
 
 export * from "./domLock";

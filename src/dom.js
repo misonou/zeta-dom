@@ -1,9 +1,9 @@
 import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import $ from "./include/jquery.cjs";
-import { any, each, extend, is, lcfirst, map, mapRemove, matchWord, single, ucfirst } from "./util.js";
-import { bind, containsOrEquals, dispatchDOMMouseEvent, domReady, isVisible, makeSelection, matchSelector, parentsAndSelf } from "./domUtil.js";
-import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
+import { always, any, each, extend, is, isFunction, isPlainObject, keys, lcfirst, map, mapRemove, matchWord, noop, reject, single, ucfirst } from "./util.js";
+import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, domReady, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
+import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
 import { afterDetached, observe, registerCleanup, watchAttributes, watchElements } from "./observe.js";
 
@@ -157,6 +157,91 @@ function releaseFocus(b) {
  * DOM event handling
  * -------------------------------------- */
 
+function trackPointer(callback) {
+    var lastPoint = currentEvent;
+    var resolve, reject;
+    var promise = new Promise(function (res, rej) {
+        resolve = res.bind(0, undefined);
+        reject = rej;
+    });
+    bindUntil(promise, window, {
+        mouseup: resolve,
+        touchend: resolve,
+        keydown: function (e) {
+            if (e.which === 27) {
+                reject();
+            }
+        },
+        mousemove: function (e) {
+            e.preventDefault();
+            if (!e.which && !lastPoint.touches) {
+                resolve();
+            } else if (e.clientX !== lastPoint.clientX || e.clientY !== lastPoint.clientY) {
+                lastPoint = e;
+                callback([lastPoint]);
+            }
+        },
+        touchmove: function (e) {
+            callback(e.touches);
+        }
+    });
+    return prepEventSource(promise);
+}
+
+function beginDrag(within, callback) {
+    if (!currentEvent || currentEvent.type !== 'mousedown') {
+        return reject();
+    }
+    callback = isFunction(callback || within) || noop;
+    within = is(within, Node) || currentEvent.target;
+
+    var lastPoint = currentEvent;
+    var scrollParent = getScrollParent(within);
+    var scrollTimeout;
+    var callbackWrapper = function (points) {
+        lastPoint = points[0];
+        callback(lastPoint.clientX, lastPoint.clientY);
+    };
+    var cleanUp = function () {
+        clearInterval(scrollTimeout);
+        scrollTimeout = null;
+    };
+    var promise = trackPointer(callbackWrapper);
+    bindUntil(promise, scrollParent, {
+        mouseout: function (e) {
+            var relatedTarget = e.relatedTarget;
+            // @ts-ignore: relatedTarget is Element
+            if (!scrollTimeout && (!containsOrEquals(scrollParent, relatedTarget) || (scrollParent === root && relatedTarget === root))) {
+                scrollTimeout = setInterval(function () {
+                    if (scrollIntoView(scrollParent, toPlainRect(lastPoint.clientX, lastPoint.clientY).expand(50))) {
+                        callbackWrapper([lastPoint]);
+                    } else {
+                        cleanUp();
+                    }
+                }, 20);
+            }
+        },
+        mouseover: function (e) {
+            if (e.target !== root) {
+                cleanUp();
+            }
+        }
+    });
+    always(promise, cleanUp);
+    return promise;
+}
+
+function beginPinchZoom(callback) {
+    var initialPoints = (currentEvent || '').touches;
+    if (!initialPoints || !initialPoints[1]) {
+        return reject();
+    }
+    var m0 = measureLine(initialPoints[0], initialPoints[1]);
+    return trackPointer(function (points) {
+        var m1 = measureLine(points[0], points[1]);
+        callback((m1.deg - m0.deg + 540) % 360 - 180, m1.length / m0.length, points[0].clientX - initialPoints[0].clientX + (m0.dx - m1.dx) / 2, points[0].clientY - initialPoints[0].clientY + (m0.dy - m1.dy) / 2);
+    });
+}
 
 domReady.then(function () {
     var body = document.body;
@@ -564,6 +649,8 @@ export default {
     retainFocus,
     releaseFocus,
     focus,
+    beginDrag,
+    beginPinchZoom,
 
     getEventSource,
     on: listenDOMEvent,
@@ -582,6 +669,8 @@ export default {
 
 export {
     textInputAllowed,
+    beginDrag,
+    beginPinchZoom,
     focusable,
     focused,
     setModal,
