@@ -223,7 +223,7 @@ export function setClass(element: Element, className: string, values: boolean | 
 
 export function getScrollOffset(winOrElm: Window | Element): { x: number; y: number };
 
-export function getScrollParent(element: Window | Element): Window | Element;
+export function getScrollParent(element: Element): Element;
 
 export function getContentRect(element: Element): Zeta.Rect;
 

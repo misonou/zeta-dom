@@ -15,7 +15,7 @@ declare namespace Zeta {
     type MapResultValue<T> = T | T[] | null | undefined;
     type IterateCallbackOrNull<T, R> = null | ((node: T) => MapResultValue<R>);
 
-    type AnyFunction = ((...args) => any) | AnyConstructor;
+    type AnyFunction = (...args) => any;
     type AnyConstructor = new (...args) => any;
     type AdditionalMembers<T, U> = { [P in keyof U]: U[P] extends AnyFunction ? (this: T & U, ...args) => any : U[P] };
 
@@ -52,6 +52,7 @@ declare namespace Zeta {
         | 'ctrlAltShiftBackspace' | 'ctrlAltShiftTab' | 'ctrlAltShiftEnter' | 'ctrlAltShiftShift' | 'ctrlAltShiftCtrl' | 'ctrlAltShiftAlt' | 'ctrlAltShiftPause' | 'ctrlAltShiftCapsLock' | 'ctrlAltShiftEscape' | 'ctrlAltShiftSpace' | 'ctrlAltShiftPageUp' | 'ctrlAltShiftPageDown' | 'ctrlAltShiftEnd' | 'ctrlAltShiftHome' | 'ctrlAltShiftLeftArrow' | 'ctrlAltShiftUpArrow' | 'ctrlAltShiftRightArrow' | 'ctrlAltShiftDownArrow' | 'ctrlAltShiftInsert' | 'ctrlAltShiftDelete' | 'ctrlAltShift0' | 'ctrlAltShift1' | 'ctrlAltShift2' | 'ctrlAltShift3' | 'ctrlAltShift4' | 'ctrlAltShift5' | 'ctrlAltShift6' | 'ctrlAltShift7' | 'ctrlAltShift8' | 'ctrlAltShift9' | 'ctrlAltShiftA' | 'ctrlAltShiftB' | 'ctrlAltShiftC' | 'ctrlAltShiftD' | 'ctrlAltShiftE' | 'ctrlAltShiftF' | 'ctrlAltShiftG' | 'ctrlAltShiftH' | 'ctrlAltShiftI' | 'ctrlAltShiftJ' | 'ctrlAltShiftK' | 'ctrlAltShiftL' | 'ctrlAltShiftM' | 'ctrlAltShiftN' | 'ctrlAltShiftO' | 'ctrlAltShiftP' | 'ctrlAltShiftQ' | 'ctrlAltShiftR' | 'ctrlAltShiftS' | 'ctrlAltShiftT' | 'ctrlAltShiftU' | 'ctrlAltShiftV' | 'ctrlAltShiftW' | 'ctrlAltShiftX' | 'ctrlAltShiftY' | 'ctrlAltShiftZ' | 'ctrlAltShiftLeftWindow' | 'ctrlAltShiftRightWindowKey' | 'ctrlAltShiftSelect' | 'ctrlAltShiftNumpad0' | 'ctrlAltShiftNumpad1' | 'ctrlAltShiftNumpad2' | 'ctrlAltShiftNumpad3' | 'ctrlAltShiftNumpad4' | 'ctrlAltShiftNumpad5' | 'ctrlAltShiftNumpad6' | 'ctrlAltShiftNumpad7' | 'ctrlAltShiftNumpad8' | 'ctrlAltShiftNumpad9' | 'ctrlAltShiftMultiply' | 'ctrlAltShiftAdd' | 'ctrlAltShiftSubtract' | 'ctrlAltShiftDecimalPoint' | 'ctrlAltShiftDivide' | 'ctrlAltShiftF1' | 'ctrlAltShiftF2' | 'ctrlAltShiftF3' | 'ctrlAltShiftF4' | 'ctrlAltShiftF5' | 'ctrlAltShiftF6' | 'ctrlAltShiftF7' | 'ctrlAltShiftF8' | 'ctrlAltShiftF9' | 'ctrlAltShiftF10' | 'ctrlAltShiftF11' | 'ctrlAltShiftF12' | 'ctrlAltShiftNumLock' | 'ctrlAltShiftScrollLock' | 'ctrlAltShiftSemiColon' | 'ctrlAltShiftEqualSign' | 'ctrlAltShiftComma' | 'ctrlAltShiftDash' | 'ctrlAltShiftPeriod' | 'ctrlAltShiftForwardSlash' | 'ctrlAltShiftBacktick' | 'ctrlAltShiftOpenBracket' | 'ctrlAltShiftBackSlash' | 'ctrlAltShiftCloseBracket' | 'ctrlAltShiftSingleQuote';
     type KeyNameSingleCharacter = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p' | 'q' | 'r' | 's' | 't' | 'u' | 'v' | 'w' | 'x' | 'y' | 'z';
     type ClickName = 'click' | 'rightClick' | 'doubleClick' | 'ctrlClick' | 'shiftClick' | 'altClick' | 'ctrlShiftClick' | 'ctrlAltClick' | 'altShiftClick' | 'ctrlAltShiftClick';
+    type GestureName = 'swipeUp' | 'swipeDown' | 'swipeLeft' | 'swipeRight' | 'pinchZoom';
 
     interface Watchable<T> {
         /**
@@ -170,9 +171,9 @@ declare namespace Zeta {
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaDOMEventName = 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'textInput' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | 'cancelled' | 'error' | Zeta.KeyNameSpecial | Zeta.ClickName;
+    type ZetaDOMEventName = 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'textInput' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | 'cancelled' | 'error' | KeyNameSpecial | ClickName | GestureName;
 
-    type ZetaDOMEventMap = { [P in Zeta.ClickName]: ZetaMouseEvent } & {
+    type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & {
         focusin: ZetaFocusEvent;
         focusout: ZetaFocusEvent;
         mousedown: ZetaMouseEvent;
@@ -273,6 +274,17 @@ declare namespace Zeta {
          * Gets the native DOM event that triggers this event.
          */
         readonly originalEvent: Event | null;
+
+        /**
+         * Suppresses the default behavior by the browser.
+         */
+        preventDefault(): void;
+
+        /**
+         * Gets whether the default behavior by browser is suppressed.
+         * @returns true if The the default behavior is suppressed.
+         */
+        isDefaultPrevented(): boolean;
     }
 
     interface ZetaHandleableEvent<T = any> extends ZetaEventBase {
@@ -307,16 +319,6 @@ declare namespace Zeta {
     }
 
     interface ZetaNativeUIEvent extends ZetaAsyncHandleableEvent {
-        /**
-         * Suppresses the default behavior by the browser.
-         */
-        preventDefault(): void;
-
-        /**
-         * Gets whether the default behavior by browser is suppressed.
-         * @returns true if The the default behavior is suppressed.
-         */
-        isDefaultPrevented(): boolean;
     }
 
     interface ZetaFocusEvent extends ZetaEventBase {
