@@ -1,5 +1,6 @@
+import Promise from "./include/promise-polyfill.cjs";
 import { window, root } from "./env.js";
-import { createPrivateStore, definePrototype, each, extend, is, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, noop, randomId, reject, resolve, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { createPrivateStore, definePrototype, each, extend, is, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, noop, randomId, reject, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { afterDetached } from "./observe.js";
 import dom, { textInputAllowed, getShortcut } from "./dom.js";
@@ -10,9 +11,44 @@ const domEventTrap = new ZetaEventContainer();
 const domContainer = new ZetaEventContainer();
 const asyncEventData = new Map();
 const asyncEvents = [];
+const then = Promise.prototype.then;
 
 export var eventSource;
 export var lastEventSource;
+
+
+/* --------------------------------------
+ * Custom promise
+ * -------------------------------------- */
+
+function CustomPromise(executor) {
+    var promise = new Promise(executor);
+    Object.setPrototypeOf(promise, CustomPromise.prototype);
+    _(promise, eventSource || new ZetaEventSource(dom.activeElement));
+    return promise;
+}
+
+function wrapPromiseCallback(promise, callback) {
+    throwNotFunction(callback);
+    return function () {
+        var prev = eventSource;
+        try {
+            eventSource = _(promise);
+            return callback.apply(this, arguments);
+        } finally {
+            eventSource = prev;
+        }
+    };
+}
+
+definePrototype(CustomPromise, Promise, {
+    then: function (onFulfilled, onRejected) {
+        var self = this;
+        var promise = then.call(self, onFulfilled && wrapPromiseCallback(self, onFulfilled), onRejected && wrapPromiseCallback(self, onRejected));
+        _(promise, _(self));
+        return promise;
+    }
+});
 
 
 /* --------------------------------------
@@ -35,26 +71,8 @@ function setLastEventSource(source) {
 }
 
 function prepEventSource(promise) {
-    var source = eventSource || new ZetaEventSource(dom.activeElement);
-    var wrap = function (callback) {
-        return function () {
-            var prev = eventSource;
-            try {
-                eventSource = source;
-                return callback.apply(this, arguments);
-            } finally {
-                eventSource = prev;
-            }
-        };
-    };
-    return {
-        then: function (a, b) {
-            return promise.then(a && wrap(a), b && wrap(b));
-        },
-        catch: function (a) {
-            return promise.catch(a && wrap(a));
-        }
-    };
+    // @ts-ignore: CustomPromise is subclass of Promise
+    return is(promise, CustomPromise) || CustomPromise.resolve(promise);
 }
 
 function getEventSource(element) {
@@ -221,7 +239,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
             return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char);
         }
         return single(getShortcut(data.data), function (v) {
-            return emitterCallHandlers(emitter, component, v, handlerName);  
+            return emitterCallHandlers(emitter, component, v, handlerName);
         });
     }
     return handled;
@@ -252,7 +270,7 @@ definePrototype(ZetaEvent, {
         var event = _(this);
         if (event.handleable && !event.handled) {
             event.handled = true;
-            event.result = event.asyncResult ? resolve(value) : value;
+            event.result = event.asyncResult ? prepEventSource(value) : value;
         }
     },
     isHandled: function () {
