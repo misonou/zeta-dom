@@ -42,6 +42,10 @@ function VersionState() {
 }
 
 function initNode(tree, node, element) {
+    var map = (containsOrEquals(tree.element, element) ? _(tree).nodes : _(tree).detached);
+    if (map.has(element)) {
+        throw new Error('Another node instance already exist');
+    }
     var sNode = _(node, {
         version: version,
         tree: tree,
@@ -50,7 +54,7 @@ function initNode(tree, node, element) {
         state: mapGet(versionMap, element, VersionState),
         childNodes: []
     });
-    (containsOrEquals(tree.element, element) ? _(tree).nodes : _(tree).detached).set(element, sNode);
+    map.set(element, sNode);
     defineHiddenProperty(node, 'element', element, true);
     if (tree.rootNode) {
         insertNode(sNode);
