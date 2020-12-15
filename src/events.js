@@ -59,10 +59,7 @@ function ZetaEventSource(target, path) {
     var self = this;
     path = path || (eventSource ? eventSource.path : dom.focusedElements);
     self.path = path;
-    self.source = 'script';
-    if (containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0) {
-        self.source = eventSource ? eventSource.source : getEventSourceName();
-    }
+    self.source = containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0 ? getEventSourceName() : 'script';
     self.sourceKeyName = self.source !== 'keyboard' ? null : (eventSource || lastEventSource || '').sourceKeyName;
 }
 
@@ -80,9 +77,21 @@ function getEventSource(element) {
 }
 
 function getEventSourceName() {
+    if (eventSource) {
+        return eventSource.source;
+    }
     var event = dom.event || window.event;
     var type = (event && event.type) || '';
-    return type[0] === 'k' || type.substr(0, 3) === 'com' ? 'keyboard' : type[0] === 't' ? 'touch' : type[0] === 'm' || matchWord(type, 'wheel click dblclick contextmenu') ? 'mouse' : matchWord(type, 'drop cut copy paste') || 'script';
+    if (/^(touch|mouse)./.test(type)) {
+        return RegExp.$1;
+    }
+    if (/^(key|composition)./.test(type) || matchWord(type, 'beforeinput textInput')) {
+        return 'keyboard';
+    }
+    if (matchWord(type, 'wheel click dblclick contextmenu')) {
+        return 'mouse'
+    }
+    return matchWord(type, 'drop cut copy paste') || 'script';
 }
 
 function getEventContext(element) {
