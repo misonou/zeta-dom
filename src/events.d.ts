@@ -6,6 +6,8 @@ export declare var lastEventSource: Zeta.ZetaEventSource;
 
 export declare function prepEventSource<T>(promise: Promise<T>): Promise<T>;
 export declare function getEventSource(element?: Element): Zeta.ZetaEventSourceName;
+export declare function getEventContext(element: Element): Zeta.EventContainerOptions & { element: Element; context: any };
+export declare function setLastEventSource(element: Element | EventTarget | null): void;
 
 /**
  * Emits an event to a DOM element.
@@ -16,6 +18,15 @@ export declare function getEventSource(element?: Element): Zeta.ZetaEventSourceN
  * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
  */
 export declare function emitDOMEvent(eventName: string, target: Element, data?: any, options?: boolean | Zeta.EventEmitOptions): any;
+
+/**
+ * Emits an event to the active DOM element.
+ * @param eventName Name of the event.
+ * @param nativeEvent A native event object dispatched from browser.
+ * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+ * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
+ */
+export declare function emitDOMEvent(eventName: string, data?: any, options?: boolean | Zeta.EventEmitOptions): any;
 
 /**
  * Registers event handlers to the root element.
@@ -48,5 +59,3 @@ export declare function listenDOMEvent<T extends Zeta.ZetaDOMEventName>(element:
  * @returns A function that will unregister the handler when called.
  */
 export declare function listenDOMEvent(element: Element, handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap>): Zeta.UnregisterCallback;
-export declare function getEventContext(element: Element): Zeta.EventContainerOptions & { element: Element; context: any };
-export declare function setLastEventSource(element: Element | EventTarget | null): void;

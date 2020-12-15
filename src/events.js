@@ -102,6 +102,11 @@ function normalizeEventOptions(options) {
 }
 
 function emitDOMEvent(eventName, target, data, options) {
+    if (!is(target, Node)) {
+        options = data;
+        data = target;
+        target = dom.activeElement;
+    }
     var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
     return emitter.emit(domEventTrap, 'tap', target, true) || emitter.emit();
 }
