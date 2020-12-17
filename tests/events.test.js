@@ -1,5 +1,6 @@
 import { after, body, initBody, mockFn, objectContaining, verifyCalls, _ } from "./testUtil";
 import { emitDOMEvent, getEventContext, listenDOMEvent, ZetaEventContainer } from "../src/events";
+import { domReady } from "../src/domUtil";
 
 describe('ZetaEventContainer.event', () => {
     it('should return current event emitted from this container', () => {
@@ -103,8 +104,8 @@ describe('ZetaEventContainer.emit', () => {
 
         container.emit('customEvent', node2, 'string', true);
         verifyCalls(cb, [
-            [objectContaining({ context: node2, target: node2 }), _],
-            [objectContaining({ context: node1, target: node2 }), _]
+            [objectContaining({ target: node2, currentTarget: node2 }), _],
+            [objectContaining({ target: node2, currentTarget: node1 }), _]
         ]);
     });
 
@@ -163,12 +164,44 @@ describe('ZetaEventContainer.emit', () => {
         const target = container.element;
         const context = { element: target };
         const cb = mockFn();
-        container.setContext(target, context);
-        container.add(target, 'customEvent', cb);
+        container.add(context, 'customEvent', cb);
 
         container.emit('customEvent', target);
         verifyCalls(cb, [
             [objectContaining({ context: expect.sameObject(context) }), _]
+        ]);
+    });
+
+    it('should emit event with different context objects', () => {
+        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        const context1 = { element: target };
+        const context2 = { element: target };
+        const cb = mockFn();
+        container.add(context1, 'customEvent', cb);
+        container.add(context2, 'customEvent', cb);
+
+        container.emit('customEvent', target);
+        verifyCalls(cb, [
+            [objectContaining({ context: expect.sameObject(context1) }), _],
+            [objectContaining({ context: expect.sameObject(context2) }), _]
+        ]);
+    });
+
+    it('should emit event to specified context object only', () => {
+        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        const context1 = { element: target };
+        const context2 = { element: target };
+        const cb = mockFn();
+        container.add(context1, 'customEvent', cb);
+        container.add(context2, 'customEvent', cb);
+
+        container.emit('customEvent', context1);
+        verifyCalls(cb, [
+            [objectContaining({ context: expect.sameObject(context1) }), _]
         ]);
     });
 
@@ -308,22 +341,20 @@ describe('ZetaEventContainer.emit', () => {
 });
 
 describe('ZetaEventContainer.emitAsync', () => {
-    it('should emit the same number of times asynchronously without mergeData callback', async () => {
+    it('should emit once asynchronously without data', async () => {
         const container = new ZetaEventContainer();
         const target = container.element;
         const cb = mockFn();
         container.add(target, 'asyncEvent', cb);
 
         await after(() => {
-            container.emitAsync('asyncEvent', target, 0);
-            container.emitAsync('asyncEvent', target, 1);
-            container.emitAsync('asyncEvent', target, 2);
+            container.emitAsync('asyncEvent', target);
+            container.emitAsync('asyncEvent', target);
+            container.emitAsync('asyncEvent', target);
             expect(cb).not.toBeCalled();
         });
         verifyCalls(cb, [
-            [objectContaining({ type: 'asyncEvent', data: 0 }), _],
-            [objectContaining({ type: 'asyncEvent', data: 1 }), _],
-            [objectContaining({ type: 'asyncEvent', data: 2 }), _]
+            [objectContaining({ type: 'asyncEvent', data: null }), _]
         ]);
     });
 
@@ -348,6 +379,41 @@ describe('ZetaEventContainer.emitAsync', () => {
             ['first second', 'third']
         ]);
     });
+
+    it('should emit the same number of times asynchronously without mergeData callback', async () => {
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        const cb = mockFn();
+        container.add(target, 'asyncEvent', cb);
+
+        await after(() => {
+            container.emitAsync('asyncEvent', target, 0);
+            container.emitAsync('asyncEvent', target, 1);
+            container.emitAsync('asyncEvent', target, 2);
+            expect(cb).not.toBeCalled();
+        });
+        verifyCalls(cb, [
+            [objectContaining({ type: 'asyncEvent', data: 0 }), _],
+            [objectContaining({ type: 'asyncEvent', data: 1 }), _],
+            [objectContaining({ type: 'asyncEvent', data: 2 }), _]
+        ]);
+    });
+
+    it('should fire handlers deleted thereafter', async () => {
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        const cb = mockFn();
+        container.add(target, 'asyncEvent', cb);
+
+        await after(() => {
+            container.emitAsync('asyncEvent', target);
+            container.delete(target);
+            expect(cb).not.toBeCalled();
+        });
+        verifyCalls(cb, [
+            [objectContaining({ type: 'asyncEvent', data: null }), _]
+        ]);
+    });
 });
 
 describe('ZetaEventContainer.flushEvents', () => {
@@ -363,29 +429,41 @@ describe('ZetaEventContainer.flushEvents', () => {
     });
 });
 
-describe('ZetaEventContainer.getContext', () => {
-    it('should return context object set by EventContainer.setContext', () => {
+describe('ZetaEvent.target', () => {
+    it('should always be Element when possible', () => {
         /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
         const context = { element: target };
-        container.setContext(target, context);
-        expect(container.getContext(target)).toBe(context);
+        const cb = mockFn();
+        container.add(context, 'customEvent', cb);
+
+        container.emit('customEvent', target);
+        verifyCalls(cb, [
+            [objectContaining({ target: target }), _]
+        ]);
     });
 });
 
-describe('ZetaEventContainer.setContext', () => {
-    it('should throw error if target is set with another context object', () => {
+describe('ZetaEvent.currentTarget', () => {
+    it('should always be Element when possible', () => {
         /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
-        container.setContext(target, { element: target });
-        expect(() => container.setContext(target, { element: target })).toThrow();
+        const context = { element: target };
+        const cb = mockFn();
+        container.add(context, 'customEvent', cb);
+
+        container.emit('customEvent', target);
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: target }), _]
+        ]);
     });
 });
 
-describe('ZetaEvent', () => {
-    it('should forward preventDefault to native events', () => {
+describe('ZetaEvent.preventDefault', () => {
+    it('should forward preventDefault to native events', async () => {
+        await domReady;
         const event = new MouseEvent('mousedown', {
             button: 1,
             buttons: 1,

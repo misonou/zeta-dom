@@ -310,8 +310,7 @@ describe('keystroke event', () => {
             captureDOMEvents: true
         });
         const context = { element: input };
-        container.setContext(input, context);
-        container.add(input, { a: cb, keystroke: cb, textInput: cb });
+        container.add(context, { a: cb, keystroke: cb, textInput: cb });
         container.tap(function (e) {
             cb(...arguments);
             container.emit(e);

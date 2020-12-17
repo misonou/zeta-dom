@@ -1,6 +1,6 @@
 import Promise from "./include/promise-polyfill.cjs";
 import { window, root } from "./env.js";
-import { createPrivateStore, definePrototype, each, extend, is, isFunction, isPlainObject, keys, kv, mapGet, mapRemove, matchWord, noop, randomId, reject, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { createPrivateStore, definePrototype, each, extend, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { afterDetached } from "./observe.js";
 import dom, { textInputAllowed, getShortcut } from "./dom.js";
@@ -117,6 +117,7 @@ function emitDOMEvent(eventName, target, data, options) {
         target = dom.activeElement;
     }
     var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
+    // @ts-ignore: type inference issue
     return emitter.emit(domEventTrap, 'tap', target, true) || emitter.emit();
 }
 
@@ -132,10 +133,10 @@ function listenDOMEvent(element, event, handler) {
 function registerAsyncEvent(eventName, container, target, data, options, mergeData) {
     var map = mapGet(asyncEventData, container, Map);
     var dict = mapGet(map, target || container.element, Object);
-    if (dict[eventName] && (isFunction(mergeData) || (data === undefined && dict[eventName].data === undefined))) {
+    if (dict[eventName] && (isFunction(mergeData) || (isUndefinedOrNull(data) && isUndefinedOrNull(dict[eventName].data)))) {
         dict[eventName].data = mergeData && mergeData(dict[eventName].data, data);
     } else {
-        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options));
+        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options), true);
         asyncEvents.push(dict[eventName]);
         setImmediateOnce(emitAsyncEvents);
     }
@@ -171,8 +172,9 @@ function emitAsyncEvents(container) {
  * ZetaEventEmitter
  * -------------------------------------- */
 
-function ZetaEventEmitter(eventName, container, target, data, options) {
+function ZetaEventEmitter(eventName, container, target, data, options, async) {
     target = target || container.element;
+    var self = this;
     var source = options.source || new ZetaEventSource(target);
     var properties = {
         source: source.source,
@@ -180,57 +182,73 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
         timestamp: performance.now(),
         originalEvent: options.originalEvent || null
     };
-    extend(this, options, properties, {
+    extend(self, options, properties, {
         container: container,
         eventName: eventName,
-        target: target,
+        target: target.element || target,
+        source: source,
         data: data,
         properties: properties,
         current: [],
-        sourceObj: source
     });
+    self.targets = emitterGetTargets(self, container, target, options.bubbles, async);
 }
 
 definePrototype(ZetaEventEmitter, {
     emit: function (container, eventName, target, bubbles) {
         var self = this;
-        container = container || self.container;
-        if (bubbles === undefined) {
-            bubbles = self.bubbles;
-        }
+        var targets = self.targets;
         var emitting = self.current[0] || self;
-        var components = _(container).components;
-        // @ts-ignore: type inference issue
-        var targets = !bubbles ? [target || self.target] : self.originalEvent && target === undefined ? self.sourceObj.path : parentsAndSelf(target || self.target);
+        if ((container && container !== self.container) || (target && target !== self.target)) {
+            // @ts-ignore: type inference issue
+            targets = emitterGetTargets(self, container, target, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
+        }
         single(targets, function (v) {
-            var component = components.get(v);
-            return component && emitterCallHandlers(self, component, emitting.eventName, eventName, emitting.data);
+            return emitterCallHandlers(self, v, emitting.eventName, eventName, emitting.data);
         });
         return self.result;
     }
 });
+
+function emitterCopyComponent(component, eventName) {
+    return {
+        container: component.container,
+        target: component.target,
+        contexts: extend({}, component.contexts),
+        handlers: kv(eventName, extend({}, component.handlers[eventName]))
+    };
+}
+
+function emitterGetTargets(emitter, container, target, bubbles, async) {
+    var components = _(container || emitter.container).components;
+    var targets = !bubbles ? [target] : emitter.originalEvent && !target ? emitter.source.path : parentsAndSelf(target);
+    return map(targets, function (v) {
+        var component = components.get(v);
+        return component && (async ? emitterCopyComponent(component, emitter.eventName) : component);
+    });
+}
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
     if (!handlerName && matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data, handlerName)) {
         return true;
     }
     var sourceContainer = component.container;
-    if (data === undefined) {
-        data = removeAsyncEvent(eventName, sourceContainer, context);
-    }
+    var prevEventSource = eventSource;
     var handlers = component.handlers[handlerName || eventName];
     var handled;
     if (handlers) {
-        var context = component.context;
-        var contextContainer = is(context, ZetaEventContainer) || sourceContainer;
-        var event = new ZetaEvent(emitter, eventName, component, data);
-        var prevEventSource = eventSource;
-        var prevEvent = contextContainer.event;
-        sourceContainer.initEvent(event);
-        contextContainer.event = event;
-        eventSource = emitter.sourceObj;
+        eventSource = emitter.source;
         emitter.current.unshift({ eventName, data });
-        handled = single(handlers, function (v) {
+        handled = single(handlers, function (v, i) {
+            var context = component.contexts[i];
+            var event = new ZetaEvent(emitter, eventName, component, context, data);
+            if (isUndefinedOrNull(data)) {
+                data = removeAsyncEvent(eventName, sourceContainer, context);
+            }
+            var contextContainer = is(context, ZetaEventContainer) || sourceContainer;
+            var prevEvent = contextContainer.event;
+            sourceContainer.initEvent(event);
+            contextContainer.event = event;
             try {
                 var returnValue = v.call(context, event, context);
                 if (returnValue !== undefined) {
@@ -242,11 +260,11 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
                     event.handled(reject(e));
                 }
             }
+            contextContainer.event = prevEvent;
             return emitter.handled;
         });
         emitter.current.shift();
         eventSource = prevEventSource;
-        contextContainer.event = prevEvent;
     }
     if (!handled && !emitter.current[0] && eventName === 'keystroke') {
         if (data.char && textInputAllowed(emitter.target)) {
@@ -263,13 +281,13 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
  * ZetaEvent
  * -------------------------------------- */
 
-function ZetaEvent(event, eventName, component, data) {
+function ZetaEvent(event, eventName, component, context, data) {
     var self = extend(this, event.properties);
     self.eventName = eventName;
     self.type = eventName;
-    self.context = component.context;
-    self.currentTarget = component.element;
-    self.target = containsOrEquals(event.target, component.element) ? component.element : event.target;
+    self.context = context;
+    self.currentTarget = component.target;
+    self.target = event.target;
     self.data = null;
     if (isPlainObject(data)) {
         extend(self, data);
@@ -311,7 +329,7 @@ function ZetaEventContainer(element, context, options) {
     options = extend({
         element: element || root,
         context: context || null,
-        autoDestroy: containsOrEquals(root, element),
+        autoDestroy: false,
         normalizeTouchEvents: false,
         captureDOMEvents: false,
         initEvent: noop
@@ -322,7 +340,6 @@ function ZetaEventContainer(element, context, options) {
     });
     extend(self, options);
     if (element && self.captureDOMEvents) {
-        domEventTrap.setContext(element, self);
         containers.set(element, self);
     }
     if (self.autoDestroy) {
@@ -335,49 +352,33 @@ function ZetaEventContainer(element, context, options) {
 definePrototype(ZetaEventContainer, {
     event: null,
     tap: function (handler) {
-        domEventTrap.add(this.element, 'tap', handler);
-    },
-    getContext: function (element) {
-        var components = _(this).components;
-        var component;
-        for (var cur = element; cur && !component; cur = cur.parentNode) {
-            component = components.get(cur);
-        }
-        return component && component.context;
-    },
-    setContext: function (element, context) {
-        containerCreateContext(this, element, context);
+        domEventTrap.add(this, 'tap', handler);
     },
     add: function (target, event, handler) {
         var self = this;
         var key = randomId();
-        var handlers = containerCreateContext(self, target).handlers;
-        each(isPlainObject(event) || kv(event, handler), function (i, v) {
-            var dict = handlers[i] || (handlers[i] = {});
-            dict[key] = throwNotFunction(v);
-        });
+        var element = is(target.element, Node);
+        containerRegisterHandler(self, target, key, target, event, handler);
+        if (element) {
+            containerRegisterHandler(self, element, key, target, event, handler);
+        }
         return function () {
-            each(handlers, function (i, v) {
-                delete v[key];
-                if (!keys(v)[0]) {
-                    delete handlers[i];
-                }
-            });
-            if (!keys(handlers)[0]) {
-                self.delete(target);
+            containerRemoveHandler(self, target, key);
+            if (element) {
+                containerRemoveHandler(self, element, key);
             }
         };
     },
     delete: function (target) {
         var self = this;
-        var component = mapRemove(_(self).components, target);
-        if (component && self.captureDOMEvents) {
-            containers.delete(component.element);
+        if (mapRemove(_(self).components, target) && self.captureDOMEvents) {
+            containers.delete(target);
         }
     },
     emit: function (eventName, target, data, bubbles) {
         var options = normalizeEventOptions(bubbles);
         var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, this, target, data, options);
+        // @ts-ignore: type inference issue
         return emitter.emit(this, null, target, options.bubbles);
     },
     emitAsync: function (eventName, target, data, bubbles, mergeData) {
@@ -388,32 +389,50 @@ definePrototype(ZetaEventContainer, {
     },
     destroy: function () {
         var self = this;
+        var components = _(self).components;
         if (self.captureDOMEvents) {
-            domEventTrap.delete(self.element);
+            domEventTrap.delete(self);
             containers.delete(self.element);
-            each(_(self).components, function (i) {
+            each(components, function (i) {
                 containers.delete(i);
             });
         }
+        components.clear();
     }
 });
 
-function containerCreateContext(container, element, context) {
-    var cur = mapGet(_(container).components, element, function () {
+function containerRegisterHandler(container, target, key, context, event, handler) {
+    var cur = mapGet(_(container).components, target, function () {
         return {
             container: container,
-            element: element,
-            context: context || element,
+            target: target.element || target,
+            contexts: {},
             handlers: {}
         };
     });
-    if (context && (cur.context || context) !== context) {
-        throw new Error('Element has already been set to another context');
+    var handlers = cur.handlers;
+    each(isPlainObject(event) || kv(event, handler), function (i, v) {
+        (handlers[i] || (handlers[i] = {}))[key] = throwNotFunction(v);
+    });
+    cur.contexts[key] = context;
+    if (container.captureDOMEvents && is(target, Node)) {
+        containers.set(target, container);
     }
-    if (container.captureDOMEvents && is(element, Element)) {
-        containers.set(element, container);
+}
+
+function containerRemoveHandler(container, target, key) {
+    var cur = mapGet(_(container).components, target);
+    var handlers = cur.handlers;
+    each(handlers, function (i, v) {
+        delete v[key];
+        if (!keys(v)[0]) {
+            delete handlers[i];
+        }
+    });
+    delete cur.contexts[key];
+    if (!keys(handlers)[0]) {
+        container.delete(target);
     }
-    return cur;
 }
 
 export {

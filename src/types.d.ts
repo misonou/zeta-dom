@@ -512,20 +512,6 @@ declare namespace Zeta {
         emitAsync(eventName: string, target?: any, data?: any, options?: boolean | EventEmitOptions, mergeData?: (v, a) => any): void;
 
         /**
-         * Gets the custom object that represents the given element,
-         * @param element A DOM element.
-         */
-        getContext(element: Element): T;
-
-        /**
-         * Defines a custom object that represents a DOM component.
-         * Setting to a different context without first deleting the element from container will throw an error.
-         * @param element A DOM element.
-         * @param context Any object that has the property "element" pointing to the same DOM element.
-         */
-        setContext(element: Element, context: T): void;
-
-        /**
          * Adds a handler to intercept event being fired within this container.
          * @param handler An event handler.
          */
