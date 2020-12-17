@@ -414,6 +414,22 @@ describe('ZetaEventContainer.emitAsync', () => {
             [objectContaining({ type: 'asyncEvent', data: null }), _]
         ]);
     });
+
+    it('should emit event as non-handleable', async () => {
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        const cb = mockFn(/** @param {Zeta.ZetaAsyncHandleableEvent} e */ e => {
+            e.handled(42);
+            expect(e.isHandled()).toBe(false);
+        });
+        container.add(target, 'asyncEvent', cb);
+        container.add(target, 'asyncEvent', cb);
+
+        await after(() => {
+            container.emitAsync('asyncEvent', target, null, { handleable: true });
+        });
+        expect(cb).toBeCalledTimes(2);
+    });
 });
 
 describe('ZetaEventContainer.flushEvents', () => {

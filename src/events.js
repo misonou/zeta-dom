@@ -100,14 +100,14 @@ function getEventContext(element) {
     return _(container).options;
 }
 
-function normalizeEventOptions(options) {
+function normalizeEventOptions(options, overrides) {
     if (typeof options === 'boolean') {
         options = { bubbles: options };
     }
     return extend({
         handleable: true,
         asyncResult: true
-    }, options);
+    }, options, overrides);
 }
 
 function emitDOMEvent(eventName, target, data, options) {
@@ -136,7 +136,7 @@ function registerAsyncEvent(eventName, container, target, data, options, mergeDa
     if (dict[eventName] && (isFunction(mergeData) || (isUndefinedOrNull(data) && isUndefinedOrNull(dict[eventName].data)))) {
         dict[eventName].data = mergeData && mergeData(dict[eventName].data, data);
     } else {
-        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options), true);
+        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options, { handleable: false }), true);
         asyncEvents.push(dict[eventName]);
         setImmediateOnce(emitAsyncEvents);
     }
