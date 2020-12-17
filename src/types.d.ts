@@ -156,7 +156,7 @@ declare namespace Zeta {
         nextNode(): T | null;
     }
 
-    interface TreeWalker<T> extends NodeIterator<T> {
+    interface TreeTraverser<T> extends NodeIterator<T> {
         parentNode(): T | null;
         firstChild(): T | null;
         lastChild(): T | null;
@@ -171,11 +171,12 @@ declare namespace Zeta {
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaDOMEventName = 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'textInput' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | 'cancelled' | 'error' | KeyNameSpecial | ClickName | GestureName;
+    type ZetaDOMEventName = 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'textInput' | 'longPress' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | 'cancelled' | 'error' | KeyNameSpecial | ClickName | GestureName;
 
     type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & {
         focusin: ZetaFocusEvent;
         focusout: ZetaFocusEvent;
+        longPress: ZetaMouseEvent;
         mousedown: ZetaMouseEvent;
         mousewheel: ZetaWheelEvent;
         metakeychange: ZetaKeystrokeEvent;

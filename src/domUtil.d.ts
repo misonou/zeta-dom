@@ -158,7 +158,7 @@ export function createNodeIterator<T extends number>(root: Element, whatToShow: 
  * @param whatToShow A bitmask specifying which types of DOM node should be iterated.
  * @returns A DOM node iterator.
  */
-export function createTreeWalker<T extends number>(root: Element, whatToShow: T, filter?: Zeta.IteratorNodeFilter<T extends 1 ? Element : T extends 4 ? Text : Node>): Zeta.TreeWalker<T extends 1 ? Element : T extends 4 ? Text : Node>;
+export function createTreeWalker<T extends number>(root: Element, whatToShow: T, filter?: Zeta.IteratorNodeFilter<T extends 1 ? Element : T extends 4 ? Text : Node>): Zeta.TreeTraverser<T extends 1 ? Element : T extends 4 ? Text : Node>;
 
 
 /* --------------------------------------
