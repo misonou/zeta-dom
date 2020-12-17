@@ -17,6 +17,12 @@ export function either(x: any, b: any): boolean;
 export function is<T extends Function>(a: any, b: T): InstanceType<T> | false;
 
 /**
+ * Tests whether a given value is undefined or null.
+ * @param value An input value to be tested.
+ */
+export function isUndefinedOrNull(value: any): boolean;
+
+/**
  * Tests whether the value is an array.
  * @param obj An input value to be tested.
  * @returns The same instance of array if it is a simple object; otherwise false.

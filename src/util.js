@@ -42,6 +42,10 @@ function is(obj, fn) {
     return obj instanceof fn && obj;
 }
 
+function isUndefinedOrNull(value) {
+    return value === undefined || value === null;
+}
+
 function isArray(obj) {
     return Array.isArray(obj) && obj;
 }
@@ -81,7 +85,7 @@ function makeArray(obj) {
         });
         return arr;
     }
-    return obj !== null && obj !== undefined ? [obj] : [];
+    return isUndefinedOrNull(obj) ? [] : [obj];
 }
 
 function extend() {
@@ -173,7 +177,7 @@ function map(obj, callback) {
     var arr = [];
     each(obj, function (i, v) {
         var result = callback.call(this, v, i);
-        if (result !== null && result !== undefined) {
+        if (!isUndefinedOrNull(result)) {
             if (isArray(result)) {
                 arr.push.apply(arr, result);
             } else {
@@ -662,6 +666,7 @@ export {
     noop,
     either,
     is,
+    isUndefinedOrNull,
     isArray,
     isFunction,
     isThenable,
