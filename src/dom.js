@@ -551,7 +551,7 @@ domReady.then(function () {
         },
         click: function (e) {
             if (!IS_TOUCH && mouseInitialPoint) {
-                triggerMouseEvent('click');
+                triggerMouseEvent(getEventName(e, 'click'));
             }
         },
         contextmenu: function (e) {
