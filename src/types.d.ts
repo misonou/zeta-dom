@@ -529,7 +529,6 @@ declare namespace Zeta {
      * -------------------------------------- */
 
     interface NodeTreeOptions {
-        captureDOMEvents?: boolean;
     }
 
     interface TraversableNodeTreeOptions<T> extends NodeTreeOptions {
@@ -538,15 +537,41 @@ declare namespace Zeta {
     interface InheritedNodeTreeOptions<T> extends NodeTreeOptions {
     }
 
-    interface NodeTreeEventMap {
-        update: NodeTreeUpdateEvent;
+    interface NodeTreeEventMap<T extends VirtualNode> {
+        update: NodeTreeUpdateEvent<T>;
     }
 
-    interface NodeTreeUpdateEvent extends ZetaEventBase {
-        readonly updatedNodes: VirtualNode[];
+    interface NodeTreeUpdateEvent<T extends VirtualNode> extends ZetaEventBase {
+        /**
+         * @deprecated Use `records` property instead.
+         */
+        readonly updatedNodes: T[];
+        readonly records: NodeTreeMutationRecord<T>[];
     }
 
-    declare abstract class NodeTree<T extends VirtualNode> implements ZetaEventDispatcher<NodeTreeEventMap, NodeTree<T>>, HasElement {
+    interface NodeTreeMutationRecord<T extends VirtualNode> {
+        /**
+         * Gets the node that has been removed or relocated as child or sibling of other nodes.
+         */
+        readonly node: T;
+
+        /**
+         * Gets the original parent node before mutation.
+         */
+        readonly parentNode: T | null;
+
+        /**
+         * Gets the original previous sibling before mutation.
+         */
+        readonly previousSilbing: T | null;
+
+        /**
+         * Gets the original next sibiling before mutation.
+         */
+        readonly nextSibling: T | null;
+    }
+
+    declare abstract class NodeTree<T extends VirtualNode> implements ZetaEventDispatcher<NodeTreeEventMap<T>, NodeTree<T>>, HasElement {
         readonly element: Element;
         readonly rootNode: T;
 
@@ -555,10 +580,10 @@ declare namespace Zeta {
         removeNode(node: T): void;
         update(): void;
 
-        on<E extends keyof NodeTreeEventMap>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap, NodeTree<T>>);
-        on<E extends keyof NodeTreeEventMap>(tree: NodeTree<T>, event: E, handler: ZetaEventHandler<E, NodeTreeEventMap, NodeTree<T>>);
-        on(handler: ZetaEventHandlers<keyof NodeTreeEventMap, NodeTreeEventMap, NodeTree<T>>);
-        on(tree: NodeTree<T>, handler: ZetaEventHandlers<keyof NodeTreeEventMap, NodeTreeEventMap, NodeTree<T>>);
+        on<E extends keyof NodeTreeEventMap<T>>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>);
+        on<E extends keyof NodeTreeEventMap<T>>(tree: NodeTree<T>, event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>);
+        on(handler: ZetaEventHandlers<keyof NodeTreeEventMap<T>, NodeTreeEventMap<T>, NodeTree<T>>);
+        on(tree: NodeTree<T>, handler: ZetaEventHandlers<keyof NodeTreeEventMap<T>, NodeTreeEventMap<T>, NodeTree<T>>);
     }
 
     declare class TraversableNodeTree<T extends TraversableNode> extends NodeTree<T> {

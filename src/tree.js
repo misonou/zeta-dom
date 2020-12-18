@@ -2,9 +2,12 @@ import dom from "./dom.js";
 import { comparePosition, containsOrEquals, createTreeWalker, iterateNode, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventContainer } from "./events.js";
 import { observe } from "./observe.js";
-import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, is, isFunction, isPlainObject, kv, map, mapGet, mapRemove } from "./util.js";
+import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, is, isFunction, isPlainObject, kv, map, mapGet, mapRemove, pick } from "./util.js";
+
+const SNAPSHOT_PROPS = 'parentNode previousSibling nextSibling'.split(' ');
 
 const _ = createPrivateStore();
+const previous = new WeakMap();
 const setPrototypeOf = Object.setPrototypeOf;
 const collectMutations = observe(dom.root, handleMutations);
 
@@ -52,6 +55,9 @@ function initNode(tree, node, element) {
         node: node,
         traversable: is(node, TraversableNode),
         state: mapGet(versionMap, element, VersionState),
+        parentNode: null,
+        previousSibling: null,
+        nextSibling: null,
         childNodes: []
     });
     map.set(element, sNode);
@@ -161,8 +167,8 @@ function insertTraversableNode(sNode) {
         var parentChildNodes = result[2];
         if (parentChildNodes[1]) {
             var pos = result[0];
-            var p1 = parentChildNodes[pos - 1];
-            var p2 = parentChildNodes[pos + 1];
+            var p1 = parentChildNodes[pos - 1] || null;
+            var p2 = parentChildNodes[pos + 1] || null;
             sNode.nextSibling = p2;
             sNode.previousSibling = p1;
             (_(p1) || empty).nextSibling = sNode.node;
@@ -202,8 +208,8 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
             var states = map(childNodes, function (v) {
                 return _(v);
             });
-            states[0].previousSibling = parentChildNodes[pos - 1];
-            states[states.length - 1].nextSibling = parentChildNodes[pos + 1];
+            states[0].previousSibling = parentChildNodes[pos - 1] || null;
+            states[states.length - 1].nextSibling = parentChildNodes[pos + 1] || null;
             each(states, function (i, v) {
                 v.parentNode = parent;
             });
@@ -213,10 +219,13 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
         var empty = {};
         var s1 = _(parentChildNodes[pos - 1]);
         var s2 = _(parentChildNodes[pos + 1]);
-        (s1 || empty).nextSibling = childNodes[0] || (s2 || empty).node;
-        (s2 || empty).previousSibling = childNodes[childNodes.length - 1] || (s1 || empty).node;
+        (s1 || empty).nextSibling = childNodes[0] || (s2 || empty).node || null;
+        (s2 || empty).previousSibling = childNodes[childNodes.length - 1] || (s1 || empty).node || null;
     }
-    sNode.parentNode = newParent;
+    if (!previous.has(sNode.node)) {
+        previous.set(sNode.node, pick(sNode, SNAPSHOT_PROPS));
+    }
+    sNode.parentNode = newParent || null;
     sNode.previousSibling = null;
     sNode.nextSibling = null;
     parentChildNodes.splice.apply(parentChildNodes, [pos, 1].concat(childNodes));
@@ -235,11 +244,10 @@ function removeInheritedNode(sNode, hardRemove) {
 function reorderTraversableChildNodes(sNode) {
     var childNodes = sNode.childNodes;
     var copy = childNodes.slice();
-    var updated = false;
+    var updated = [];
     for (var i = copy.length - 1; i >= 0; i--) {
-        if (!containsOrEquals(sNode.tree, copy[i])) {
-            // @ts-ignore: boolean arithmetics
-            updated |= removeTraversableNode(_(copy[i]));
+        if (!containsOrEquals(sNode.tree, copy[i]) && removeTraversableNode(_(copy[i]))) {
+            updated[updated.length] = copy[i];
         }
     }
     if (childNodes.length > 1) {
@@ -247,12 +255,21 @@ function reorderTraversableChildNodes(sNode) {
         childNodes.sort(comparePosition);
         if (!equal(childNodes, copy)) {
             each(childNodes, function (i, v) {
-                extend(_(v), {
-                    previousSibling: childNodes[i - 1],
-                    nextSibling: childNodes[i + 1]
-                });
+                var sChildNode = _(v);
+                var oldValues = pick(sChildNode, SNAPSHOT_PROPS);
+                var newValues = {
+                    parentNode: sNode.node,
+                    previousSibling: childNodes[i - 1] || null,
+                    nextSibling: childNodes[i + 1] || null
+                };
+                if (!equal(oldValues, newValues)) {
+                    extend(sChildNode, newValues);
+                    updated[updated.length] = v;
+                    if (!previous.has(v)) {
+                        previous.set(v, oldValues);
+                    }
+                }
             });
-            updated = true;
         }
     }
     return updated;
@@ -260,15 +277,16 @@ function reorderTraversableChildNodes(sNode) {
 
 function updateTree(tree) {
     var sTree = _(tree);
+    var traversable = is(tree, TraversableNodeTree);
     var updatedNodes = [];
     each(sTree.nodes, function (element, sNode) {
         var newVersion = sNode.state.version;
         if (sNode.version !== newVersion) {
             var updated = false;
             var connected = containsOrEquals(tree, element);
-            if (sNode.traversable) {
+            if (traversable) {
                 // @ts-ignore: boolean arithmetics
-                updated |= reorderTraversableChildNodes(sNode);
+                updated |= updatedNodes.length !== updatedNodes.push.apply(updatedNodes, reorderTraversableChildNodes(sNode));
             }
             // @ts-ignore: boolean arithmetics
             updated |= (connected ? insertNode : removeNodeFromMap)(sNode);
@@ -292,7 +310,10 @@ function updateTree(tree) {
     });
     sTree.version = version;
     if (updatedNodes[0]) {
-        sTree.container.emit('update', tree, { updatedNodes }, false);
+        var records = map(updatedNodes, function (v) {
+            return extend({ node: v }, mapRemove(previous, v) || pick(v, SNAPSHOT_PROPS));
+        });
+        sTree.container.emit('update', tree, { updatedNodes, records }, false);
     }
 }
 
@@ -340,7 +361,7 @@ function TraversableNode(tree, element) {
 
 definePrototype(TraversableNode, VirtualNode, {
     get parentNode() {
-        return checkNodeState(_(this)).parentNode || null;
+        return checkNodeState(_(this)).parentNode;
     },
     get childNodes() {
         return checkNodeState(_(this)).childNodes.slice(0);
@@ -353,10 +374,10 @@ definePrototype(TraversableNode, VirtualNode, {
         return arr[arr.length - 1] || null;
     },
     get previousSibling() {
-        return checkNodeState(_(this)).previousSibling || null;
+        return checkNodeState(_(this)).previousSibling;
     },
     get nextSibling() {
-        return checkNodeState(_(this)).nextSibling || null;
+        return checkNodeState(_(this)).nextSibling;
     }
 });
 
