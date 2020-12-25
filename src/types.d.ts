@@ -200,6 +200,8 @@ declare namespace Zeta {
          * Gets a custom object that represents a functional sub-component.
          */
         readonly context: T;
+
+        readonly θ__dummy__: any;
     }
 
     interface ZetaEventDispatcher<M, T = Element> {
