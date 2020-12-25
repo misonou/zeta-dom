@@ -314,6 +314,13 @@ export function mapGet<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> 
 export function mapRemove<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> : never), key: K): V;
 
 /**
+ * Adds item to a set and returns whether the set is changed, i.e. the item is not in the set before.
+ * @param set A set or weak set object.
+ * @param obj An item to be added.
+ */
+export function setAdd<T>(set: Set<T> | WeakSet<T>, obj: T): boolean;
+
+/**
  * Determines whether two maps contains the same keys and each key associates the same value.
  * @param a A Map object to compare.
  * @param b A Map object to compare.

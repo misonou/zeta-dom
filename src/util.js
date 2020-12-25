@@ -262,6 +262,12 @@ function mapRemove(map, key) {
     return value;
 }
 
+function setAdd(set, obj) {
+    var result = !set.has(obj);
+    set.add(obj);
+    return result;
+}
+
 function equal(a, b) {
     if (typeof a !== 'object' || !b || a.constructor !== b.constructor) {
         return a === b;
@@ -685,6 +691,7 @@ export {
     exclude,
     mapGet,
     mapRemove,
+    setAdd,
     equal,
     createPrivateStore,
     setTimeoutOnce,
