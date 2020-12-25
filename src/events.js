@@ -250,7 +250,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
             sourceContainer.initEvent(event);
             contextContainer.event = event;
             try {
-                var returnValue = v.call(context, event, context);
+                var returnValue = v.call(event.context, event, event.context);
                 if (returnValue !== undefined) {
                     event.handled(returnValue);
                 }
