@@ -55,11 +55,16 @@ export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? 
 /**
  * Creates an array containing the specified item if the given object is not an array.
  * @param obj An input object.
- * @returns The same instance of array if the object is an array;
- * or an array containing items in an array-like object or iterable collection like Map or Set;
- * or an array with exactly one item (the input object) if it does not equals to null or undefined; otherwise an empty array.
+ * @returns A copy of array if the object is an array; or an array containing items in an array-like object or iterable collection like Map or Set.
  */
-export function makeArray<T>(obj: T | T[] | ArrayLike<T> | Set<T>): T[];
+export function makeArray<T>(obj: T[] | ArrayLike<T> | Map<any, T> | Set<T>): T[];
+
+/**
+ * Creates an array containing the specified item.
+ * @param obj An input object.
+ * @returns An array with exactly one item (the input object) if it does not equals to null or undefined; otherwise an empty array.
+ */
+export function makeArray<T>(obj: T): Exclude<T, null | undefined>[];
 
 export function extend<T extends object, U>(obj: T, arg1: U): T & U;
 
