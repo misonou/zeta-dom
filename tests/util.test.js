@@ -228,6 +228,11 @@ describe('pick', () => {
     it('does not create property for non-exist one', () => {
         expect(pick({ a: 1 }, ['b'])).toEqual({});
     });
+
+    it('should copy properties for which callback returns truthy values', () => {
+        const cb = mockFn().mockReturnValueOnce(true).mockReturnValueOnce(false);
+        expect(pick({ a: 0, b: 1 }, cb)).toEqual({ a: 0 });
+    });
 });
 
 describe('exclude', () => {
@@ -248,6 +253,11 @@ describe('exclude', () => {
         function A() { };
         A.prototype.a = 1;
         expect(exclude(new A(), [])).toEqual({ a: 1 });
+    });
+
+    it('should copy properties for which callback returns falsy values', () => {
+        const cb = mockFn().mockReturnValueOnce(true).mockReturnValueOnce(false);
+        expect(exclude({ a: 0, b: 1 }, cb)).toEqual({ b: 1 });
     });
 });
 

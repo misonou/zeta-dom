@@ -278,12 +278,16 @@ export function kv<T extends string | number | symbol, V>(key: T, value: V): Rec
  */
 export function pick<T>(obj: T, keys: string[]): Partial<T>;
 
+export function pick<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
+
 /**
  * Returns a new object that does not contain the specified properties
  * @param obj An object from which properties are copied.
  * @param keys Names of properties to be excluded.
  */
 export function exclude<T>(obj: T, keys: string[]): Partial<T>;
+
+export function exclude<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
 
 /**
  * Gets item associated with the specified key in the given map.

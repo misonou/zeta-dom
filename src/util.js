@@ -236,19 +236,36 @@ function kv(key, value) {
 
 function pick(obj, keys) {
     var result = {};
-    each(keys, function (i, v) {
-        if (v in obj) {
-            result[v] = obj[v];
-        }
-    });
+    if (isFunction(keys)) {
+        each(obj, function (i, v) {
+            if (keys.call(obj, v, i)) {
+                result[i] = v;
+            }
+        });
+    } else {
+        each(keys, function (i, v) {
+            if (v in obj) {
+                result[v] = obj[v];
+            }
+        });
+    }
     return result;
 }
 
 function exclude(obj, keys) {
-    var result = extend({}, obj);
-    each(keys, function (i, v) {
-        delete result[v];
-    });
+    var result = {};
+    if (isFunction(keys)) {
+        each(obj, function (i, v) {
+            if (!keys.call(obj, v, i)) {
+                result[i] = v;
+            }
+        });
+    } else {
+        extend(result, obj);
+        each(keys, function (i, v) {
+            delete result[v];
+        });
+    }
     return result;
 }
 
