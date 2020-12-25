@@ -201,7 +201,7 @@ definePrototype(ZetaEventEmitter, {
         var emitting = self.current[0] || self;
         if ((container && container !== self.container) || (target && target !== self.target)) {
             // @ts-ignore: type inference issue
-            targets = emitterGetTargets(self, container, target, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
+            targets = emitterGetTargets(self, container, target || self.target, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
         }
         single(targets, function (v) {
             return emitterCallHandlers(self, v, emitting.eventName, eventName, emitting.data);
@@ -221,7 +221,8 @@ function emitterCopyComponent(component, eventName) {
 
 function emitterGetTargets(emitter, container, target, bubbles, async) {
     var components = _(container || emitter.container).components;
-    var targets = !bubbles ? [target] : emitter.originalEvent && !target ? emitter.source.path : parentsAndSelf(target);
+    var path = emitter.source.path;
+    var targets = !bubbles ? [target] : emitter.originalEvent ? path.slice(path.indexOf(target)) : parentsAndSelf(target);
     return map(targets, function (v) {
         var component = components.get(v);
         return component && (async ? emitterCopyComponent(component, emitter.eventName) : component);

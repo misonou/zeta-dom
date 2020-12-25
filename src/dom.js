@@ -342,7 +342,7 @@ domReady.then(function () {
             clientY: point.clientY,
             metakey: getEventName(currentEvent) || ''
         };
-        return triggerUIEvent(eventName, data, currentEvent.target);
+        return triggerUIEvent(eventName, data);
     }
 
     function triggerGestureEvent(gesture) {
