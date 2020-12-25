@@ -65,7 +65,7 @@ definePrototype(DOMLock, {
         if (force || !promises.size) {
             if (promises.size) {
                 // @ts-ignore: unable to reflect on interface member
-                emitDOMEvent('cancelled', null, self.element);
+                emitDOMEvent('cancelled', self.element);
             }
             // remove all promises from the dictionary so that
             // filtered promise from lock.wait() will be rejected by cancellation
@@ -92,7 +92,7 @@ definePrototype(DOMLock, {
         var promises = state.promises;
         var finish = function () {
             if (promises.delete(promise) && !promises.size) {
-                emitDOMEvent('asyncEnd', null, self.element);
+                emitDOMEvent('asyncEnd', self.element);
                 self.cancel(true);
             }
         };
@@ -108,11 +108,11 @@ definePrototype(DOMLock, {
             if (parent) {
                 lockedElements.get(parent).wait(deferred, self.cancel.bind(self));
             }
-            emitDOMEvent('asyncStart', null, self.element);
+            emitDOMEvent('asyncStart', self.element);
         }
         promise.catch(function (error) {
             if (error && !handledErrors.has(error)) {
-                emitDOMEvent('error', null, self.element, {
+                emitDOMEvent('error', self.element, {
                     error: error
                 }, true);
                 // avoid firing error event for the same error for multiple target
