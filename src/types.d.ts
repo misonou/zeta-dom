@@ -456,6 +456,12 @@ declare namespace Zeta {
         readonly captureDOMEvents: boolean;
 
         /**
+         * Gets context object associated with the event target.
+         * @param target An event target, typically a DOM element.
+         */
+        getContexts(target: any): (T extends ZetaEventContextBase<infer R> ? R : T)[];
+
+        /**
          * Registers event handlers to a DOM element or a custom event target.
          * @param target An event target.
          * @param handlers An object which each entry represent the handler to be registered on the event.

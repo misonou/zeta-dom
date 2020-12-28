@@ -1,6 +1,6 @@
 import Promise from "./include/promise-polyfill.cjs";
 import { window, root } from "./env.js";
-import { createPrivateStore, definePrototype, each, extend, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { createPrivateStore, definePrototype, each, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { afterDetached } from "./observe.js";
 import dom, { textInputAllowed, getShortcut } from "./dom.js";
@@ -353,6 +353,13 @@ definePrototype(ZetaEventContainer, {
     event: null,
     tap: function (handler) {
         domEventTrap.add(this, 'tap', handler);
+    },
+    getContexts: function (element) {
+        var state = _(this).components.get(element);
+        var visited = new Set();
+        return grep(state && state.contexts, function (v) {
+            return v !== element && setAdd(visited, v);
+        });
     },
     add: function (target, event, handler) {
         var self = this;
