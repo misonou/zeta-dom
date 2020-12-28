@@ -37,3 +37,9 @@ export function verifyCalls(cb, args) {
         expect(cb).toHaveBeenNthCalledWith(i + 1, ...v);
     });
 }
+
+export function combineFn(...fn) {
+    return function () {
+        fn.forEach(v => v());
+    };
+}
