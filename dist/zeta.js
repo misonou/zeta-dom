@@ -88,6 +88,7 @@ __webpack_require__.d(util_namespaceObject, {
   "repeat": function() { return repeat; },
   "resolve": function() { return resolve; },
   "resolveAll": function() { return resolveAll; },
+  "setAdd": function() { return setAdd; },
   "setImmediate": function() { return setImmediate; },
   "setImmediateOnce": function() { return setImmediateOnce; },
   "setPromiseTimeout": function() { return setPromiseTimeout; },
@@ -443,19 +444,40 @@ function kv(key, value) {
 
 function pick(obj, keys) {
   var result = {};
-  each(keys, function (i, v) {
-    if (v in obj) {
-      result[v] = obj[v];
-    }
-  });
+
+  if (isFunction(keys)) {
+    each(obj, function (i, v) {
+      if (keys.call(obj, v, i)) {
+        result[i] = v;
+      }
+    });
+  } else {
+    each(keys, function (i, v) {
+      if (v in obj) {
+        result[v] = obj[v];
+      }
+    });
+  }
+
   return result;
 }
 
 function exclude(obj, keys) {
-  var result = extend({}, obj);
-  each(keys, function (i, v) {
-    delete result[v];
-  });
+  var result = {};
+
+  if (isFunction(keys)) {
+    each(obj, function (i, v) {
+      if (!keys.call(obj, v, i)) {
+        result[i] = v;
+      }
+    });
+  } else {
+    extend(result, obj);
+    each(keys, function (i, v) {
+      delete result[v];
+    });
+  }
+
   return result;
 }
 
@@ -467,6 +489,12 @@ function mapRemove(map, key) {
   var value = map.get(key);
   map.delete(key);
   return value;
+}
+
+function setAdd(set, obj) {
+  var result = !set.has(obj);
+  set.add(obj);
+  return result;
 }
 
 function equal(a, b) {
@@ -2073,7 +2101,7 @@ definePrototype(DOMLock, {
     if (force || !promises.size) {
       if (promises.size) {
         // @ts-ignore: unable to reflect on interface member
-        emitDOMEvent('cancelled', null, self.element);
+        emitDOMEvent('cancelled', self.element);
       } // remove all promises from the dictionary so that
       // filtered promise from lock.wait() will be rejected by cancellation
 
@@ -2107,7 +2135,7 @@ definePrototype(DOMLock, {
 
     var finish = function finish() {
       if (promises.delete(promise) && !promises.size) {
-        emitDOMEvent('asyncEnd', null, self.element);
+        emitDOMEvent('asyncEnd', self.element);
         self.cancel(true);
       }
     };
@@ -2130,12 +2158,12 @@ definePrototype(DOMLock, {
         lockedElements.get(parent).wait(deferred, self.cancel.bind(self));
       }
 
-      emitDOMEvent('asyncStart', null, self.element);
+      emitDOMEvent('asyncStart', self.element);
     }
 
     promise.catch(function (error) {
       if (error && !handledErrors.has(error)) {
-        emitDOMEvent('error', null, self.element, {
+        emitDOMEvent('error', self.element, {
           error: error
         }, true); // avoid firing error event for the same error for multiple target
         // while propagating through the promise chain
@@ -2530,7 +2558,7 @@ domReady.then(function () {
       clientY: point.clientY,
       metakey: getEventName(currentEvent) || ''
     };
-    return triggerUIEvent(eventName, data, currentEvent.target);
+    return triggerUIEvent(eventName, data);
   }
 
   function triggerGestureEvent(gesture) {
@@ -3141,7 +3169,7 @@ definePrototype(ZetaEventEmitter, {
 
     if (container && container !== self.container || target && target !== self.target) {
       // @ts-ignore: type inference issue
-      targets = emitterGetTargets(self, container, target, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
+      targets = emitterGetTargets(self, container, target || self.target, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
     }
 
     single(targets, function (v) {
@@ -3163,7 +3191,8 @@ function emitterCopyComponent(component, eventName) {
 function emitterGetTargets(emitter, container, target, bubbles, async) {
   var components = events_(container || emitter.container).components;
 
-  var targets = !bubbles ? [target] : emitter.originalEvent && !target ? emitter.source.path : parentsAndSelf(target);
+  var path = emitter.source.path;
+  var targets = !bubbles ? [target] : emitter.originalEvent ? path.slice(path.indexOf(target)) : parentsAndSelf(target);
   return map(targets, function (v) {
     var component = components.get(v);
     return component && (async ? emitterCopyComponent(component, emitter.eventName) : component);
@@ -3200,7 +3229,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
       contextContainer.event = event;
 
       try {
-        var returnValue = v.call(context, event, context);
+        var returnValue = v.call(event.context, event, event.context);
 
         if (returnValue !== undefined) {
           event.handled(returnValue);
@@ -3315,6 +3344,14 @@ definePrototype(ZetaEventContainer, {
   event: null,
   tap: function tap(handler) {
     domEventTrap.add(this, 'tap', handler);
+  },
+  getContexts: function getContexts(element) {
+    var state = events_(this).components.get(element);
+
+    var visited = new Set();
+    return grep(state && state.contexts, function (v) {
+      return v !== element && setAdd(visited, v);
+    });
   },
   add: function add(target, event, handler) {
     var self = this;
