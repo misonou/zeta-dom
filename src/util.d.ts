@@ -57,7 +57,7 @@ export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? 
  * @param obj An input object.
  * @returns A copy of array if the object is an array; or an array containing items in an array-like object or iterable collection like Map or Set.
  */
-export function makeArray<T>(obj: T[] | ArrayLike<T> | Map<any, T> | Set<T>): T[];
+export function makeArray<T>(obj: T[] | ArrayLike<T> | Map<any, T> | Set<T> | undefined): T[];
 
 /**
  * Creates an array containing the specified item.
