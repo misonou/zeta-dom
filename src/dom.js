@@ -315,8 +315,10 @@ domReady.then(function () {
         }
     }
 
-    function triggerUIEvent(eventName, data, target) {
-        return emitDOMEvent(eventName, target || focusPath[0], data, {
+    function triggerUIEvent(eventName, data, point) {
+        return emitDOMEvent(eventName, focusPath[0], data, {
+            clientX: (point || '').clientX,
+            clientY: (point || '').clientY,
             bubbles: true,
             originalEvent: currentEvent
         });
@@ -335,19 +337,16 @@ domReady.then(function () {
     }
 
     function triggerMouseEvent(eventName) {
-        var point = mouseInitialPoint || currentEvent;
         var data = {
             target: currentEvent.target,
-            clientX: point.clientX,
-            clientY: point.clientY,
             metakey: getEventName(currentEvent) || ''
         };
-        return triggerUIEvent(eventName, data);
+        return triggerUIEvent(eventName, data, mouseInitialPoint || currentEvent);
     }
 
     function triggerGestureEvent(gesture) {
         mouseInitialPoint = null;
-        return triggerUIEvent('gesture', gesture, focusPath.slice(-1)[0]);
+        return triggerUIEvent('gesture', gesture);
     }
 
     function handleUIEventWrapper(type, callback) {

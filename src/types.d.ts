@@ -362,6 +362,18 @@ declare namespace Zeta {
 
     interface EventEmitOptions {
         /**
+         * Specifies x-coordinate of a point on screen associated with the event.
+         * If specified, only elements at the point will receive the event.
+         */
+        clientX?: number;
+
+        /**
+         * Specifies y-coordinate of a point on screen associated with the event.
+         * If specified, only elements at the point will receive the event.
+         */
+        clientY?: number;
+
+        /**
          * Specifies if the event should bubble up.
          * Default is false.
          */
