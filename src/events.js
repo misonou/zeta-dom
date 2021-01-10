@@ -1,4 +1,4 @@
-import Promise from "./include/promise-polyfill.cjs";
+import Promise from "./include/promise-polyfill/index.js";
 import { window, root } from "./env.js";
 import { createPrivateStore, definePrototype, each, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";

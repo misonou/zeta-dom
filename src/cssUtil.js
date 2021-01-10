@@ -1,5 +1,5 @@
-import Promise from "./include/promise-polyfill.cjs";
-import $ from "./include/jquery.cjs";
+import Promise from "./include/promise-polyfill/index.js";
+import $ from "./include/jquery/index.js";
 import { window, document, getComputedStyle } from "./env.js";
 import { getClass, setClass, iterateNode, createNodeIterator, isVisible, bind } from "./domUtil.js";
 import { reject, noop, resolve, each, matchWord, keys } from "./util.js";
