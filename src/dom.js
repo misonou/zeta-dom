@@ -120,7 +120,7 @@ function setFocus(element, focusOnInput, source, path) {
             each(added, function (i, v) {
                 focusElements.add(v);
             });
-            triggerFocusEvent('focusin', added, null, source || new ZetaEventSource(added[0], path));
+            triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
         }
         var activeElement = document.activeElement;
         if (path[0] !== activeElement) {

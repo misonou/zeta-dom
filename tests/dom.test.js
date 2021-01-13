@@ -202,6 +202,29 @@ describe('focus event', () => {
             [objectContaining({ type: 'focusout', relatedTarget: node2 }), _]
         ]);
     });
+
+    it('should be fired in correct order', async () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        const cb = mockFn();
+        dom.on(node1, { focusin: cb, focusout: cb });
+        dom.on(node2, { focusin: cb, focusout: cb });
+        dom.focus(node2);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'focusin', target: node1 }), _],
+            [objectContaining({ type: 'focusin', target: node2 }), _]
+        ]);
+
+        cb.mockReset();
+        dom.focus(body);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'focusout', target: node2 }), _],
+            [objectContaining({ type: 'focusout', target: node1 }), _]
+        ]);
+    });
 });
 
 describe('keystroke event', () => {
