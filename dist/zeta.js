@@ -11,6 +11,30 @@
 return /******/ (function() { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 132:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+// @ts-nocheck
+
+/** @type {JQueryStatic} */
+var jQuery = window.jQuery || __webpack_require__(609);
+
+module.exports = jQuery;
+
+/***/ }),
+
+/***/ 621:
+/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
+
+// @ts-nocheck
+
+/** @type {PromiseConstructor} */
+var Promise = window.Promise || __webpack_require__(804).default;
+
+module.exports = Promise;
+
+/***/ }),
+
 /***/ 411:
 /***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
@@ -175,8 +199,8 @@ var IS_IE10 = !!env_window.ActiveXObject;
 var IS_IE = IS_IE10 || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
 var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
 var IS_TOUCH = ('ontouchstart' in env_window);
-// EXTERNAL MODULE: ./src/include/promise-polyfill.cjs
-var promise_polyfill = __webpack_require__(511);
+// EXTERNAL MODULE: ./src/include/promise-polyfill/index.js
+var promise_polyfill = __webpack_require__(621);
 // CONCATENATED MODULE: ./src/util.js
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -924,8 +948,8 @@ function watchable(obj) {
 }
 
 
-// EXTERNAL MODULE: ./src/include/jquery.cjs
-var jquery = __webpack_require__(304);
+// EXTERNAL MODULE: ./src/include/jquery/index.js
+var jquery = __webpack_require__(132);
 // CONCATENATED MODULE: ./src/domUtil.js
 
 
@@ -2321,7 +2345,7 @@ function setFocus(element, focusOnInput, source, path) {
       each(added, function (i, v) {
         focusElements.add(v);
       });
-      triggerFocusEvent('focusin', added, null, source || new ZetaEventSource(added[0], path));
+      triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
     }
 
     var activeElement = env_document.activeElement;
@@ -2530,8 +2554,10 @@ domReady.then(function () {
     }
   }
 
-  function triggerUIEvent(eventName, data, target) {
-    return emitDOMEvent(eventName, target || focusPath[0], data, {
+  function triggerUIEvent(eventName, data, point) {
+    return emitDOMEvent(eventName, focusPath[0], data, {
+      clientX: (point || '').clientX,
+      clientY: (point || '').clientY,
       bubbles: true,
       originalEvent: currentEvent
     });
@@ -2551,19 +2577,16 @@ domReady.then(function () {
   }
 
   function triggerMouseEvent(eventName) {
-    var point = mouseInitialPoint || currentEvent;
     var data = {
       target: currentEvent.target,
-      clientX: point.clientX,
-      clientY: point.clientY,
       metakey: getEventName(currentEvent) || ''
     };
-    return triggerUIEvent(eventName, data);
+    return triggerUIEvent(eventName, data, mouseInitialPoint || currentEvent);
   }
 
   function triggerGestureEvent(gesture) {
     mouseInitialPoint = null;
-    return triggerUIEvent('gesture', gesture, focusPath.slice(-1)[0]);
+    return triggerUIEvent('gesture', gesture);
   }
 
   function handleUIEventWrapper(type, callback) {
@@ -3004,8 +3027,9 @@ definePrototype(CustomPromise, promise_polyfill, {
 function ZetaEventSource(target, path) {
   var self = this;
   path = path || (eventSource ? eventSource.path : dom.focusedElements);
+  target = (target || '').element || target;
   self.path = path;
-  self.source = containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0 ? getEventSourceName() : 'script';
+  self.source = !target || containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0 ? getEventSourceName() : 'script';
   self.sourceKeyName = self.source !== 'keyboard' ? null : (eventSource || lastEventSource || '').sourceKeyName;
 }
 
@@ -3074,9 +3098,15 @@ function emitDOMEvent(eventName, target, data, options) {
     target = dom.activeElement;
   }
 
-  var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options)); // @ts-ignore: type inference issue
+  var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
+  var visited = new Set();
+  return single(emitter.elements, function (v) {
+    var container = containers.get(v);
 
-  return emitter.emit(domEventTrap, 'tap', target, true) || emitter.emit();
+    if (container && setAdd(visited, container)) {
+      return emitter.emit(domEventTrap, 'tap', container, false);
+    }
+  }) || emitter.emit();
 }
 
 function listenDOMEvent(element, event, handler) {
@@ -3147,6 +3177,8 @@ function ZetaEventEmitter(eventName, container, target, data, options, async) {
     source: source.source,
     sourceKeyName: source.sourceKeyName,
     timestamp: performance.now(),
+    clientX: options.clientX,
+    clientY: options.clientY,
     originalEvent: options.originalEvent || null
   };
   extend(self, options, properties, {
@@ -3158,20 +3190,36 @@ function ZetaEventEmitter(eventName, container, target, data, options, async) {
     properties: properties,
     current: []
   });
-  self.targets = emitterGetTargets(self, container, target, options.bubbles, async);
+  var elements = emitterGetElements(self, target);
+  var targets = containerGetComponents(container, elements, options.bubbles);
+
+  if (async) {
+    targets = map(targets, function (v) {
+      return {
+        container: v.container,
+        target: v.target,
+        contexts: extend({}, v.contexts),
+        handlers: kv(eventName, extend({}, v.handlers[eventName]))
+      };
+    });
+  }
+
+  self.elements = elements;
+  self.targets = targets;
 }
 
 definePrototype(ZetaEventEmitter, {
   emit: function emit(container, eventName, target, bubbles) {
     var self = this;
     var targets = self.targets;
-    var emitting = self.current[0] || self;
 
     if (container && container !== self.container || target && target !== self.target) {
-      // @ts-ignore: type inference issue
-      targets = emitterGetTargets(self, container, target || self.target, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
+      var elements = parentsAndSelf(target || self.target); // @ts-ignore: type inference issue
+
+      targets = containerGetComponents(container || self.container, elements, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
     }
 
+    var emitting = self.current[0] || self;
     single(targets, function (v) {
       return emitterCallHandlers(self, v, emitting.eventName, eventName, emitting.data);
     });
@@ -3179,23 +3227,23 @@ definePrototype(ZetaEventEmitter, {
   }
 });
 
-function emitterCopyComponent(component, eventName) {
-  return {
-    container: component.container,
-    target: component.target,
-    contexts: extend({}, component.contexts),
-    handlers: kv(eventName, extend({}, component.handlers[eventName]))
-  };
-}
+function emitterGetElements(emitter, target) {
+  var focusedElements = emitter.source.path;
+  var index = focusedElements.indexOf(target);
 
-function emitterGetTargets(emitter, container, target, bubbles, async) {
-  var components = events_(container || emitter.container).components;
+  if (index < 0) {
+    return parentsAndSelf(target);
+  }
 
-  var path = emitter.source.path;
-  var targets = !bubbles ? [target] : emitter.originalEvent ? path.slice(path.indexOf(target)) : parentsAndSelf(target);
-  return map(targets, function (v) {
-    var component = components.get(v);
-    return component && (async ? emitterCopyComponent(component, emitter.eventName) : component);
+  var targets = focusedElements.slice(index);
+
+  if (emitter.clientX === undefined || !document.elementFromPoint) {
+    return targets;
+  }
+
+  var element = document.elementFromPoint(emitter.clientX, emitter.clientY);
+  return grep(targets, function (v) {
+    return containsOrEquals(v, element);
   });
 }
 
@@ -3429,6 +3477,11 @@ function containerRegisterHandler(container, target, key, context, event, handle
 
 function containerRemoveHandler(container, target, key) {
   var cur = mapGet(events_(container).components, target);
+
+  if (!cur) {
+    return;
+  }
+
   var handlers = cur.handlers;
   each(handlers, function (i, v) {
     delete v[key];
@@ -3442,6 +3495,14 @@ function containerRemoveHandler(container, target, key) {
   if (!keys(handlers)[0]) {
     container.delete(target);
   }
+}
+
+function containerGetComponents(container, elements, bubbles) {
+  var components = events_(container).components;
+
+  return map(bubbles ? elements : elements.slice(0, 1), function (v) {
+    return components.get(v);
+  });
 }
 
 
@@ -4213,30 +4274,6 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
   TraversableNodeTree: TraversableNodeTree,
   TreeWalker: TreeWalker
 });
-
-
-/***/ }),
-
-/***/ 304:
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-// @ts-nocheck
-
-/** @type {JQueryStatic} */
-const jQuery = window.jQuery || __webpack_require__(609);
-module.exports = jQuery;
-
-
-/***/ }),
-
-/***/ 511:
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-// @ts-nocheck
-
-/** @type {PromiseConstructor} */
-const Promise = window.Promise || __webpack_require__(804).default;
-module.exports = Promise;
 
 
 /***/ }),
