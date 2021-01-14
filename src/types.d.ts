@@ -183,6 +183,7 @@ declare namespace Zeta {
         keystroke: ZetaKeystrokeEvent;
         gesture: ZetaGestureEvent;
         textInput: ZetaTextInputEvent;
+        error: ZetaErrorEvent;
     };
 
     type ZetaEventType<E extends string, M> = (M & { [s: string]: ZetaEvent })[E];
@@ -350,6 +351,10 @@ declare namespace Zeta {
 
     interface ZetaTextInputEvent extends ZetaNativeUIEvent {
         readonly data: string;
+    }
+
+    interface ZetaErrorEvent extends ZetaAsyncHandleableEvent {
+        readonly error: any;
     }
 
     declare class ZetaEventSource {
