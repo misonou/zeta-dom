@@ -689,6 +689,7 @@ export default {
     setShortcut,
 
     getEventSource,
+    getEventContext,
     on: listenDOMEvent,
     emit: emitDOMEvent,
 

@@ -82,7 +82,7 @@ export function beginDrag(within: Element, progressCallback?: (x: number, y: num
 
 export function beginPinchZoom(progressCallback?: (deg: number, scale: number, translateX: number, translateY: number) => void): PromiseLike<void>;
 
-export { getEventSource, listenDOMEvent as on, emitDOMEvent as emit } from "./events";
+export { getEventContext, getEventSource, listenDOMEvent as on, emitDOMEvent as emit } from "./events";
 
 export * from "./domLock";
 
