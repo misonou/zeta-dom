@@ -408,6 +408,7 @@ function reject(reason) {
 }
 
 function always(promise, callback) {
+    promise = isThenable(promise) || resolve(promise);
     return promise.then(function (v) {
         return callback(true, v);
     }, function (v) {
@@ -434,6 +435,7 @@ function resolveAll(obj, callback) {
 }
 
 function catchAsync(promise) {
+    promise = isThenable(promise) || resolve(promise);
     return promise.catch(noop);
 }
 

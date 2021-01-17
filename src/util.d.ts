@@ -455,6 +455,8 @@ export function reject(reason?: any): Promise<never>;
  */
 export function always<T, R>(promise: PromiseLike<T>, callback: (resolved: boolean, value: T) => R): Promise<R>;
 
+export function always<T, R>(promise: T, callback: (resolved: boolean, value: Zeta.PromiseResult<T>) => R): Promise<R>;
+
 export function resolveAll<T>(promises: T): Promise<T>;
 
 export function resolveAll<T, R>(promises: T, callback: (result: T extends Promise<infer V> ? V : T) => R): Promise<R>;
@@ -474,6 +476,8 @@ export function resolveAll<T extends object>(promises: T): Promise<{ [P in keyof
 export function resolveAll<T extends object, R>(promises: T, callback: (result: { [P in keyof T]: P[K] extends Promise<infer V> ? V : P[K] }) => R): Promise<R>;
 
 export function catchAsync<T>(promise: Promise<T>): Promise<T>;
+
+export function catchAsync<T>(promise: T): Promise<Zeta.PromiseResult<T>>;
 
 export function setPromiseTimeout(promise: Promise<any>, milliseconds: number, resolveWhenTimeout?: boolean): void;
 

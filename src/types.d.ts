@@ -8,6 +8,7 @@ declare namespace Zeta {
 
     type Dictionary<T = any> = Record<string, T>;
     type DeepReadonly<T> = { readonly [P in keyof T]: DeepReadonly<T[P]> };
+    type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
     type WatchableInstance<T> = T & Watchable<T>;
 
     type IteratorNodeFilterResult = 1 | 2 | 3;
