@@ -77,7 +77,10 @@ function runCSSTransition(element, className, callback) {
         return v.element;
     });
     setClass(element, className, false);
-    $(targets).css('transition', 'none');
+    $(targets).css({
+        transition: 'none',
+        animationDuration: '0s',
+    });
     setClass(element, className, true);
     var newStyle = arr.map(function (v) {
         return styleToJSON(getComputedStyle(v.element, v.pseudoElement));
@@ -115,7 +118,10 @@ function runCSSTransition(element, className, callback) {
             map.set(v.element, dict);
         }
     });
-    $(targets).css('transition', '');
+    $(targets).css({
+        transition: '',
+        animationDuration: '',
+    });
     setClass(element, className, true);
     if (!map.size) {
         callback();
