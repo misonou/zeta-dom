@@ -1,5 +1,5 @@
 import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep } from "./util.js";
-import $ from "./include/jquery/index.js";
+import $ from "./include/jquery.js";
 import { window, document, root, getSelection, getComputedStyle } from "./env.js";
 
 // @ts-ignore: non-standard member
