@@ -11,7 +11,7 @@
 return /******/ (function() { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 132:
+/***/ 196:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 // @ts-nocheck
@@ -23,7 +23,7 @@ module.exports = jQuery;
 
 /***/ }),
 
-/***/ 621:
+/***/ 560:
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 // @ts-nocheck
@@ -199,8 +199,8 @@ var IS_IE10 = !!env_window.ActiveXObject;
 var IS_IE = IS_IE10 || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
 var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
 var IS_TOUCH = ('ontouchstart' in env_window);
-// EXTERNAL MODULE: ./src/include/promise-polyfill/index.js
-var promise_polyfill = __webpack_require__(621);
+// EXTERNAL MODULE: ./src/include/promise-polyfill.js
+var promise_polyfill = __webpack_require__(560);
 // CONCATENATED MODULE: ./src/util.js
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -646,6 +646,7 @@ function reject(reason) {
 }
 
 function always(promise, callback) {
+  promise = isThenable(promise) || resolve(promise);
   return promise.then(function (v) {
     return callback(true, v);
   }, function (v) {
@@ -674,6 +675,7 @@ function resolveAll(obj, callback) {
 }
 
 function catchAsync(promise) {
+  promise = isThenable(promise) || resolve(promise);
   return promise.catch(noop);
 }
 
@@ -948,8 +950,8 @@ function watchable(obj) {
 }
 
 
-// EXTERNAL MODULE: ./src/include/jquery/index.js
-var jquery = __webpack_require__(132);
+// EXTERNAL MODULE: ./src/include/jquery.js
+var jquery = __webpack_require__(196);
 // CONCATENATED MODULE: ./src/domUtil.js
 
 
@@ -1719,7 +1721,10 @@ function runCSSTransition(element, className, callback) {
     return v.element;
   });
   setClass(element, className, false);
-  jquery(targets).css('transition', 'none');
+  jquery(targets).css({
+    transition: 'none',
+    animationDuration: '0s'
+  });
   setClass(element, className, true);
   var newStyle = arr.map(function (v) {
     return styleToJSON(getComputedStyle(v.element, v.pseudoElement));
@@ -1759,7 +1764,10 @@ function runCSSTransition(element, className, callback) {
       map.set(v.element, dict);
     }
   });
-  jquery(targets).css('transition', '');
+  jquery(targets).css({
+    transition: '',
+    animationDuration: ''
+  });
   setClass(element, className, true);
 
   if (!map.size) {
@@ -2952,6 +2960,7 @@ function dom_focus(element) {
   getShortcut: getShortcut,
   setShortcut: setShortcut,
   getEventSource: getEventSource,
+  getEventContext: getEventContext,
   on: listenDOMEvent,
   emit: emitDOMEvent,
   lock: lock,
