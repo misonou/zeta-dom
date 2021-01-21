@@ -51,7 +51,9 @@ function DOMLock(element) {
     });
     self.element = element;
     lockedElements.set(element, self);
-    afterDetached(element, removeLock);
+    if (element !== root) {
+        afterDetached(element, removeLock);
+    }
 }
 
 definePrototype(DOMLock, {
