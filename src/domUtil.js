@@ -1,6 +1,6 @@
 import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep } from "./util.js";
 import $ from "./include/jquery.js";
-import { window, document, root, getSelection, getComputedStyle } from "./env.js";
+import { window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 
 // @ts-ignore: non-standard member
 const elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
@@ -11,7 +11,6 @@ const OFFSET_ZERO = Object.freeze({
     y: 0
 });
 
-var domReady = new Promise($);
 var originDiv;
 var scrollbarWidth;
 

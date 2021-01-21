@@ -6,6 +6,7 @@
 
 /**
  * Gets a promise to be resolved when the document is ready.
+ * @deprecated Use `dom.ready` instead.
  */
 export const domReady: Promise<void>;
 

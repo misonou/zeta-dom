@@ -1,6 +1,6 @@
 import syn from "syn";
 import dom from "../src/dom";
-import { domReady } from "../src/domUtil";
+import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
 import { after, body, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
 

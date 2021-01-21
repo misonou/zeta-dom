@@ -1,7 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
-import { root } from "./env.js";
+import { root, domReady } from "./env.js";
 import { each, extend, grep, is, isFunction, makeArray, map, mapGet, mapRemove, throwNotFunction } from "./util.js";
-import { containsOrEquals, domReady, selectIncludeSelf } from "./domUtil.js";
+import { containsOrEquals, selectIncludeSelf } from "./domUtil.js";
 
 const detachHandlers = new WeakMap();
 const optionsForChildList = {

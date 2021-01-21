@@ -1,9 +1,13 @@
 // @ts-nocheck
+import Promise from "./include/promise-polyfill.js";
+import $ from "./include/jquery.js";
+
 export const window = self;
 export const document = window.document;
 export const root = document.documentElement;
 export const getSelection = window.getSelection;
 export const getComputedStyle = window.getComputedStyle;
+export const domReady = new Promise($);
 
 export const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 export const IS_IE10 = !!window.ActiveXObject;
