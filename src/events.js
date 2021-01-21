@@ -256,7 +256,7 @@ function emitterGetElements(emitter, target) {
     if (emitter.clientX === undefined || !document.elementFromPoint) {
         return targets;
     }
-    var element = document.elementFromPoint(emitter.clientX, emitter.clientY);
+    var element = document.elementFromPoint(emitter.clientX, emitter.clientY) || root;
     return grep(targets, function (v) {
         return containsOrEquals(v, element);
     });
