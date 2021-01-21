@@ -95,10 +95,24 @@ function getEventSourceName() {
     return matchWord(type, 'drop cut copy paste') || 'script';
 }
 
+function getContainerForElement(element) {
+    var container = mapGet(containers, element);
+    return container && !_(container).destroyed && container;
+}
+
+function removeContainerForElement(element, container) {
+    var cached = mapGet(containers, element);
+    if (cached && cached === container) {
+        mapRemove(containers, element);
+    }
+}
+
 function getEventContext(element) {
-    for (var cur = element; cur && !containers.has(cur); cur = cur.parentNode);
-    var container = mapGet(containers, cur) || domContainer;
-    return _(container).options;
+    var container;
+    for (; !container && element; element = element.parentNode) {
+        container = getContainerForElement(element);
+    }
+    return _(container || domContainer).options;
 }
 
 function normalizeEventOptions(options, overrides) {
@@ -120,7 +134,7 @@ function emitDOMEvent(eventName, target, data, options) {
     var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
     var visited = new Set();
     return single(emitter.elements, function (v) {
-        var container = containers.get(v);
+        var container = getContainerForElement(v);
         if (container && setAdd(visited, container)) {
             return emitter.emit(domEventTrap, 'tap', container, false);
         }
@@ -356,7 +370,7 @@ function ZetaEventContainer(element, context, options) {
     }, options);
     _(self, {
         options: options,
-        components: new Map()
+        components: new WeakMap()
     });
     extend(self, options);
     if (element && self.captureDOMEvents) {
@@ -388,6 +402,9 @@ definePrototype(ZetaEventContainer, {
         containerRegisterHandler(self, target, key, target, event, handler);
         if (element) {
             containerRegisterHandler(self, element, key, target, event, handler);
+            if (self.captureDOMEvents) {
+                containers.set(element, self);
+            }
         }
         return function () {
             containerRemoveHandler(self, target, key);
@@ -399,7 +416,7 @@ definePrototype(ZetaEventContainer, {
     delete: function (target) {
         var self = this;
         if (mapRemove(_(self).components, target) && self.captureDOMEvents) {
-            containers.delete(target);
+            removeContainerForElement(target, self);
         }
     },
     emit: function (eventName, target, data, bubbles) {
@@ -416,15 +433,11 @@ definePrototype(ZetaEventContainer, {
     },
     destroy: function () {
         var self = this;
-        var components = _(self).components;
+        var state = _(self);
         if (self.captureDOMEvents) {
             domEventTrap.delete(self);
-            containers.delete(self.element);
-            each(components, function (i) {
-                containers.delete(i);
-            });
         }
-        components.clear();
+        state.destroyed = true;
     }
 });
 
@@ -442,9 +455,6 @@ function containerRegisterHandler(container, target, key, context, event, handle
         (handlers[i] || (handlers[i] = {}))[key] = throwNotFunction(v);
     });
     cur.contexts[key] = context;
-    if (container.captureDOMEvents && is(target, Node)) {
-        containers.set(target, container);
-    }
 }
 
 function containerRemoveHandler(container, target, key) {
