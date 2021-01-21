@@ -1,6 +1,7 @@
 import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep } from "./util.js";
 import $ from "./include/jquery.js";
 import { window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
+import { emitDOMEvent } from "./events.js";
 
 // @ts-ignore: non-standard member
 const elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
@@ -342,6 +343,10 @@ function getScrollParent(element) {
 }
 
 function scrollBy(element, x, y) {
+    var result = emitDOMEvent('scrollBy', element, { x, y }, { asyncResult: false });
+    if (result) {
+        return result;
+    }
     var winOrElm = element === root || element === document.body ? window : element;
     var orig = getScrollOffset(winOrElm);
     if (winOrElm.scrollBy) {
@@ -358,6 +363,10 @@ function scrollBy(element, x, y) {
 }
 
 function getContentRect(element) {
+    var result = emitDOMEvent('getContentRect', element, null, { asyncResult: false });
+    if (result) {
+        return toPlainRect(result);
+    }
     if (scrollbarWidth === undefined) {
         // detect native scrollbar size
         // height being picked because scrollbar may not be shown if container is too short

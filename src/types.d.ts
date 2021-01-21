@@ -172,9 +172,9 @@ declare namespace Zeta {
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaDOMEventName = 'focusin' | 'focusout' | 'focusreturn' | 'metakeychange' | 'keystroke' | 'textInput' | 'longPress' | 'mousedown' | 'mousewheel' | 'asyncStart' | 'asyncEnd' | 'cancelled' | 'error' | KeyNameSpecial | ClickName | GestureName;
+    type ZetaDOMEventName = keyof ZetaDOMEventMap | KeyNameSpecial | ClickName | GestureName | 'focusreturn' | 'asyncStart' | 'asyncEnd' | 'cancelled';
 
-    type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & {
+    type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & ZetaCustomEventMap & {
         focusin: ZetaFocusEvent;
         focusout: ZetaFocusEvent;
         longPress: ZetaMouseEvent;
@@ -185,6 +185,8 @@ declare namespace Zeta {
         gesture: ZetaGestureEvent;
         textInput: ZetaTextInputEvent;
         error: ZetaErrorEvent;
+        scrollBy: ZetaScrollByEvent;
+        getContentRect: ZetaGetContentRectEvent;
     };
 
     type ZetaEventType<E extends string, M> = (M & { [s: string]: ZetaEvent })[E];
@@ -196,6 +198,9 @@ declare namespace Zeta {
     type ZetaEventHandlers<E extends string, M = {}, T = Element> = { [P in E]?: ZetaEventHandler<P, M, T> };
 
     type ZetaEventContext<T> = T extends ZetaEventContextBase<any> ? T : ZetaEventContextBase<T>;
+
+    interface ZetaCustomEventMap {
+    }
 
     interface ZetaEventContextBase<T> {
         /**
@@ -356,6 +361,14 @@ declare namespace Zeta {
 
     interface ZetaErrorEvent extends ZetaAsyncHandleableEvent {
         readonly error: any;
+    }
+
+    interface ZetaScrollByEvent extends ZetaHandleableEvent<{ x: number, y: number } | false> {
+        readonly x: number;
+        readonly y: number;
+    }
+
+    interface ZetaGetContentRectEvent extends ZetaHandleableEvent<RectLike> {
     }
 
     declare class ZetaEventSource {
