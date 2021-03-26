@@ -283,9 +283,12 @@ function updateTree(tree) {
     var updatedNodes = [];
     each(sTree.nodes, function (element, sNode) {
         var newVersion = sNode.state.version;
+        var connected = containsOrEquals(tree, element);
+        if (!connected) {
+            sTree.detached.set(element, mapRemove(sTree.nodes, element));
+        }
         if (sNode.version !== newVersion) {
             var updated = false;
-            var connected = containsOrEquals(tree, element);
             if (traversable) {
                 // @ts-ignore: boolean arithmetics
                 updated |= updatedNodes.length !== updatedNodes.push.apply(updatedNodes, reorderTraversableChildNodes(sNode));
@@ -303,6 +306,7 @@ function updateTree(tree) {
                 iterateNode(iterator, function (element) {
                     var recovered = mapRemove(sTree.detached, element);
                     if (recovered) {
+                        sTree.nodes.set(element, recovered);
                         insertNode(recovered);
                         updatedNodes[updatedNodes.length] = recovered.node;
                     }
