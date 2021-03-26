@@ -187,20 +187,25 @@ __webpack_require__.d(cssUtil_namespaceObject, {
   "runCSSTransition": function() { return runCSSTransition; }
 });
 
+// EXTERNAL MODULE: ./src/include/promise-polyfill.js
+var promise_polyfill = __webpack_require__(560);
+// EXTERNAL MODULE: ./src/include/jquery.js
+var jquery = __webpack_require__(196);
 // CONCATENATED MODULE: ./src/env.js
 // @ts-nocheck
+
+
 var env_window = self;
 var env_document = env_window.document;
 var root = env_document.documentElement;
 var getSelection = env_window.getSelection;
 var getComputedStyle = env_window.getComputedStyle;
+var domReady = new promise_polyfill(jquery);
 var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !env_window.MSStream;
 var IS_IE10 = !!env_window.ActiveXObject;
 var IS_IE = IS_IE10 || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
 var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
 var IS_TOUCH = ('ontouchstart' in env_window);
-// EXTERNAL MODULE: ./src/include/promise-polyfill.js
-var promise_polyfill = __webpack_require__(560);
 // CONCATENATED MODULE: ./src/util.js
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -950,852 +955,6 @@ function watchable(obj) {
 }
 
 
-// EXTERNAL MODULE: ./src/include/jquery.js
-var jquery = __webpack_require__(196);
-// CONCATENATED MODULE: ./src/domUtil.js
-
-
- // @ts-ignore: non-standard member
-
-var elementsFromPoint = env_document.msElementsFromPoint || env_document.elementsFromPoint;
-var compareDocumentPositionImpl = env_document.compareDocumentPosition;
-var compareBoundaryPointsImpl = Range.prototype.compareBoundaryPoints;
-var OFFSET_ZERO = Object.freeze({
-  x: 0,
-  y: 0
-});
-var domReady = new Promise(jquery);
-var originDiv;
-var scrollbarWidth;
-/* --------------------------------------
- * Custom class
- * -------------------------------------- */
-
-function Rect(l, t, r, b) {
-  var self = this;
-  self.left = l;
-  self.top = t;
-  self.right = r;
-  self.bottom = b;
-}
-
-definePrototype(Rect, {
-  get width() {
-    return this.right - this.left;
-  },
-
-  get height() {
-    return this.bottom - this.top;
-  },
-
-  get centerX() {
-    return (this.left + this.right) / 2;
-  },
-
-  get centerY() {
-    return (this.top + this.bottom) / 2;
-  },
-
-  collapse: function collapse(side, offset) {
-    var rect = this;
-    var pos = rect[side] + (offset || 0);
-    return side === 'left' || side === 'right' ? toPlainRect(pos, rect.top, pos, rect.bottom) : toPlainRect(rect.left, pos, rect.right, pos);
-  },
-  translate: function translate(x, y) {
-    var self = this;
-    return toPlainRect(self.left + x, self.top + y, self.right + x, self.bottom + y);
-  },
-  expand: function expand(l, t, r, b) {
-    var self = this;
-
-    switch (arguments.length) {
-      case 1:
-        t = l;
-
-      case 2:
-        r = l;
-
-      case 3:
-        b = t;
-    }
-
-    var w = self.width;
-    var h = self.height;
-    var dx = l + r + w;
-    var dy = t + b + h;
-
-    if (dx < 0) {
-      l -= dx * l / (l + r) | 0; // @ts-ignore: type inference issue
-
-      r = -(l + w);
-    }
-
-    if (dy < 0) {
-      t -= dy * t / (t + b) | 0; // @ts-ignore: type inference issue
-
-      b = -(t + h);
-    } // @ts-ignore: type inference issue
-
-
-    return toPlainRect(self.left - l, self.top - t, self.right + r, self.bottom + b);
-  }
-});
-/* --------------------------------------
- * General helper
- * -------------------------------------- */
-
-function tagName(element) {
-  return element && element.tagName && element.tagName.toLowerCase();
-}
-
-function domUtil_is(element, selector) {
-  if (!element || !selector) {
-    return false;
-  } // constructors of native DOM objects in Safari refuse to be functions
-  // use a fairly accurate but fast checking instead of isFunction
-
-
-  if (selector.prototype) {
-    return element instanceof selector && element;
-  }
-
-  if (selector.toFixed) {
-    return element.nodeType === selector && element;
-  }
-
-  return matchSelector(element, selector);
-}
-
-function matchSelector(element, selector) {
-  if (!element || !selector) {
-    return false;
-  }
-
-  return (selector === '*' || tagName(element) === selector || jquery(element).is(selector)) && element;
-}
-
-function comparePosition(a, b, strict) {
-  if (a === b) {
-    return 0;
-  }
-
-  var v = a && b && compareDocumentPositionImpl.call(a.element || a, b.element || b);
-
-  if (v & 2) {
-    return strict && v & 8 || v & 1 ? NaN : 1;
-  }
-
-  if (v & 4) {
-    return strict && v & 16 || v & 1 ? NaN : -1;
-  }
-
-  return NaN;
-}
-
-function connected(a, b) {
-  return a && b && !(compareDocumentPositionImpl.call(a.commonAncestorContainer || a, b.commonAncestorContainer || b) & 1);
-}
-
-function containsOrEquals(container, contained) {
-  container = (container || '').element || container;
-  contained = (contained || '').element || contained;
-  return container === contained || jquery.contains(container, contained);
-}
-
-function isVisible(element) {
-  if (!connected(root, element)) {
-    return false;
-  }
-
-  var rect = getRect(element);
-
-  if (!rect.top && !rect.left && !rect.width && !rect.height) {
-    for (var cur = element; cur; cur = cur.parentNode) {
-      if (getComputedStyle(cur).display === 'none') {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-function acceptNode(iterator, node) {
-  node = node || iterator.currentNode;
-
-  if (!node || !(iterator.whatToShow & 1 << node.nodeType - 1)) {
-    return 3;
-  }
-
-  var filter = iterator.filter;
-  return !filter ? 1 : (filter.acceptNode || filter).call(filter, node);
-}
-
-function combineNodeFilters() {
-  var args = grep(makeArray(arguments), isFunction);
-
-  if (!args[1]) {
-    return args[0] || function () {
-      return 1;
-    };
-  }
-
-  return function (node) {
-    var result = 1;
-
-    for (var i = 0, len = args.length; i < len; i++) {
-      var value = args[i].call(null, node);
-
-      if (value === 2) {
-        return 2;
-      }
-
-      result |= value;
-    }
-
-    return result;
-  };
-}
-
-function iterateNode(iterator, callback, from, until) {
-  var i = 0;
-  iterator.currentNode = from = from || iterator.currentNode;
-  callback = callback || noop;
-
-  switch (acceptNode(iterator)) {
-    case 2:
-      return;
-
-    case 1:
-      callback(from, i++);
-  }
-
-  for (var cur; (cur = iterator.nextNode()) && (!until || (isFunction(until) ? until(cur) : cur !== until || void callback(cur, i++))); callback(cur, i++)) {
-    ;
-  }
-}
-
-function iterateNodeToArray(iterator, callback, from, until) {
-  var result = [];
-  iterateNode(iterator, function (v) {
-    result[result.length] = v;
-  }, from, until);
-  return callback ? map(result, callback) : result;
-}
-/* --------------------------------------
- * Advanced traversal
- * -------------------------------------- */
-
-
-function getCommonAncestor(a, b) {
-  for (b = b || a; a && a !== b && compareDocumentPositionImpl.call(a, b) !== 20; a = a.parentNode) {
-    ;
-  }
-
-  return a;
-}
-
-function parentsAndSelf(element) {
-  if (element === env_window) {
-    return [];
-  }
-
-  for (var arr = []; element && element !== env_document && arr.push(element); element = element.parentNode || element.parent) {
-    ;
-  }
-
-  return arr;
-}
-
-function selectIncludeSelf(selector, container) {
-  container = container || root;
-  var matched = jquery.uniqueSort(jquery(container).find(selector).add(jquery(container).filter(selector)).get());
-
-  if (matched[0] || container === root) {
-    return matched;
-  }
-
-  return jquery(container).find(jquery(selector)).get();
-}
-
-function selectClosestRelative(selector, container) {
-  container = container || root;
-  var element = jquery(selector, container)[0];
-
-  if (!element) {
-    var $matched = jquery(selector);
-
-    for (; container !== root && !element; container = container.parentNode) {
-      element = $matched.get().filter(function (v) {
-        return containsOrEquals(container, v);
-      })[0];
-    }
-  }
-
-  return element;
-}
-
-function createNodeIterator(root, whatToShow, filter) {
-  // @ts-ignore: assume filter is of correct signature
-  return env_document.createNodeIterator(root, whatToShow, isFunction(filter) || null, false);
-}
-
-function createTreeWalker(root, whatToShow, filter) {
-  // @ts-ignore: assume filter is of correct signature
-  return env_document.createTreeWalker(root, whatToShow, isFunction(filter) || null, false);
-}
-/* --------------------------------------
- * Events
- * -------------------------------------- */
-
-
-function addOrRemoveEventListener(method, element, event, listener, useCapture) {
-  if (isPlainObject(event)) {
-    each(event, function (i, v) {
-      element[method](i, v, listener);
-    });
-  } else if (typeof event === 'string') {
-    each(event.split(' '), function (i, v) {
-      element[method](v, listener, useCapture);
-    });
-  }
-}
-
-function bind(element, event, listener, useCapture) {
-  addOrRemoveEventListener('addEventListener', element, event, listener, useCapture);
-  return function () {
-    unbind(element, event, listener);
-  };
-}
-
-function unbind(element, event, listener) {
-  addOrRemoveEventListener('removeEventListener', element, event, listener);
-}
-
-function bindUntil(promise, element, event, listener, useCapture) {
-  always(promise, bind(element, event, listener, useCapture));
-}
-
-function dispatchDOMMouseEvent(eventName, point, e) {
-  if (typeof eventName !== 'string') {
-    e = eventName;
-    eventName = e.type;
-  }
-
-  var target = point ? elementFromPoint(point.clientX, point.clientY) || root : e.target;
-  var event = env_document.createEvent('MouseEvent');
-  point = point || e;
-  event.initMouseEvent(eventName, e.bubbles, e.cancelable, e.view, e.detail, point.screenX, point.screenY, point.clientX, point.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
-  return target.dispatchEvent(event);
-}
-/* --------------------------------------
- * DOM manip
- * -------------------------------------- */
-
-
-function removeNode(node) {
-  if (node.parentNode) {
-    node.parentNode.removeChild(node);
-  }
-}
-
-function getClass(element, className) {
-  var re = new RegExp('(?:^|\\s+)' + className + '(?:-(\\S+)|\\b)', 'ig');
-  var t = [false];
-  (element.className || '').replace(re, function (v, a) {
-    t[a ? t.length : 0] = a || true;
-  });
-  return t[1] ? t.slice(1) : t[0];
-}
-
-function setClass(element, className, values) {
-  var value = element.className || '';
-  each(isPlainObject(className) || kv(className, values), function (i, v) {
-    var re = new RegExp('(^|\\s)\\s*' + i + '(?:-(\\S+)|\\b)|\\s*$', 'ig');
-    var replaced = 0;
-
-    if (isPlainObject(v)) {
-      v = map(v, function (v, i) {
-        return v ? i : null;
-      });
-    }
-
-    value = value.replace(re, function () {
-      return replaced++ || !v || v.length === 0 ? '' : ' ' + i + (v[0] ? [''].concat(v).join(' ' + i + '-') : '');
-    });
-  });
-  element.className = value;
-}
-
-function getScrollOffset(winOrElm) {
-  return {
-    x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
-    y: winOrElm.pageYOffset || winOrElm.scrollTop || 0
-  };
-}
-
-function getScrollParent(element) {
-  for (var s; element !== root && (s = getComputedStyle(element)) && s.overflow === 'visible' && matchWord(s.position, 'static relative'); element = element.parentNode) {
-    ;
-  }
-
-  return element;
-}
-
-function scrollBy(element, x, y) {
-  var winOrElm = element === root || element === env_document.body ? env_window : element;
-  var orig = getScrollOffset(winOrElm);
-
-  if (winOrElm.scrollBy) {
-    winOrElm.scrollBy(x, y);
-  } else {
-    winOrElm.scrollLeft = orig.x + x;
-    winOrElm.scrollTop = orig.y + y;
-  }
-
-  var cur = getScrollOffset(winOrElm);
-  return {
-    x: cur.x - orig.x,
-    y: cur.y - orig.y
-  };
-}
-
-function getContentRect(element) {
-  if (scrollbarWidth === undefined) {
-    // detect native scrollbar size
-    // height being picked because scrollbar may not be shown if container is too short
-    var dummy = jquery('<div style="overflow:scroll;height:80px"><div style="height:100px"></div></div>').appendTo(env_document.body)[0];
-    scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
-    removeNode(dummy);
-  }
-
-  var style = getComputedStyle(element);
-  var hasOverflowX = element.offsetWidth < element.scrollWidth;
-  var hasOverflowY = element.offsetHeight < element.scrollHeight;
-  var parentRect = getRect(element === env_document.body ? root : element);
-
-  if ((style.overflow !== 'visible' || element === env_document.body) && (hasOverflowX || hasOverflowY)) {
-    if (style.overflowY === 'scroll' || (style.overflowY !== 'hidden' || element === env_document.body) && hasOverflowY) {
-      parentRect.right -= scrollbarWidth;
-    }
-
-    if (style.overflowX === 'scroll' || (style.overflowX !== 'hidden' || element === env_document.body) && hasOverflowX) {
-      parentRect.bottom -= scrollbarWidth;
-    }
-  }
-
-  return parentRect;
-}
-
-function scrollIntoView(element, rect) {
-  if (!rect || rect.top === undefined) {
-    rect = getRect(element, rect);
-  }
-
-  var parent = getScrollParent(element);
-  var parentRect = getContentRect(parent);
-  var deltaX = Math.max(0, rect.right - parentRect.right) || Math.min(rect.left - parentRect.left, 0);
-  var deltaY = Math.max(0, rect.bottom - parentRect.bottom) || Math.min(rect.top - parentRect.top, 0);
-  var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
-
-  if (parent !== root) {
-    var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y));
-
-    if (parentResult) {
-      result = {
-        x: result.x + parentResult.x,
-        y: result.y + parentResult.y
-      };
-    }
-  }
-
-  return result.x || result.y ? result : false;
-}
-/* --------------------------------------
- * Range and rect
- * -------------------------------------- */
-
-
-function createRange(startNode, startOffset, endNode, endOffset) {
-  if (startNode && isFunction(startNode.getRange)) {
-    return startNode.getRange();
-  }
-
-  var range;
-
-  if (domUtil_is(startNode, Node)) {
-    range = env_document.createRange();
-
-    if (+startOffset !== startOffset) {
-      range[startOffset === 'contents' || !startNode.parentNode ? 'selectNodeContents' : 'selectNode'](startNode);
-
-      if (typeof startOffset === 'boolean') {
-        range.collapse(startOffset);
-      }
-    } else {
-      range.setStart(startNode, getOffset(startNode, startOffset));
-    }
-
-    if (domUtil_is(endNode, Node) && connected(startNode, endNode)) {
-      range.setEnd(endNode, getOffset(endNode, endOffset));
-    }
-  } else if (domUtil_is(startNode, Range)) {
-    range = startNode.cloneRange();
-
-    if (!range.collapsed && typeof startOffset === 'boolean') {
-      range.collapse(startOffset);
-    }
-  }
-
-  if (domUtil_is(startOffset, Range) && connected(range, startOffset)) {
-    var inverse = range.collapsed && startOffset.collapsed ? -1 : 1;
-
-    if (compareBoundaryPointsImpl.call(range, 0, startOffset) * inverse < 0) {
-      range.setStart(startOffset.startContainer, startOffset.startOffset);
-    }
-
-    if (compareBoundaryPointsImpl.call(range, 2, startOffset) * inverse > 0) {
-      range.setEnd(startOffset.endContainer, startOffset.endOffset);
-    }
-  }
-
-  return range;
-}
-
-function rangeIntersects(a, b) {
-  a = domUtil_is(a, Range) || createRange(a);
-  b = domUtil_is(b, Range) || createRange(b);
-  return connected(a, b) && compareBoundaryPointsImpl.call(a, 3, b) <= 0 && compareBoundaryPointsImpl.call(a, 1, b) >= 0;
-}
-
-function rangeCovers(a, b) {
-  a = domUtil_is(a, Range) || createRange(a);
-  b = domUtil_is(b, Range) || createRange(b);
-  return connected(a, b) && compareBoundaryPointsImpl.call(a, 0, b) <= 0 && compareBoundaryPointsImpl.call(a, 2, b) >= 0;
-}
-
-function rangeEquals(a, b) {
-  a = domUtil_is(a, Range) || createRange(a);
-  b = domUtil_is(b, Range) || createRange(b);
-  return connected(a, b) && compareBoundaryPointsImpl.call(a, 0, b) === 0 && compareBoundaryPointsImpl.call(a, 2, b) === 0;
-}
-
-function compareRangePosition(a, b, strict) {
-  a = domUtil_is(a, Range) || createRange(a);
-  b = domUtil_is(b, Range) || createRange(b);
-  var value = !connected(a, b) ? NaN : compareBoundaryPointsImpl.call(a, 0, b) + compareBoundaryPointsImpl.call(a, 2, b);
-  return strict && (value !== 0 && rangeIntersects(a, b) || value === 0 && !rangeEquals(a, b)) ? NaN : value && value / Math.abs(value);
-}
-
-function makeSelection(b, e) {
-  var selection = getSelection();
-
-  if (!selection) {
-    return;
-  } // for newer browsers that supports setBaseAndExtent
-  // avoid undesirable effects when direction of editor's selection direction does not match native one
-
-
-  if (selection.setBaseAndExtent && domUtil_is(e, Range)) {
-    selection.setBaseAndExtent(b.startContainer, b.startOffset, e.startContainer, e.startOffset);
-    return;
-  }
-
-  var range = createRange(b, e);
-
-  try {
-    selection.removeAllRanges();
-  } catch (e) {
-    // IE fails to clear ranges by removeAllRanges() in occasions mentioned in
-    // http://stackoverflow.com/questions/22914075
-    // @ts-ignore: non-standard member
-    var r = env_document.body.createTextRange();
-    r.collapse();
-    r.select();
-    selection.removeAllRanges();
-  }
-
-  try {
-    selection.addRange(range);
-  } catch (e) {
-    // IE may throws unspecified error even though the selection is successfully moved to the given range
-    // if the range is not successfully selected retry after selecting other range
-    if (!selection.rangeCount) {
-      selection.addRange(createRange(env_document.body));
-      selection.removeAllRanges();
-      selection.addRange(range);
-    }
-  }
-}
-
-function getRect(elm, includeMargin) {
-  var rect;
-  elm = elm || root;
-
-  if (elm.getRect) {
-    return elm.getRect();
-  }
-
-  elm = elm.element || elm;
-
-  if (elm === root || elm === env_window) {
-    var div = originDiv || (originDiv = jquery('<div style="position:fixed; top:0; left:0;">')[0]);
-
-    if (!containsOrEquals(env_document.body, div)) {
-      env_document.body.appendChild(div);
-    } // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
-    // when virtual keyboard is shown on mobile devices
-
-
-    var o = getRect(div);
-    rect = toPlainRect(0, 0, root.offsetWidth, root.offsetHeight).translate(o.left, o.top);
-  } else if (!containsOrEquals(root, elm)) {
-    // IE10 throws Unspecified Error for detached elements
-    rect = toPlainRect(0, 0, 0, 0);
-  } else {
-    rect = toPlainRect(elm.getBoundingClientRect());
-
-    if (includeMargin === true) {
-      var style = getComputedStyle(elm);
-      var marginTop = Math.max(0, parseFloat(style.marginTop));
-      var marginLeft = Math.max(0, parseFloat(style.marginLeft));
-      var marginRight = Math.max(0, parseFloat(style.marginRight));
-      var marginBottom = Math.max(0, parseFloat(style.marginBottom));
-      rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
-    } else if (includeMargin) {
-      rect = rect.expand(includeMargin);
-    }
-  }
-
-  return rect;
-}
-
-function getOffset(node, offset) {
-  var len = node.length || node.childNodes.length;
-  return 1 / offset < 0 ? Math.max(0, len + offset) : Math.min(len, offset);
-}
-
-function getRects(range) {
-  return map((domUtil_is(range, Range) || createRange(range, 'contents')).getClientRects(), toPlainRect);
-}
-
-function toPlainRect(l, t, r, b) {
-  function clip(v) {
-    // IE provides precision up to 0.05 but with floating point errors that hinder comparisons
-    return Math.round(v * 1000) / 1000;
-  }
-
-  if (l.top !== undefined) {
-    return new Rect(clip(l.left), clip(l.top), clip(l.right), clip(l.bottom));
-  }
-
-  if (r === undefined) {
-    return new Rect(l, t, l, t);
-  }
-
-  return new Rect(l, t, r, b);
-}
-
-function rectEquals(a, b) {
-  function check(prop) {
-    return Math.abs(a[prop] - b[prop]) < 1;
-  }
-
-  return check('left') && check('top') && check('bottom') && check('right');
-}
-
-function rectCovers(a, b) {
-  return b.left >= a.left && b.right <= a.right && b.top >= a.top && b.bottom <= a.bottom;
-}
-
-function rectIntersects(a, b) {
-  return !(b.right < a.left || b.left > a.right) && !(b.bottom < a.top || b.top > a.bottom);
-}
-
-function pointInRect(x, y, rect, within) {
-  within = within || 0;
-  return rect.width && rect.height && x - rect.left >= -within && x - rect.right <= within && y - rect.top >= -within && y - rect.bottom <= within;
-}
-
-function mergeRect(a, b) {
-  return toPlainRect(Math.min(a.left, b.left), Math.min(a.top, b.top), Math.max(a.right, b.right), Math.max(a.bottom, b.bottom));
-}
-
-function elementFromPoint(x, y, container) {
-  container = container || env_document.body;
-  return any(elementsFromPoint.call(env_document, x, y), function (v) {
-    return containsOrEquals(container, v) && getComputedStyle(v).pointerEvents !== 'none';
-  }) || null;
-}
-
-
-// CONCATENATED MODULE: ./src/cssUtil.js
-
-
-
-
-
-
-function parseCSS(value) {
-  var styles = {};
-  var div = env_document.createElement('div');
-  div.setAttribute('style', value);
-  each(div.style, function (i, v) {
-    styles[v] = div.style[v];
-  });
-  return styles;
-}
-
-function isCssUrlValue(value) {
-  return value && value !== 'none' && /url\((?:'(.+)'|"(.+)"|([^)]+))\)/.test(value) && (RegExp.$1 || RegExp.$2 || RegExp.$3);
-}
-
-function normalizeCSSValue(curValue) {
-  if (curValue === 'matrix(1, 0, 0, 1, 0, 0)') {
-    return 'none';
-  }
-
-  return curValue;
-}
-
-function styleToJSON(style) {
-  var t = {};
-  each(style, function (i, v) {
-    t[v] = style[v];
-  });
-  return t;
-}
-
-function animatableValue(v, allowNumber) {
-  return /\b(?:[+-]?(\d+(?:\.\d+)?)(px|%)?|#[0-9a-f]{3,}|(rgba?|hsla?|matrix|calc)\(.+\))\b/.test(v) && (allowNumber || !RegExp.$1 || RegExp.$2);
-}
-
-function removeVendorPrefix(name) {
-  return name.replace(/^-(webkit|moz|ms|o)-/, '');
-}
-
-function runCSSTransition(element, className, callback) {
-  if (getClass(element, className)) {
-    return reject();
-  }
-
-  callback = callback || noop;
-
-  if (callback === true) {
-    callback = setClass.bind(null, element, className, false);
-  }
-
-  setClass(element, className, true);
-  var arr = [];
-  var map1 = new Map();
-
-  var test = function test(element, pseudoElement) {
-    var style = getComputedStyle(element, pseudoElement);
-
-    if (style.transitionDuration !== '0s' || style.animationName != 'none') {
-      var key = {
-        element: element,
-        pseudoElement: pseudoElement
-      };
-      map1.set(key, style.transitionProperty.split(/,\s*/));
-      arr.push(key);
-    }
-  };
-
-  iterateNode(createNodeIterator(element, 1, function (v) {
-    if (!isVisible(v)) {
-      return 2;
-    }
-
-    test(v, null);
-    test(v, '::before');
-    test(v, '::after');
-  }));
-
-  if (!arr[0]) {
-    callback();
-    return resolve();
-  }
-
-  var targets = arr.map(function (v) {
-    return v.element;
-  });
-  setClass(element, className, false);
-  jquery(targets).css({
-    transition: 'none',
-    animationDuration: '0s'
-  });
-  setClass(element, className, true);
-  var newStyle = arr.map(function (v) {
-    return styleToJSON(getComputedStyle(v.element, v.pseudoElement));
-  });
-  setClass(element, className, false);
-  var appendPseudoToAnim = env_window.AnimationEvent && 'pseudoElement' in AnimationEvent.prototype;
-  var map = new Map();
-  each(arr, function (i, v) {
-    var pseudoElement = v.pseudoElement;
-    var curStyle = getComputedStyle(v.element, pseudoElement);
-    var transitionProperties = map1.get(v);
-    var dict = {};
-    each(curStyle, function (j, v) {
-      var curValue = normalizeCSSValue(curStyle[v]);
-      var newValue = normalizeCSSValue(newStyle[i][v]);
-
-      if (curValue !== newValue) {
-        var prop = removeVendorPrefix(v);
-        var allowNumber = matchWord(v, 'opacity line-height');
-
-        if (prop === 'animation-name') {
-          var prevAnim = curValue.replace(/,/g, '');
-          each(newValue.split(/,\s*/), function (i, v) {
-            if (v !== 'none' && !matchWord(prevAnim, v)) {
-              dict['@' + v + (appendPseudoToAnim && pseudoElement || '')] = true;
-            }
-          });
-        } else if (prop === 'transform' || animatableValue(curValue, allowNumber) && animatableValue(newValue, allowNumber) && !/^scroll-limit/.test(prop)) {
-          if (transitionProperties[0] === 'all' || transitionProperties.indexOf(v + (pseudoElement || '')) >= 0) {
-            dict[prop + (pseudoElement || '')] = true;
-          }
-        }
-      }
-    });
-
-    if (keys(dict)[0]) {
-      map.set(v.element, dict);
-    }
-  });
-  jquery(targets).css({
-    transition: '',
-    animationDuration: ''
-  });
-  setClass(element, className, true);
-
-  if (!map.size) {
-    callback();
-    return resolve();
-  }
-
-  return new promise_polyfill(function (resolve, reject) {
-    var unbind = bind(element, 'animationend transitionend', function (e) {
-      var dict = map.get(e.target) || {}; // @ts-ignore: mixed type of Event
-
-      delete dict[(e.propertyName ? removeVendorPrefix(e.propertyName) : '@' + e.animationName) + (e.pseudoElement || '')];
-
-      if (!keys(dict)[0] && map.delete(e.target) && !map.size) {
-        unbind();
-
-        if (getClass(element, className)) {
-          callback();
-          resolve(element);
-        } else {
-          reject(element);
-        }
-      }
-    });
-  });
-}
-
-
 // CONCATENATED MODULE: ./src/observe.js
 
 
@@ -2115,7 +1274,10 @@ function DOMLock(element) {
 
   self.element = element;
   lockedElements.set(element, self);
-  afterDetached(element, removeLock);
+
+  if (element !== root) {
+    afterDetached(element, removeLock);
+  }
 }
 
 definePrototype(DOMLock, {
@@ -3078,13 +2240,27 @@ function getEventSourceName() {
   return matchWord(type, 'drop cut copy paste') || 'script';
 }
 
+function getContainerForElement(element) {
+  var container = mapGet(containers, element);
+  return container && !events_(container).destroyed && container;
+}
+
+function removeContainerForElement(element, container) {
+  var cached = mapGet(containers, element);
+
+  if (cached && cached === container) {
+    mapRemove(containers, element);
+  }
+}
+
 function getEventContext(element) {
-  for (var cur = element; cur && !containers.has(cur); cur = cur.parentNode) {
-    ;
+  var container;
+
+  for (; !container && element; element = element.parentNode) {
+    container = getContainerForElement(element);
   }
 
-  var container = mapGet(containers, cur) || domContainer;
-  return events_(container).options;
+  return events_(container || domContainer).options;
 }
 
 function normalizeEventOptions(options, overrides) {
@@ -3110,7 +2286,7 @@ function emitDOMEvent(eventName, target, data, options) {
   var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
   var visited = new Set();
   return single(emitter.elements, function (v) {
-    var container = containers.get(v);
+    var container = getContainerForElement(v);
 
     if (container && setAdd(visited, container)) {
       return emitter.emit(domEventTrap, 'tap', container, false);
@@ -3250,7 +2426,7 @@ function emitterGetElements(emitter, target) {
     return targets;
   }
 
-  var element = document.elementFromPoint(emitter.clientX, emitter.clientY);
+  var element = document.elementFromPoint(emitter.clientX, emitter.clientY) || root;
   return grep(targets, function (v) {
     return containsOrEquals(v, element);
   });
@@ -3381,7 +2557,7 @@ function ZetaEventContainer(element, context, options) {
 
   events_(self, {
     options: options,
-    components: new Map()
+    components: new WeakMap()
   });
 
   extend(self, options);
@@ -3418,6 +2594,10 @@ definePrototype(ZetaEventContainer, {
 
     if (element) {
       containerRegisterHandler(self, element, key, target, event, handler);
+
+      if (self.captureDOMEvents) {
+        containers.set(element, self);
+      }
     }
 
     return function () {
@@ -3432,7 +2612,7 @@ definePrototype(ZetaEventContainer, {
     var self = this;
 
     if (mapRemove(events_(self).components, target) && self.captureDOMEvents) {
-      containers.delete(target);
+      removeContainerForElement(target, self);
     }
   },
   emit: function emit(eventName, target, data, bubbles) {
@@ -3450,17 +2630,13 @@ definePrototype(ZetaEventContainer, {
   destroy: function destroy() {
     var self = this;
 
-    var components = events_(self).components;
+    var state = events_(self);
 
     if (self.captureDOMEvents) {
       domEventTrap.delete(self);
-      containers.delete(self.element);
-      each(components, function (i) {
-        containers.delete(i);
-      });
     }
 
-    components.clear();
+    state.destroyed = true;
   }
 });
 
@@ -3478,10 +2654,6 @@ function containerRegisterHandler(container, target, key, context, event, handle
     (handlers[i] || (handlers[i] = {}))[key] = throwNotFunction(v);
   });
   cur.contexts[key] = context;
-
-  if (container.captureDOMEvents && is(target, Node)) {
-    containers.set(target, container);
-  }
 }
 
 function containerRemoveHandler(container, target, key) {
@@ -3511,6 +2683,869 @@ function containerGetComponents(container, elements, bubbles) {
 
   return map(bubbles ? elements : elements.slice(0, 1), function (v) {
     return components.get(v);
+  });
+}
+
+
+// CONCATENATED MODULE: ./src/domUtil.js
+
+
+
+ // @ts-ignore: non-standard member
+
+var elementsFromPoint = env_document.msElementsFromPoint || env_document.elementsFromPoint;
+var compareDocumentPositionImpl = env_document.compareDocumentPosition;
+var compareBoundaryPointsImpl = Range.prototype.compareBoundaryPoints;
+var OFFSET_ZERO = Object.freeze({
+  x: 0,
+  y: 0
+});
+var originDiv;
+var scrollbarWidth;
+/* --------------------------------------
+ * Custom class
+ * -------------------------------------- */
+
+function Rect(l, t, r, b) {
+  var self = this;
+  self.left = l;
+  self.top = t;
+  self.right = r;
+  self.bottom = b;
+}
+
+definePrototype(Rect, {
+  get width() {
+    return this.right - this.left;
+  },
+
+  get height() {
+    return this.bottom - this.top;
+  },
+
+  get centerX() {
+    return (this.left + this.right) / 2;
+  },
+
+  get centerY() {
+    return (this.top + this.bottom) / 2;
+  },
+
+  collapse: function collapse(side, offset) {
+    var rect = this;
+    var pos = rect[side] + (offset || 0);
+    return side === 'left' || side === 'right' ? toPlainRect(pos, rect.top, pos, rect.bottom) : toPlainRect(rect.left, pos, rect.right, pos);
+  },
+  translate: function translate(x, y) {
+    var self = this;
+    return toPlainRect(self.left + x, self.top + y, self.right + x, self.bottom + y);
+  },
+  expand: function expand(l, t, r, b) {
+    var self = this;
+
+    switch (arguments.length) {
+      case 1:
+        t = l;
+
+      case 2:
+        r = l;
+
+      case 3:
+        b = t;
+    }
+
+    var w = self.width;
+    var h = self.height;
+    var dx = l + r + w;
+    var dy = t + b + h;
+
+    if (dx < 0) {
+      l -= dx * l / (l + r) | 0; // @ts-ignore: type inference issue
+
+      r = -(l + w);
+    }
+
+    if (dy < 0) {
+      t -= dy * t / (t + b) | 0; // @ts-ignore: type inference issue
+
+      b = -(t + h);
+    } // @ts-ignore: type inference issue
+
+
+    return toPlainRect(self.left - l, self.top - t, self.right + r, self.bottom + b);
+  }
+});
+/* --------------------------------------
+ * General helper
+ * -------------------------------------- */
+
+function tagName(element) {
+  return element && element.tagName && element.tagName.toLowerCase();
+}
+
+function domUtil_is(element, selector) {
+  if (!element || !selector) {
+    return false;
+  } // constructors of native DOM objects in Safari refuse to be functions
+  // use a fairly accurate but fast checking instead of isFunction
+
+
+  if (selector.prototype) {
+    return element instanceof selector && element;
+  }
+
+  if (selector.toFixed) {
+    return element.nodeType === selector && element;
+  }
+
+  return matchSelector(element, selector);
+}
+
+function matchSelector(element, selector) {
+  if (!element || !selector) {
+    return false;
+  }
+
+  return (selector === '*' || tagName(element) === selector || jquery(element).is(selector)) && element;
+}
+
+function comparePosition(a, b, strict) {
+  if (a === b) {
+    return 0;
+  }
+
+  var v = a && b && compareDocumentPositionImpl.call(a.element || a, b.element || b);
+
+  if (v & 2) {
+    return strict && v & 8 || v & 1 ? NaN : 1;
+  }
+
+  if (v & 4) {
+    return strict && v & 16 || v & 1 ? NaN : -1;
+  }
+
+  return NaN;
+}
+
+function connected(a, b) {
+  return a && b && !(compareDocumentPositionImpl.call(a.commonAncestorContainer || a, b.commonAncestorContainer || b) & 1);
+}
+
+function containsOrEquals(container, contained) {
+  container = (container || '').element || container;
+  contained = (contained || '').element || contained;
+  return container === contained || jquery.contains(container, contained);
+}
+
+function isVisible(element) {
+  if (!connected(root, element)) {
+    return false;
+  }
+
+  var rect = getRect(element);
+
+  if (!rect.top && !rect.left && !rect.width && !rect.height) {
+    for (var cur = element; cur; cur = cur.parentNode) {
+      if (getComputedStyle(cur).display === 'none') {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function acceptNode(iterator, node) {
+  node = node || iterator.currentNode;
+
+  if (!node || !(iterator.whatToShow & 1 << node.nodeType - 1)) {
+    return 3;
+  }
+
+  var filter = iterator.filter;
+  return !filter ? 1 : (filter.acceptNode || filter).call(filter, node);
+}
+
+function combineNodeFilters() {
+  var args = grep(makeArray(arguments), isFunction);
+
+  if (!args[1]) {
+    return args[0] || function () {
+      return 1;
+    };
+  }
+
+  return function (node) {
+    var result = 1;
+
+    for (var i = 0, len = args.length; i < len; i++) {
+      var value = args[i].call(null, node);
+
+      if (value === 2) {
+        return 2;
+      }
+
+      result |= value;
+    }
+
+    return result;
+  };
+}
+
+function iterateNode(iterator, callback, from, until) {
+  var i = 0;
+  iterator.currentNode = from = from || iterator.currentNode;
+  callback = callback || noop;
+
+  switch (acceptNode(iterator)) {
+    case 2:
+      return;
+
+    case 1:
+      callback(from, i++);
+  }
+
+  for (var cur; (cur = iterator.nextNode()) && (!until || (isFunction(until) ? until(cur) : cur !== until || void callback(cur, i++))); callback(cur, i++)) {
+    ;
+  }
+}
+
+function iterateNodeToArray(iterator, callback, from, until) {
+  var result = [];
+  iterateNode(iterator, function (v) {
+    result[result.length] = v;
+  }, from, until);
+  return callback ? map(result, callback) : result;
+}
+/* --------------------------------------
+ * Advanced traversal
+ * -------------------------------------- */
+
+
+function getCommonAncestor(a, b) {
+  for (b = b || a; a && a !== b && compareDocumentPositionImpl.call(a, b) !== 20; a = a.parentNode) {
+    ;
+  }
+
+  return a;
+}
+
+function parentsAndSelf(element) {
+  if (element === env_window) {
+    return [];
+  }
+
+  for (var arr = []; element && element !== env_document && arr.push(element); element = element.parentNode || element.parent) {
+    ;
+  }
+
+  return arr;
+}
+
+function selectIncludeSelf(selector, container) {
+  container = container || root;
+  var matched = jquery.uniqueSort(jquery(container).find(selector).add(jquery(container).filter(selector)).get());
+
+  if (matched[0] || container === root) {
+    return matched;
+  }
+
+  return jquery(container).find(jquery(selector)).get();
+}
+
+function selectClosestRelative(selector, container) {
+  container = container || root;
+  var element = jquery(selector, container)[0];
+
+  if (!element) {
+    var $matched = jquery(selector);
+
+    for (; container !== root && !element; container = container.parentNode) {
+      element = $matched.get().filter(function (v) {
+        return containsOrEquals(container, v);
+      })[0];
+    }
+  }
+
+  return element;
+}
+
+function createNodeIterator(root, whatToShow, filter) {
+  // @ts-ignore: assume filter is of correct signature
+  return env_document.createNodeIterator(root, whatToShow, isFunction(filter) || null, false);
+}
+
+function createTreeWalker(root, whatToShow, filter) {
+  // @ts-ignore: assume filter is of correct signature
+  return env_document.createTreeWalker(root, whatToShow, isFunction(filter) || null, false);
+}
+/* --------------------------------------
+ * Events
+ * -------------------------------------- */
+
+
+function addOrRemoveEventListener(method, element, event, listener, useCapture) {
+  if (isPlainObject(event)) {
+    each(event, function (i, v) {
+      element[method](i, v, listener);
+    });
+  } else if (typeof event === 'string') {
+    each(event.split(' '), function (i, v) {
+      element[method](v, listener, useCapture);
+    });
+  }
+}
+
+function bind(element, event, listener, useCapture) {
+  addOrRemoveEventListener('addEventListener', element, event, listener, useCapture);
+  return function () {
+    unbind(element, event, listener);
+  };
+}
+
+function unbind(element, event, listener) {
+  addOrRemoveEventListener('removeEventListener', element, event, listener);
+}
+
+function bindUntil(promise, element, event, listener, useCapture) {
+  always(promise, bind(element, event, listener, useCapture));
+}
+
+function dispatchDOMMouseEvent(eventName, point, e) {
+  if (typeof eventName !== 'string') {
+    e = eventName;
+    eventName = e.type;
+  }
+
+  var target = point ? elementFromPoint(point.clientX, point.clientY) || root : e.target;
+  var event = env_document.createEvent('MouseEvent');
+  point = point || e;
+  event.initMouseEvent(eventName, e.bubbles, e.cancelable, e.view, e.detail, point.screenX, point.screenY, point.clientX, point.clientY, e.ctrlKey, e.altKey, e.shiftKey, e.metaKey, e.button, e.relatedTarget);
+  return target.dispatchEvent(event);
+}
+/* --------------------------------------
+ * DOM manip
+ * -------------------------------------- */
+
+
+function removeNode(node) {
+  if (node.parentNode) {
+    node.parentNode.removeChild(node);
+  }
+}
+
+function getClass(element, className) {
+  var re = new RegExp('(?:^|\\s+)' + className + '(?:-(\\S+)|\\b)', 'ig');
+  var t = [false];
+  (element.className || '').replace(re, function (v, a) {
+    t[a ? t.length : 0] = a || true;
+  });
+  return t[1] ? t.slice(1) : t[0];
+}
+
+function setClass(element, className, values) {
+  var value = element.className || '';
+  each(isPlainObject(className) || kv(className, values), function (i, v) {
+    var re = new RegExp('(^|\\s)\\s*' + i + '(?:-(\\S+)|\\b)|\\s*$', 'ig');
+    var replaced = 0;
+
+    if (isPlainObject(v)) {
+      v = map(v, function (v, i) {
+        return v ? i : null;
+      });
+    }
+
+    value = value.replace(re, function () {
+      return replaced++ || !v || v.length === 0 ? '' : ' ' + i + (v[0] ? [''].concat(v).join(' ' + i + '-') : '');
+    });
+  });
+  element.className = value;
+}
+
+function getScrollOffset(winOrElm) {
+  return {
+    x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
+    y: winOrElm.pageYOffset || winOrElm.scrollTop || 0
+  };
+}
+
+function getScrollParent(element) {
+  for (var s; element !== root && (s = getComputedStyle(element)) && s.overflow === 'visible' && matchWord(s.position, 'static relative'); element = element.parentNode) {
+    ;
+  }
+
+  return element;
+}
+
+function scrollBy(element, x, y) {
+  var result = emitDOMEvent('scrollBy', element, {
+    x: x,
+    y: y
+  }, {
+    asyncResult: false
+  });
+
+  if (result) {
+    return result;
+  }
+
+  var winOrElm = element === root || element === env_document.body ? env_window : element;
+  var orig = getScrollOffset(winOrElm);
+
+  if (winOrElm.scrollBy) {
+    winOrElm.scrollBy(x, y);
+  } else {
+    winOrElm.scrollLeft = orig.x + x;
+    winOrElm.scrollTop = orig.y + y;
+  }
+
+  var cur = getScrollOffset(winOrElm);
+  return {
+    x: cur.x - orig.x,
+    y: cur.y - orig.y
+  };
+}
+
+function getContentRect(element) {
+  var result = emitDOMEvent('getContentRect', element, null, {
+    asyncResult: false
+  });
+
+  if (result) {
+    return toPlainRect(result);
+  }
+
+  if (scrollbarWidth === undefined) {
+    // detect native scrollbar size
+    // height being picked because scrollbar may not be shown if container is too short
+    var dummy = jquery('<div style="overflow:scroll;height:80px"><div style="height:100px"></div></div>').appendTo(env_document.body)[0];
+    scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
+    removeNode(dummy);
+  }
+
+  var style = getComputedStyle(element);
+  var hasOverflowX = element.offsetWidth < element.scrollWidth;
+  var hasOverflowY = element.offsetHeight < element.scrollHeight;
+  var parentRect = getRect(element === env_document.body ? root : element);
+
+  if ((style.overflow !== 'visible' || element === env_document.body) && (hasOverflowX || hasOverflowY)) {
+    if (style.overflowY === 'scroll' || (style.overflowY !== 'hidden' || element === env_document.body) && hasOverflowY) {
+      parentRect.right -= scrollbarWidth;
+    }
+
+    if (style.overflowX === 'scroll' || (style.overflowX !== 'hidden' || element === env_document.body) && hasOverflowX) {
+      parentRect.bottom -= scrollbarWidth;
+    }
+  }
+
+  return parentRect;
+}
+
+function scrollIntoView(element, rect) {
+  if (!rect || rect.top === undefined) {
+    rect = getRect(element, rect);
+  }
+
+  var parent = getScrollParent(element);
+  var parentRect = getContentRect(parent);
+  var deltaX = Math.max(0, rect.right - parentRect.right) || Math.min(rect.left - parentRect.left, 0);
+  var deltaY = Math.max(0, rect.bottom - parentRect.bottom) || Math.min(rect.top - parentRect.top, 0);
+  var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
+
+  if (parent !== root) {
+    var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y));
+
+    if (parentResult) {
+      result = {
+        x: result.x + parentResult.x,
+        y: result.y + parentResult.y
+      };
+    }
+  }
+
+  return result.x || result.y ? result : false;
+}
+/* --------------------------------------
+ * Range and rect
+ * -------------------------------------- */
+
+
+function createRange(startNode, startOffset, endNode, endOffset) {
+  if (startNode && isFunction(startNode.getRange)) {
+    return startNode.getRange();
+  }
+
+  var range;
+
+  if (domUtil_is(startNode, Node)) {
+    range = env_document.createRange();
+
+    if (+startOffset !== startOffset) {
+      range[startOffset === 'contents' || !startNode.parentNode ? 'selectNodeContents' : 'selectNode'](startNode);
+
+      if (typeof startOffset === 'boolean') {
+        range.collapse(startOffset);
+      }
+    } else {
+      range.setStart(startNode, getOffset(startNode, startOffset));
+    }
+
+    if (domUtil_is(endNode, Node) && connected(startNode, endNode)) {
+      range.setEnd(endNode, getOffset(endNode, endOffset));
+    }
+  } else if (domUtil_is(startNode, Range)) {
+    range = startNode.cloneRange();
+
+    if (!range.collapsed && typeof startOffset === 'boolean') {
+      range.collapse(startOffset);
+    }
+  }
+
+  if (domUtil_is(startOffset, Range) && connected(range, startOffset)) {
+    var inverse = range.collapsed && startOffset.collapsed ? -1 : 1;
+
+    if (compareBoundaryPointsImpl.call(range, 0, startOffset) * inverse < 0) {
+      range.setStart(startOffset.startContainer, startOffset.startOffset);
+    }
+
+    if (compareBoundaryPointsImpl.call(range, 2, startOffset) * inverse > 0) {
+      range.setEnd(startOffset.endContainer, startOffset.endOffset);
+    }
+  }
+
+  return range;
+}
+
+function rangeIntersects(a, b) {
+  a = domUtil_is(a, Range) || createRange(a);
+  b = domUtil_is(b, Range) || createRange(b);
+  return connected(a, b) && compareBoundaryPointsImpl.call(a, 3, b) <= 0 && compareBoundaryPointsImpl.call(a, 1, b) >= 0;
+}
+
+function rangeCovers(a, b) {
+  a = domUtil_is(a, Range) || createRange(a);
+  b = domUtil_is(b, Range) || createRange(b);
+  return connected(a, b) && compareBoundaryPointsImpl.call(a, 0, b) <= 0 && compareBoundaryPointsImpl.call(a, 2, b) >= 0;
+}
+
+function rangeEquals(a, b) {
+  a = domUtil_is(a, Range) || createRange(a);
+  b = domUtil_is(b, Range) || createRange(b);
+  return connected(a, b) && compareBoundaryPointsImpl.call(a, 0, b) === 0 && compareBoundaryPointsImpl.call(a, 2, b) === 0;
+}
+
+function compareRangePosition(a, b, strict) {
+  a = domUtil_is(a, Range) || createRange(a);
+  b = domUtil_is(b, Range) || createRange(b);
+  var value = !connected(a, b) ? NaN : compareBoundaryPointsImpl.call(a, 0, b) + compareBoundaryPointsImpl.call(a, 2, b);
+  return strict && (value !== 0 && rangeIntersects(a, b) || value === 0 && !rangeEquals(a, b)) ? NaN : value && value / Math.abs(value);
+}
+
+function makeSelection(b, e) {
+  var selection = getSelection();
+
+  if (!selection) {
+    return;
+  } // for newer browsers that supports setBaseAndExtent
+  // avoid undesirable effects when direction of editor's selection direction does not match native one
+
+
+  if (selection.setBaseAndExtent && domUtil_is(e, Range)) {
+    selection.setBaseAndExtent(b.startContainer, b.startOffset, e.startContainer, e.startOffset);
+    return;
+  }
+
+  var range = createRange(b, e);
+
+  try {
+    selection.removeAllRanges();
+  } catch (e) {
+    // IE fails to clear ranges by removeAllRanges() in occasions mentioned in
+    // http://stackoverflow.com/questions/22914075
+    // @ts-ignore: non-standard member
+    var r = env_document.body.createTextRange();
+    r.collapse();
+    r.select();
+    selection.removeAllRanges();
+  }
+
+  try {
+    selection.addRange(range);
+  } catch (e) {
+    // IE may throws unspecified error even though the selection is successfully moved to the given range
+    // if the range is not successfully selected retry after selecting other range
+    if (!selection.rangeCount) {
+      selection.addRange(createRange(env_document.body));
+      selection.removeAllRanges();
+      selection.addRange(range);
+    }
+  }
+}
+
+function getRect(elm, includeMargin) {
+  var rect;
+  elm = elm || root;
+
+  if (elm.getRect) {
+    return elm.getRect();
+  }
+
+  elm = elm.element || elm;
+
+  if (elm === root || elm === env_window) {
+    var div = originDiv || (originDiv = jquery('<div style="position:fixed; top:0; left:0;">')[0]);
+
+    if (!containsOrEquals(env_document.body, div)) {
+      env_document.body.appendChild(div);
+    } // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
+    // when virtual keyboard is shown on mobile devices
+
+
+    var o = getRect(div);
+    rect = toPlainRect(0, 0, root.offsetWidth, root.offsetHeight).translate(o.left, o.top);
+  } else if (!containsOrEquals(root, elm)) {
+    // IE10 throws Unspecified Error for detached elements
+    rect = toPlainRect(0, 0, 0, 0);
+  } else {
+    rect = toPlainRect(elm.getBoundingClientRect());
+
+    if (includeMargin === true) {
+      var style = getComputedStyle(elm);
+      var marginTop = Math.max(0, parseFloat(style.marginTop));
+      var marginLeft = Math.max(0, parseFloat(style.marginLeft));
+      var marginRight = Math.max(0, parseFloat(style.marginRight));
+      var marginBottom = Math.max(0, parseFloat(style.marginBottom));
+      rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
+    } else if (includeMargin) {
+      rect = rect.expand(includeMargin);
+    }
+  }
+
+  return rect;
+}
+
+function getOffset(node, offset) {
+  var len = node.length || node.childNodes.length;
+  return 1 / offset < 0 ? Math.max(0, len + offset) : Math.min(len, offset);
+}
+
+function getRects(range) {
+  return map((domUtil_is(range, Range) || createRange(range, 'contents')).getClientRects(), toPlainRect);
+}
+
+function toPlainRect(l, t, r, b) {
+  function clip(v) {
+    // IE provides precision up to 0.05 but with floating point errors that hinder comparisons
+    return Math.round(v * 1000) / 1000;
+  }
+
+  if (l.top !== undefined) {
+    return new Rect(clip(l.left), clip(l.top), clip(l.right), clip(l.bottom));
+  }
+
+  if (r === undefined) {
+    return new Rect(l, t, l, t);
+  }
+
+  return new Rect(l, t, r, b);
+}
+
+function rectEquals(a, b) {
+  function check(prop) {
+    return Math.abs(a[prop] - b[prop]) < 1;
+  }
+
+  return check('left') && check('top') && check('bottom') && check('right');
+}
+
+function rectCovers(a, b) {
+  return b.left >= a.left && b.right <= a.right && b.top >= a.top && b.bottom <= a.bottom;
+}
+
+function rectIntersects(a, b) {
+  return !(b.right < a.left || b.left > a.right) && !(b.bottom < a.top || b.top > a.bottom);
+}
+
+function pointInRect(x, y, rect, within) {
+  within = within || 0;
+  return rect.width && rect.height && x - rect.left >= -within && x - rect.right <= within && y - rect.top >= -within && y - rect.bottom <= within;
+}
+
+function mergeRect(a, b) {
+  return toPlainRect(Math.min(a.left, b.left), Math.min(a.top, b.top), Math.max(a.right, b.right), Math.max(a.bottom, b.bottom));
+}
+
+function elementFromPoint(x, y, container) {
+  container = container || env_document.body;
+  return any(elementsFromPoint.call(env_document, x, y), function (v) {
+    return containsOrEquals(container, v) && getComputedStyle(v).pointerEvents !== 'none';
+  }) || null;
+}
+
+
+// CONCATENATED MODULE: ./src/cssUtil.js
+
+
+
+
+
+
+function parseCSS(value) {
+  var styles = {};
+  var div = env_document.createElement('div');
+  div.setAttribute('style', value);
+  each(div.style, function (i, v) {
+    styles[v] = div.style[v];
+  });
+  return styles;
+}
+
+function isCssUrlValue(value) {
+  return value && value !== 'none' && /url\((?:'(.+)'|"(.+)"|([^)]+))\)/.test(value) && (RegExp.$1 || RegExp.$2 || RegExp.$3);
+}
+
+function normalizeCSSValue(curValue) {
+  if (curValue === 'matrix(1, 0, 0, 1, 0, 0)') {
+    return 'none';
+  }
+
+  return curValue;
+}
+
+function styleToJSON(style) {
+  var t = {};
+  each(style, function (i, v) {
+    t[v] = style[v];
+  });
+  return t;
+}
+
+function animatableValue(v, allowNumber) {
+  return /\b(?:[+-]?(\d+(?:\.\d+)?)(px|%)?|#[0-9a-f]{3,}|(rgba?|hsla?|matrix|calc)\(.+\))\b/.test(v) && (allowNumber || !RegExp.$1 || RegExp.$2);
+}
+
+function removeVendorPrefix(name) {
+  return name.replace(/^-(webkit|moz|ms|o)-/, '');
+}
+
+function runCSSTransition(element, className, callback) {
+  if (getClass(element, className)) {
+    return reject();
+  }
+
+  callback = callback || noop;
+
+  if (callback === true) {
+    callback = setClass.bind(null, element, className, false);
+  }
+
+  setClass(element, className, true);
+  var arr = [];
+  var map1 = new Map();
+
+  var test = function test(element, pseudoElement) {
+    var style = getComputedStyle(element, pseudoElement);
+
+    if (style.transitionDuration !== '0s' || style.animationName != 'none') {
+      var key = {
+        element: element,
+        pseudoElement: pseudoElement
+      };
+      map1.set(key, style.transitionProperty.split(/,\s*/));
+      arr.push(key);
+    }
+  };
+
+  iterateNode(createNodeIterator(element, 1, function (v) {
+    if (!isVisible(v)) {
+      return 2;
+    }
+
+    test(v, null);
+    test(v, '::before');
+    test(v, '::after');
+  }));
+
+  if (!arr[0]) {
+    callback();
+    return resolve();
+  }
+
+  var targets = arr.map(function (v) {
+    return v.element;
+  });
+  setClass(element, className, false);
+  jquery(targets).css({
+    transition: 'none',
+    animationDuration: '0s'
+  });
+  setClass(element, className, true);
+  var newStyle = arr.map(function (v) {
+    return styleToJSON(getComputedStyle(v.element, v.pseudoElement));
+  });
+  setClass(element, className, false);
+  var appendPseudoToAnim = env_window.AnimationEvent && 'pseudoElement' in AnimationEvent.prototype;
+  var map = new Map();
+  each(arr, function (i, v) {
+    var pseudoElement = v.pseudoElement;
+    var curStyle = getComputedStyle(v.element, pseudoElement);
+    var transitionProperties = map1.get(v);
+    var dict = {};
+    each(curStyle, function (j, v) {
+      var curValue = normalizeCSSValue(curStyle[v]);
+      var newValue = normalizeCSSValue(newStyle[i][v]);
+
+      if (curValue !== newValue) {
+        var prop = removeVendorPrefix(v);
+        var allowNumber = matchWord(v, 'opacity line-height');
+
+        if (prop === 'animation-name') {
+          var prevAnim = curValue.replace(/,/g, '');
+          each(newValue.split(/,\s*/), function (i, v) {
+            if (v !== 'none' && !matchWord(prevAnim, v)) {
+              dict['@' + v + (appendPseudoToAnim && pseudoElement || '')] = true;
+            }
+          });
+        } else if (prop === 'transform' || animatableValue(curValue, allowNumber) && animatableValue(newValue, allowNumber) && !/^scroll-limit/.test(prop)) {
+          if (transitionProperties[0] === 'all' || transitionProperties.indexOf(v + (pseudoElement || '')) >= 0) {
+            dict[prop + (pseudoElement || '')] = true;
+          }
+        }
+      }
+    });
+
+    if (keys(dict)[0]) {
+      map.set(v.element, dict);
+    }
+  });
+  jquery(targets).css({
+    transition: '',
+    animationDuration: ''
+  });
+  setClass(element, className, true);
+
+  if (!map.size) {
+    callback();
+    return resolve();
+  }
+
+  return new promise_polyfill(function (resolve, reject) {
+    var unbind = bind(element, 'animationend transitionend', function (e) {
+      var dict = map.get(e.target) || {}; // @ts-ignore: mixed type of Event
+
+      delete dict[(e.propertyName ? removeVendorPrefix(e.propertyName) : '@' + e.animationName) + (e.pseudoElement || '')];
+
+      if (!keys(dict)[0] && map.delete(e.target) && !map.size) {
+        unbind();
+
+        if (getClass(element, className)) {
+          callback();
+          resolve(element);
+        } else {
+          reject(element);
+        }
+      }
+    });
   });
 }
 
@@ -3640,7 +3675,7 @@ function tree_removeNode(sNode, hardRemove) {
   return (sNode.traversable ? removeTraversableNode : removeInheritedNode)(sNode, hardRemove);
 }
 
-function removeNodeFromMap(sNode, permanent) {
+function removeNodeFromMap(sNode) {
   var sTree = tree_(sNode.tree);
 
   var element = sNode.node.element;
@@ -3649,10 +3684,6 @@ function removeNodeFromMap(sNode, permanent) {
     // the node is already removed from the tree
     // therefore nothing to do
     return false;
-  }
-
-  if (!permanent) {
-    sTree.detached.set(element, sNode);
   }
 
   return tree_removeNode(sNode, true);
@@ -3749,7 +3780,7 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
     return false;
   }
 
-  var newParent = (hardRemove || findParent(sNode) || '').node;
+  var newParent = (findParent(sNode) || '').node;
 
   if (newParent === parent) {
     return false;
@@ -3762,6 +3793,7 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
   var pos = parentChildNodes.indexOf(sNode.node);
 
   if (hardRemove) {
+    newParent = null;
     childNodes = sNode.childNodes.splice(0);
 
     if (!ignoreSibling && childNodes[0]) {
@@ -3800,10 +3832,17 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
 
 function removeInheritedNode(sNode, hardRemove) {
   var updated = removeTraversableNode(sNode, hardRemove, true);
-  each(sNode.childNodes, function (i, v) {
-    setPrototypeOf(v, sNode.parentNode);
-  });
-  setPrototypeOf(sNode.node, InheritedNode.prototype);
+
+  if (updated) {
+    setPrototypeOf(sNode.node, InheritedNode.prototype);
+
+    if (hardRemove) {
+      each(sNode.childNodes, function (i, v) {
+        setPrototypeOf(v, sNode.parentNode);
+      });
+    }
+  }
+
   return updated;
 }
 
@@ -3855,10 +3894,14 @@ function updateTree(tree) {
   var updatedNodes = [];
   each(sTree.nodes, function (element, sNode) {
     var newVersion = sNode.state.version;
+    var connected = containsOrEquals(tree, element);
+
+    if (!connected) {
+      sTree.detached.set(element, mapRemove(sTree.nodes, element));
+    }
 
     if (sNode.version !== newVersion) {
       var updated = false;
-      var connected = containsOrEquals(tree, element);
 
       if (traversable) {
         // @ts-ignore: boolean arithmetics
@@ -3866,7 +3909,7 @@ function updateTree(tree) {
       } // @ts-ignore: boolean arithmetics
 
 
-      updated |= (connected ? insertNode : removeNodeFromMap)(sNode);
+      updated |= (connected ? insertNode : tree_removeNode)(sNode);
       sNode.version = newVersion;
 
       if (updated) {
@@ -3881,6 +3924,7 @@ function updateTree(tree) {
           var recovered = mapRemove(sTree.detached, element);
 
           if (recovered) {
+            sTree.nodes.set(element, recovered);
             insertNode(recovered);
             updatedNodes[updatedNodes.length] = recovered.node;
           }
