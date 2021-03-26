@@ -108,16 +108,13 @@ function removeNode(sNode, hardRemove) {
     return (sNode.traversable ? removeTraversableNode : removeInheritedNode)(sNode, hardRemove);
 }
 
-function removeNodeFromMap(sNode, permanent) {
+function removeNodeFromMap(sNode) {
     var sTree = _(sNode.tree);
     var element = sNode.node.element;
     if (!mapRemove(sTree.nodes, element)) {
         // the node is already removed from the tree
         // therefore nothing to do
         return false;
-    }
-    if (!permanent) {
-        sTree.detached.set(element, sNode);
     }
     return removeNode(sNode, true);
 }
@@ -195,7 +192,7 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
     if (!parent) {
         return false;
     }
-    var newParent = (hardRemove || findParent(sNode) || '').node;
+    var newParent = (findParent(sNode) || '').node;
     if (newParent === parent) {
         return false;
     }
@@ -203,6 +200,7 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
     var parentChildNodes = _(parent).childNodes;
     var pos = parentChildNodes.indexOf(sNode.node);
     if (hardRemove) {
+        newParent = null;
         childNodes = sNode.childNodes.splice(0);
         if (!ignoreSibling && childNodes[0]) {
             var states = map(childNodes, function (v) {
@@ -234,10 +232,14 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
 
 function removeInheritedNode(sNode, hardRemove) {
     var updated = removeTraversableNode(sNode, hardRemove, true);
-    each(sNode.childNodes, function (i, v) {
-        setPrototypeOf(v, sNode.parentNode);
-    });
-    setPrototypeOf(sNode.node, InheritedNode.prototype);
+    if (updated) {
+        setPrototypeOf(sNode.node, InheritedNode.prototype);
+        if (hardRemove) {
+            each(sNode.childNodes, function (i, v) {
+                setPrototypeOf(v, sNode.parentNode);
+            });
+        }
+    }
     return updated;
 }
 
@@ -289,7 +291,7 @@ function updateTree(tree) {
                 updated |= updatedNodes.length !== updatedNodes.push.apply(updatedNodes, reorderTraversableChildNodes(sNode));
             }
             // @ts-ignore: boolean arithmetics
-            updated |= (connected ? insertNode : removeNodeFromMap)(sNode);
+            updated |= (connected ? insertNode : removeNode)(sNode);
             sNode.version = newVersion;
             if (updated) {
                 updatedNodes[updatedNodes.length] = sNode.node;
