@@ -139,7 +139,7 @@ function isVisible(element) {
     }
     var rect = getRect(element);
     if (!rect.top && !rect.left && !rect.width && !rect.height) {
-        for (var cur = element; cur; cur = cur.parentNode) {
+        for (var cur = element; cur && cur !== document; cur = cur.parentNode) {
             if (getComputedStyle(cur).display === 'none') {
                 return false;
             }
