@@ -193,7 +193,7 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
         return false;
     }
     var newParent = (findParent(sNode) || '').node;
-    if (newParent === parent) {
+    if (!hardRemove && newParent === parent) {
         return false;
     }
     var childNodes = [];
