@@ -426,7 +426,7 @@ definePrototype(NodeTree, {
     },
     removeNode: function (node) {
         assertSameTree(this, node, true);
-        removeNodeFromMap(_(node), true);
+        removeNodeFromMap(_(node));
     },
     update: function () {
         collectMutations();
