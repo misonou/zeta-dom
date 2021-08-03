@@ -23,8 +23,9 @@ export function observe(element: Node, options: MutationObserverInit, callback: 
  * @param selector A valid CSS selector.
  * @param callback A callback to be fired when matching element is added or removed.
  * @param fireInit Optionally fired when DOM content is ready.
+ * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function watchElements(element: Element, selector: string, callback: (addedNodes: Element[], removedNodes: Element[]) => any, fireInit?: boolean): void;
+export function watchElements(element: Element, selector: string, callback: (addedNodes: Element[], removedNodes: Element[]) => any, fireInit?: boolean): () => void;
 
 /**
  * Registers a callback to be fired when specified attributes of descandent elements are changed.
@@ -32,8 +33,9 @@ export function watchElements(element: Element, selector: string, callback: (add
  * @param attributes A string or a list of string specifying attributes to observe.
  * @param callback A callback to be fired when mutation occurs.
  * @param fireInit Optionally fired when DOM content is ready.
+ * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function watchAttributes(element: Element, attributes: string | string[], callback: (nodes: Element[]) => any, fireInit?: boolean): void;
+export function watchAttributes(element: Element, attributes: string | string[], callback: (nodes: Element[]) => any, fireInit?: boolean): () => void;
 
 /**
  * Registers a callback to be fired whenever there are elements detached from document.
