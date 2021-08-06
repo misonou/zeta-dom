@@ -1028,7 +1028,7 @@ function watchElements(element, selector, callback, fireInit) {
   var options = extend({}, optionsForChildList, {
     attributes: selector.indexOf('[') >= 0
   });
-  observe(element, options, function () {
+  var fn = observe(element, options, function () {
     var matched = selectIncludeSelf(selector, element);
     var removedNodes = grep(collection, function (v) {
       return matched.indexOf(v) < 0;
@@ -1054,6 +1054,8 @@ function watchElements(element, selector, callback, fireInit) {
       }
     });
   }
+
+  return fn;
 }
 
 function watchAttributes(element, attributes, callback, fireInit) {
@@ -1062,7 +1064,7 @@ function watchAttributes(element, attributes, callback, fireInit) {
     attributes: true,
     attributeFilter: makeArray(attributes)
   };
-  observe(element, options, function (records) {
+  var fn = observe(element, options, function (records) {
     var set = new Set();
     each(records, function (i, v) {
       set.add(v.target);
@@ -1079,6 +1081,8 @@ function watchAttributes(element, attributes, callback, fireInit) {
       }
     });
   }
+
+  return fn;
 }
 
 function initDetachWatcher(element) {
@@ -2845,7 +2849,7 @@ function isVisible(element) {
   var rect = getRect(element);
 
   if (!rect.top && !rect.left && !rect.width && !rect.height) {
-    for (var cur = element; cur; cur = cur.parentNode) {
+    for (var cur = element; cur && cur !== env_document; cur = cur.parentNode) {
       if (getComputedStyle(cur).display === 'none') {
         return false;
       }
@@ -3782,7 +3786,7 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
 
   var newParent = (findParent(sNode) || '').node;
 
-  if (newParent === parent) {
+  if (!hardRemove && newParent === parent) {
     return false;
   }
 
@@ -4064,7 +4068,7 @@ definePrototype(NodeTree, {
   },
   removeNode: function removeNode(node) {
     assertSameTree(this, node, true);
-    removeNodeFromMap(tree_(node), true);
+    removeNodeFromMap(tree_(node));
   },
   update: function update() {
     collectMutations();
