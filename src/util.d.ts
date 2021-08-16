@@ -353,6 +353,18 @@ export function equal(a: any[], b: any[]): boolean;
 export function equal(a: any, b: any): boolean;
 
 /**
+ * Creates a callback that when called, each supplied callback are called once with the arguments.
+ * @param arr An array of callbacks.
+ */
+export function combineFn<T extends Zeta.AnyFunction>(arr: T[]): ReturnType<T> extends void ? T : (...args: Parameters<T>) => void;
+
+/**
+ * Creates a callback that when called, each supplied callback are called once with the arguments.
+ * @param arr An list of callbacks.
+ */
+export function combineFn<T extends Zeta.AnyFunction>(...arr: T[]): ReturnType<T> extends void ? T : (...args: Parameters<T>) => void;
+
+/**
  * Creates a data store to associate private data to objects, filling the use case of private variables.
  * @returns A function to access the private data store.
  */

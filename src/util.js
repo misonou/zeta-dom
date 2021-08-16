@@ -296,6 +296,17 @@ function equal(a, b) {
     return !single(a, (compareFn[type] || compareFn[0]).bind(0, b));
 }
 
+function combineFn(arr) {
+    arr = isFunction(arr) ? [].slice.call(arguments, 0) : arr;
+    return function () {
+        var self = this;
+        var args = [].slice.call(arguments, 0);
+        each(arr, function (i, v) {
+            v.apply(self, args);
+        });
+    };
+}
+
 function createPrivateStore() {
     var map = new WeakMap();
     return function (obj, value) {
@@ -712,6 +723,7 @@ export {
     mapRemove,
     setAdd,
     equal,
+    combineFn,
     createPrivateStore,
     setTimeoutOnce,
     setImmediate,
