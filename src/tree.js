@@ -410,7 +410,7 @@ function NodeTree(baseClass, root, constructor, options) {
 
 definePrototype(NodeTree, {
     on: function (event, handler) {
-        _(this).container.add(this, isPlainObject(event) || kv(event, handler));
+        return _(this).container.add(this, isPlainObject(event) || kv(event, handler));
     },
     getNode: function (element) {
         if (!assertDescendantOfTree(this, element)) {

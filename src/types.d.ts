@@ -619,10 +619,10 @@ declare namespace Zeta {
         removeNode(node: T): void;
         update(): void;
 
-        on<E extends keyof NodeTreeEventMap<T>>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>);
-        on<E extends keyof NodeTreeEventMap<T>>(tree: NodeTree<T>, event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>);
-        on(handler: ZetaEventHandlers<keyof NodeTreeEventMap<T>, NodeTreeEventMap<T>, NodeTree<T>>);
-        on(tree: NodeTree<T>, handler: ZetaEventHandlers<keyof NodeTreeEventMap<T>, NodeTreeEventMap<T>, NodeTree<T>>);
+        on<E extends keyof NodeTreeEventMap<T>>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
+        on<E extends keyof NodeTreeEventMap<T>>(tree: NodeTree<T>, event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
+        on(handler: ZetaEventHandlers<keyof NodeTreeEventMap<T>, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
+        on(tree: NodeTree<T>, handler: ZetaEventHandlers<keyof NodeTreeEventMap<T>, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
     }
 
     declare class TraversableNodeTree<T extends TraversableNode> extends NodeTree<T> {
