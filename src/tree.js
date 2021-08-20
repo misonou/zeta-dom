@@ -1,8 +1,8 @@
 import dom from "./dom.js";
 import { comparePosition, containsOrEquals, createTreeWalker, iterateNode, parentsAndSelf } from "./domUtil.js";
 import { ZetaEventContainer } from "./events.js";
-import { observe } from "./observe.js";
-import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, is, isFunction, isPlainObject, kv, map, mapGet, mapRemove, pick } from "./util.js";
+import { observe, watchElements } from "./observe.js";
+import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, is, isFunction, isPlainObject, kv, map, mapGet, mapRemove, noop, pick } from "./util.js";
 
 const SNAPSHOT_PROPS = 'parentNode previousSibling nextSibling'.split(' ');
 
@@ -94,7 +94,7 @@ function findParent(tree, element) {
 
 function checkNodeState(sNode) {
     collectMutations();
-    if (sNode.version !== sNode.state.version) {
+    if (sNode.version !== sNode.state.version || _(sNode.tree).collectNewNodes()) {
         updateTree(sNode.tree);
     }
     return sNode;
@@ -314,6 +314,7 @@ function updateTree(tree) {
             }
         }
     });
+    sTree.collectNewNodes();
     sTree.version = version;
     if (updatedNodes[0]) {
         var records = map(updatedNodes, function (v) {
@@ -395,7 +396,8 @@ definePrototype(InheritedNode, VirtualNode);
 
 function NodeTree(baseClass, root, constructor, options) {
     var self = this;
-    _(self, extend({}, options, {
+    var state = _(self, extend({}, options, {
+        collectNewNodes: noop,
         nodeClass: createNodeClass(baseClass, constructor),
         nodes: new Map(),
         detached: new WeakMap(),
@@ -406,6 +408,13 @@ function NodeTree(baseClass, root, constructor, options) {
     observe(root, function () {
         updateTree(self);
     });
+    if (state.selector) {
+        state.collectNewNodes = watchElements(root, state.selector, function (addedNodes) {
+            each(addedNodes, function (i, v) {
+                self.setNode(v);
+            });
+        });
+    }
 }
 
 definePrototype(NodeTree, {
@@ -416,7 +425,12 @@ definePrototype(NodeTree, {
         if (!assertDescendantOfTree(this, element)) {
             return null;
         }
-        var result = findNode(this, element, true);
+        var self = this;
+        var result = findNode(self, element, true);
+        if (!result) {
+            _(self).collectNewNodes();
+            result = findNode(self, element, true);
+        }
         return result && result.node;
     },
     setNode: function (element) {

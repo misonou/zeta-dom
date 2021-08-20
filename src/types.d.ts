@@ -568,6 +568,11 @@ declare namespace Zeta {
      * -------------------------------------- */
 
     interface NodeTreeOptions {
+        /**
+         * If supplied, new element matching the selector will have its
+         * correspoding virtual nodes created.
+         */
+        selector?: string
     }
 
     interface TraversableNodeTreeOptions<T> extends NodeTreeOptions {
