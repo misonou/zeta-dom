@@ -60,12 +60,11 @@ describe('afterDetached', () => {
         `);
         const returnValue = afterDetached(node1);
         expect(returnValue).toBeInstanceOf(Promise);
-        expect(returnValue).resolves.toBe(node1);
 
         await after(() => {
             body.removeChild(node1);
         });
-        expect.assertions(2);
+        await expect(returnValue).resolves.toBe(node1);
     });
 
     it('should return promise when callback is not supplied, with container argument', async () => {

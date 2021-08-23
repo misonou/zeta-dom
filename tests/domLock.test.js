@@ -4,8 +4,8 @@ import { noop } from "../src/util";
 import dom from "../src/dom";
 
 describe('lock', () => {
-    it('should pass promise result if not cancelled', () => {
-        expect(lock(body, Promise.resolve(42))).resolves.toBe(42);
+    it('should pass promise result if not cancelled', async () => {
+        await expect(lock(body, Promise.resolve(42))).resolves.toBe(42);
     });
 
     it('should lock element until promise is settled', async () => {
@@ -15,12 +15,13 @@ describe('lock', () => {
         expect(locked(body)).toBe(false);
     });
 
-    it('should be cancelled automatically when element is detached', () => {
+    it('should be cancelled automatically when element is detached', async () => {
         const { div } = initBody(`
             <div id="div"></div>
         `);
-        expect(lock(div, delay())).rejects.toMatch('user_cancelled');
+        const promise = lock(div, delay());
         body.removeChild(div);
+        await expect(promise).rejects.toMatch('user_cancelled');
     });
 
     it('should emit asyncStart event when element is first locked', async () => {
@@ -118,14 +119,13 @@ describe('cancelLock', () => {
         const { div } = initBody(`
             <div id="div"></div>
         `);
-        const unsettled = new Promise(noop);
         const cb = mockFn().mockResolvedValue(true);
-        const lockResult = lock(div, unsettled, cb);
-        const cancelResult = cancelLock(div);
-        expect(cancelResult).resolves.toBeUndefined();
-        expect(lockResult).rejects.toMatch('user_cancelled');
+        const lockResult = lock(div, delay(100), cb);
 
-        await delay();
+        const cancelResult = cancelLock(div);
+        await expect(cancelResult).resolves.toBeUndefined();
+
+        await expect(lockResult).rejects.toMatch('user_cancelled');
         expect(cb).toBeCalledTimes(1);
         expect(locked(div)).toBe(false);
     });
@@ -134,24 +134,22 @@ describe('cancelLock', () => {
         const { div } = initBody(`
             <div id="div"></div>
         `);
-        const unsettled = new Promise(noop);
         const cb = mockFn().mockRejectedValueOnce('').mockResolvedValueOnce('');
-        const lockResult = lock(div, unsettled, cb);
+        const lockResult = lock(div, delay(100), cb);
+
         const cancelResult1 = cancelLock(div);
-        expect(cancelResult1).rejects.toMatch('user_cancelled');
+        await expect(cancelResult1).rejects.toMatch('user_cancelled');
 
-        await delay();
         const cancelResult2 = cancelLock(div);
-        expect(cancelResult2).resolves.toBeUndefined();
-        expect(lockResult).rejects.toMatch('user_cancelled');
+        await expect(cancelResult2).resolves.toBeUndefined();
 
-        await delay();
+        await expect(lockResult).rejects.toMatch('user_cancelled');
         expect(cb).toBeCalledTimes(2);
         expect(locked(div)).toBe(false);
     });
 
-    it('should return resolved promise if element is not locked', () => {
-        expect(cancelLock(root)).resolves.toBeUndefined();
+    it('should return resolved promise if element is not locked', async () => {
+        await expect(cancelLock(root)).resolves.toBeUndefined();
     });
 
     it('should emit asyncEnd event when lock is cancelled', async () => {

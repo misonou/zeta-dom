@@ -331,14 +331,14 @@ describe('equal', () => {
 });
 
 describe('resolveAll', () => {
-    it('should resolve from the thenable object', () => {
+    it('should resolve from the thenable object', async () => {
         const obj1 = Promise.resolve(1);
-        const obj2 = { then: () => Promise.resolve(2) };
-        expect(resolveAll(obj1)).resolves.toBe(1);
-        expect(resolveAll(obj2)).resolves.toBe(2);
+        const obj2 = { then: cb => cb(2) };
+        await expect(resolveAll(obj1)).resolves.toBe(1);
+        await expect(resolveAll(obj2)).resolves.toBe(2);
     });
 
-    it('should aggregate result from object properties but not recursively', () => {
+    it('should aggregate result from object properties but not recursively', async () => {
         // fix @ b08ab1a
         var innerObj = {
             a: 1,
@@ -349,7 +349,7 @@ describe('resolveAll', () => {
             b: Promise.resolve(2),
             c: innerObj
         });
-        expect(promise).resolves.toEqual({
+        await expect(promise).resolves.toEqual({
             a: 1,
             b: 2,
             c: innerObj
@@ -358,12 +358,12 @@ describe('resolveAll', () => {
 });
 
 describe('setPromiseTimeout', () => {
-    it('should reject promise if promise is not settled within a period', () => {
-        expect(setPromiseTimeout(delay(2000), 500)).rejects.toBe('timeout');
+    it('should reject promise if promise is not settled within a period', async () => {
+        await expect(setPromiseTimeout(delay(2000), 500)).rejects.toBe('timeout');
     });
 
-    it('should resolve promise if promise is not settled within a period if third argument is true', () => {
-        expect(setPromiseTimeout(delay(2000), 500, true)).resolves.toBe('timeout');
+    it('should resolve promise if promise is not settled within a period if third argument is true', async () => {
+        await expect(setPromiseTimeout(delay(2000), 500, true)).resolves.toBe('timeout');
     });
 });
 
@@ -756,11 +756,9 @@ describe('watchOnce', () => {
         const obj = {
             prop: 1
         };
-        expect(watchOnce(obj, 'prop')).resolves.toBe(42);
-        await after(() => {
-            obj.prop = 42;
-        });
-        expect.hasAssertions();
+        const promise = watchOnce(obj, 'prop');
+        obj.prop = 42;
+        await expect(promise).resolves.toBe(42);
     });
 
     it('should return promise that is resolved with returned value from callback', async () => {
@@ -768,13 +766,11 @@ describe('watchOnce', () => {
             prop: 1
         };
         const cb = mockFn().mockReturnValue(86);
-        expect(watchOnce(obj, 'prop', cb)).resolves.toBe(86);
-        await after(() => {
-            obj.prop = 42;
-        });
+        const promise = watchOnce(obj, 'prop', cb);
+        obj.prop = 42;
+        await expect(promise).resolves.toBe(86);
         expect(cb).toBeCalledTimes(1);
         expect(cb).toBeCalledWith(42);
-        expect.hasAssertions();
     });
 });
 

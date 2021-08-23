@@ -216,17 +216,17 @@ describe('ZetaEventContainer.emit', () => {
         expect(cb).toBeCalled();
     });
 
-    it('should return promise if any handler has returned value other than undefined', () => {
+    it('should return promise if any handler has returned value other than undefined', async () => {
         const container = new ZetaEventContainer();
         const target = container.element;
         const cb = mockFn().mockReturnValue(42);
         container.add(target, 'customEvent', cb);
 
         const promise = container.emit('customEvent', target, 'string');
-        expect(promise).resolves.toBe(42);
+        await expect(promise).resolves.toBe(42);
     });
 
-    it('should return promise if any handler has called ZetaEvent.handled', () => {
+    it('should return promise if any handler has called ZetaEvent.handled', async () => {
         const container = new ZetaEventContainer();
         const target = container.element;
         const cb = mockFn(/** @param {Zeta.ZetaAsyncHandleableEvent} e */ e => {
@@ -235,10 +235,10 @@ describe('ZetaEventContainer.emit', () => {
         container.add(target, 'customEvent', cb);
 
         const promise = container.emit('customEvent', target, 'string');
-        expect(promise).resolves.toBe(42);
+        await expect(promise).resolves.toBe(42);
     });
 
-    it('should return rejected promise if handler throws an error', () => {
+    it('should return rejected promise if handler throws an error', async () => {
         const container = new ZetaEventContainer();
         const target = container.element;
         const error = new Error();
@@ -247,10 +247,10 @@ describe('ZetaEventContainer.emit', () => {
         });
 
         const promise = container.emit('customEvent', target, 'string');
-        expect(promise).rejects.toBe(error);
+        await expect(promise).rejects.toBe(error);
     });
 
-    it('should stop propagation if event is handled', () => {
+    it('should stop propagation if event is handled', async () => {
         const { node1, node2 } = initBody(`
             <div id="node1">
                 <div id="node2"></div>
@@ -265,11 +265,11 @@ describe('ZetaEventContainer.emit', () => {
         container.add(node2, 'customEvent', cb2);
 
         const promise = container.emit('customEvent', node2, 'string', true);
-        expect(promise).resolves.toBe(42);
+        await expect(promise).resolves.toBe(42);
         expect(cb1).not.toBeCalled();
     });
 
-    it('should stop immediate propagation if event is handled', () => {
+    it('should stop immediate propagation if event is handled', async () => {
         const { node1 } = initBody(`
             <div id="node1"></div>
         `);
@@ -282,7 +282,7 @@ describe('ZetaEventContainer.emit', () => {
         container.add(node1, 'customEvent', cb2);
 
         const promise = container.emit('customEvent', node1, 'string');
-        expect(promise).resolves.toBe(42);
+        await expect(promise).resolves.toBe(42);
         expect(cb2).not.toBeCalled();
     });
 
