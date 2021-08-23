@@ -1,11 +1,14 @@
 import $ from 'jquery';
 import { jest } from '@jest/globals';
+import { listenDOMEvent } from '../src/events';
 
 export const root = document.documentElement;
 export const body = document.body;
 export const mockFn = jest.fn;
 export const objectContaining = expect.objectContaining;
 export const _ = expect.anything();
+
+var cleanup = [];
 
 export function delay(milliseconds) {
     return new Promise((resolve) => {
@@ -43,3 +46,12 @@ export function combineFn(...fn) {
         fn.forEach(v => v());
     };
 }
+
+export function bindEvent(...args) {
+    // @ts-ignore
+    cleanup.push(listenDOMEvent(...args));
+}
+
+afterEach(() => {
+    cleanup.splice(0).forEach(v => v());
+});

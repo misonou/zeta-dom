@@ -1,8 +1,10 @@
 import $ from 'jquery';
+import { jest } from "@jest/globals";
 
 // @ts-ignore
 window.jQuery = $;
 window.Promise = Promise;
+document.elementsFromPoint = jest.fn();
 
 const originalError = console.error;
 const originalWarn = console.warn;
@@ -19,6 +21,7 @@ afterEach(() => {
 });
 
 afterEach(() => {
+    jest.clearAllMocks();
     $(document.body).empty();
 });
 
