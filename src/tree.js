@@ -535,6 +535,7 @@ function treeWalkerTraverseChildren(inst, pChild, pSib) {
         }
         node = node[pSib];
     }
+    return null;
 }
 
 function treeWalkerTraverseSibling(inst, pChild, pSib) {
@@ -552,6 +553,7 @@ function treeWalkerTraverseSibling(inst, pChild, pSib) {
             return null;
         }
     }
+    return null;
 }
 
 definePrototype(TreeWalker, {
@@ -576,6 +578,7 @@ definePrototype(TreeWalker, {
                 return parentNode;
             }
         }
+        return null;
     },
     previousNode: function () {
         var self = this;
@@ -605,6 +608,7 @@ definePrototype(TreeWalker, {
                 return node;
             }
         }
+        return null;
     },
     nextNode: function () {
         var self = this;
