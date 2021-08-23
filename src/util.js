@@ -514,12 +514,14 @@ function definePrototype(fn, prototype, props) {
         fn.prototype = inherit(prototype, props);
         defineHiddenProperty(fn.prototype, 'constructor', fn);
         Object.setPrototypeOf(fn, prototype);
-        prototype = props;
+    } else {
+        each(getOwnPropertyDescriptors(prototype), function (i, v) {
+            if (isFunction(v.value)) {
+                v.enumerable = false;
+            }
+            defineProperty(fn.prototype, i, v);
+        });
     }
-    each(getOwnPropertyDescriptors(prototype), function (i, v) {
-        v.enumerable = !isFunction(v.value);
-        defineProperty(fn.prototype, i, v);
-    });
 }
 
 function inherit(proto, props) {

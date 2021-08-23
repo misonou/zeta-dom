@@ -376,8 +376,8 @@ describe('definePrototype', () => {
             }
         };
         Object.defineProperty(prop, 'constProp', {
-            configurable: true,
-            enumerable: true,
+            configurable: false,
+            enumerable: false,
             writable: false,
             value: 42
         });
@@ -392,8 +392,8 @@ describe('definePrototype', () => {
                 value: 1
             },
             constProp: {
-                configurable: true,
-                enumerable: true,
+                configurable: false,
+                enumerable: false,
                 writable: false,
                 value: 42
             },
@@ -404,6 +404,75 @@ describe('definePrototype', () => {
                 set: undefined
             }
         }));
+    });
+
+    it('should set enumerable to false for method-valued property', () => {
+        function A() { }
+        definePrototype(A, {
+            method: () => true
+        });
+
+        expect(Object.getOwnPropertyDescriptor(A.prototype, 'method')).toEqual(objectContaining({
+            configurable: true,
+            enumerable: false,
+            writable: true
+        }));
+    });
+
+    it('should make instance of given function inherits prototype of another function', () => {
+        const prop = {
+            dataProp: 1,
+            get getterProp() {
+                return 2;
+            }
+        };
+        Object.defineProperty(prop, 'constProp', {
+            configurable: false,
+            enumerable: false,
+            writable: false,
+            value: 42
+        });
+        function A() { }
+        function B() { }
+        definePrototype(A, B, prop);
+
+        const obj = new A();
+        expect(obj).toBeInstanceOf(B);
+        expect(obj).toHaveProperty('dataProp', 1);
+        expect(obj).toHaveProperty('getterProp', 2);
+        expect(obj).toHaveProperty('constProp', 42);
+        expect(obj.constructor).toBe(A);
+
+        expect(Object.getOwnPropertyDescriptors(A.prototype)).toEqual(objectContaining({
+            dataProp: {
+                configurable: true,
+                enumerable: true,
+                writable: true,
+                value: 1
+            },
+            constProp: {
+                configurable: false,
+                enumerable: false,
+                writable: false,
+                value: 42
+            },
+            getterProp: {
+                configurable: true,
+                enumerable: true,
+                get: expect.any(Function),
+                set: undefined
+            }
+        }));
+    });
+
+    it('should expose static property of inherited function', () => {
+        function A() { }
+        function B() { }
+        B.prop = 1;
+        definePrototype(A, B);
+
+        expect(A).toHaveProperty('prop', 1);
+        expect(Object.getPrototypeOf(A)).toBe(B);
     });
 });
 
