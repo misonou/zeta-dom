@@ -106,8 +106,9 @@ export function combineNodeFilters<T>(...args: (Zeta.IteratorNodeFilter<T> | und
  * @param iterator Any iterable object with the previousNode and nextNode methods.
  * @param [callback] Function to be called on each node.
  * @param [from] If given, invocation of the callback will be skipped until the specified node.
+ * @param [until] If given, iteration will be stopped once the specified node is iterated, callback will not be fired for this node.
  */
-export function iterateNode<T>(iterator: Zeta.NodeIterator<T>, callback?: (node: T) => void, from?: T): void;
+export function iterateNode<T>(iterator: Zeta.NodeIterator<T>, callback?: (node: T) => void, from?: T, until?: T | ((node: NonNullable<T>) => boolean)): void;
 
 /**
  * Creates an array containing each node in the iterated order.
@@ -139,11 +140,13 @@ export function iterateNodeToArray<T, R>(iterator: Zeta.NodeIterator<T>, callbac
  */
 export function getCommonAncestor(a: Node, b: Node): Element;
 
-export function parentsAndSelf(node: Node): Element[];
+export function parentsAndSelf(node: Node | Window): Element[];
 
-export function selectIncludeSelf(sel: string, node: Node | NodeList | Node[] | ArrayLike<Node>): Element[];
+export function parentsAndSelf<T extends Zeta.HasParent | Zeta.HasParentNode>(node: T): T[];
 
-export function selectClosestRelative(sel: string, node: Node): Element;
+export function selectIncludeSelf(sel: string, node?: Node | NodeList | Node[] | ArrayLike<Node>): Element[];
+
+export function selectClosestRelative(sel: string, node?: Node): Element;
 
 /**
  * Creates a DOM node iterator. It is essentially the same as Document#createNodeIterator but allows arguments to be optional.
@@ -187,13 +190,13 @@ export function bind(element: EventTarget, event: { [T in keyof GlobalEventHandl
  */
 export function bind(element: EventTarget, event: Record<string, (e: infer E extends Event ? E : never) => any>, useCapture?: boolean | AddEventListenerOptions): Zeta.UnregisterCallback;
 
-export function bindUntil<T extends keyof GlobalEventHandlersEventMap>(promise: PromiseLike<any>, element: EventTarget, event: T, listener: (e: GlobalEventHandlersEventMap[T]) => any, useCapture?: boolean | AddEventListenerOptions): Zeta.UnregisterCallback;
+export function bindUntil<T extends keyof GlobalEventHandlersEventMap>(promise: PromiseLike<any>, element: EventTarget, event: T, listener: (e: GlobalEventHandlersEventMap[T]) => any, useCapture?: boolean | AddEventListenerOptions): void;
 
-export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: string, listener: (e: Event) => any, useCapture?: boolean | AddEventListenerOptions): Zeta.UnregisterCallback;
+export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: string, listener: (e: Event) => any, useCapture?: boolean | AddEventListenerOptions): void;
 
-export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: { [T in keyof GlobalEventHandlersEventMap]?: (e: GlobalEventHandlersEventMap[T]) => any }, useCapture?: boolean | AddEventListenerOptions): Zeta.UnregisterCallback;
+export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: { [T in keyof GlobalEventHandlersEventMap]?: (e: GlobalEventHandlersEventMap[T]) => any }, useCapture?: boolean | AddEventListenerOptions): void;
 
-export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: Record<string, (e: infer E extends Event ? E : never) => any>, useCapture?: boolean | AddEventListenerOptions): Zeta.UnregisterCallback;
+export function bindUntil(promise: PromiseLike<any>, element: EventTarget, event: Record<string, (e: infer E extends Event ? E : never) => any>, useCapture?: boolean | AddEventListenerOptions): void;
 
 export function dispatchDOMMouseEvent(nativeEvent: MouseEvent | TouchEvent | JQuery.UIEventBase): boolean;
 
@@ -380,6 +383,8 @@ export function getRect(): Zeta.Rect;
  */
 export function getRect(element: Window | Node | Zeta.HasRect | Zeta.HasElement, includeMargin?: boolean): Zeta.Rect;
 
+export function getRect(element: Window | Node | Zeta.HasRect | Zeta.HasElement, margin: number): Zeta.Rect;
+
 /**
  * Gets all rect objects that are visually painted for the specified element or text node.
  * @param node A DOM node.
@@ -443,10 +448,11 @@ export function pointInRect(x: number, y: number, b: Zeta.RectLike, within?: num
 
 /**
  * Computes a rect that covers all given rects.
- * @param rects Rect objects that the resulting rect covers.
+ * @param a Rect objects that the resulting rect covers.
+ * @param b Rect objects that the resulting rect covers.
  * @returns A rect object.
  */
-export function mergeRect(...rects: Zeta.RectLike[]): Zeta.Rect;
+export function mergeRect(a: Zeta.RectLike, b: Zeeta.RectLike): Zeta.Rect;
 
 /**
  * Gets the topmost element that is visually painted, and reactable in the given coordinate relative to the top-left corner of the window.

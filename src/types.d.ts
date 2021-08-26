@@ -143,6 +143,14 @@ declare namespace Zeta {
         readonly element: HTMLElement;
     }
 
+    interface HasParent {
+        readonly parent?: any;
+    }
+
+    interface HasParentNode {
+        readonly parentNode?: any;
+    }
+
     interface NodeIterator<T> {
         /**
          * Moves the iterator to previous node. If there is no previous node iterable, the iterator will stay on the same node.
