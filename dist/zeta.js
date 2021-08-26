@@ -69,6 +69,7 @@ __webpack_require__.d(util_namespaceObject, {
   "any": function() { return any; },
   "camel": function() { return camel; },
   "catchAsync": function() { return catchAsync; },
+  "combineFn": function() { return combineFn; },
   "createPrivateStore": function() { return createPrivateStore; },
   "deepFreeze": function() { return deepFreeze; },
   "define": function() { return define; },
@@ -540,6 +541,17 @@ function equal(a, b) {
   return !single(a, (compareFn[type] || compareFn[0]).bind(0, b));
 }
 
+function combineFn(arr) {
+  arr = isFunction(arr) ? [].slice.call(arguments, 0) : arr;
+  return function () {
+    var self = this;
+    var args = [].slice.call(arguments, 0);
+    each(arr, function (i, v) {
+      v.apply(self, args);
+    });
+  };
+}
+
 function createPrivateStore() {
   var map = new WeakMap();
   return function (obj, value) {
@@ -749,13 +761,15 @@ function definePrototype(fn, prototype, props) {
     fn.prototype = inherit(prototype, props);
     defineHiddenProperty(fn.prototype, 'constructor', fn);
     Object.setPrototypeOf(fn, prototype);
-    prototype = props;
-  }
+  } else {
+    each(getOwnPropertyDescriptors(prototype), function (i, v) {
+      if (isFunction(v.value)) {
+        v.enumerable = false;
+      }
 
-  each(getOwnPropertyDescriptors(prototype), function (i, v) {
-    v.enumerable = !isFunction(v.value);
-    defineProperty(fn.prototype, i, v);
-  });
+      defineProperty(fn.prototype, i, v);
+    });
+  }
 }
 
 function inherit(proto, props) {
@@ -3425,7 +3439,7 @@ function styleToJSON(style) {
 }
 
 function animatableValue(v, allowNumber) {
-  return /\b(?:[+-]?(\d+(?:\.\d+)?)(px|%)?|#[0-9a-f]{3,}|(rgba?|hsla?|matrix|calc)\(.+\))\b/.test(v) && (allowNumber || !RegExp.$1 || RegExp.$2);
+  return /(?:^|\s)(?:[+-]?(\d+(?:\.\d+)?)(cm|mm|Q|in|pc|pt|px|em|ex|ch|rem|lh|vw|vh|vmin|vmax|%)?|#[0-9a-f]{3,}|(rgba?|hsla?|matrix|calc)\(.+\))(?:$|\s)/.test(v) && (allowNumber || !RegExp.$1 || RegExp.$2);
 }
 
 function removeVendorPrefix(name) {
@@ -3664,7 +3678,7 @@ function findParent(tree, element) {
 function checkNodeState(sNode) {
   collectMutations();
 
-  if (sNode.version !== sNode.state.version) {
+  if (sNode.version !== sNode.state.version || tree_(sNode.tree).collectNewNodes()) {
     updateTree(sNode.tree);
   }
 
@@ -3936,6 +3950,7 @@ function updateTree(tree) {
       }
     }
   });
+  sTree.collectNewNodes();
   sTree.version = version;
 
   if (updatedNodes[0]) {
@@ -4035,7 +4050,8 @@ definePrototype(InheritedNode, VirtualNode);
 function NodeTree(baseClass, root, constructor, options) {
   var self = this;
 
-  tree_(self, extend({}, options, {
+  var state = tree_(self, extend({}, options, {
+    collectNewNodes: noop,
     nodeClass: createNodeClass(baseClass, constructor),
     nodes: new Map(),
     detached: new WeakMap(),
@@ -4047,18 +4063,34 @@ function NodeTree(baseClass, root, constructor, options) {
   observe(root, function () {
     updateTree(self);
   });
+
+  if (state.selector) {
+    state.collectNewNodes = watchElements(root, state.selector, function (addedNodes) {
+      each(addedNodes, function (i, v) {
+        self.setNode(v);
+      });
+    });
+  }
 }
 
 definePrototype(NodeTree, {
   on: function on(event, handler) {
-    tree_(this).container.add(this, isPlainObject(event) || kv(event, handler));
+    return tree_(this).container.add(this, isPlainObject(event) || kv(event, handler));
   },
   getNode: function getNode(element) {
     if (!assertDescendantOfTree(this, element)) {
       return null;
     }
 
-    var result = findNode(this, element, true);
+    var self = this;
+    var result = findNode(self, element, true);
+
+    if (!result) {
+      tree_(self).collectNewNodes();
+
+      result = findNode(self, element, true);
+    }
+
     return result && result.node;
   },
   setNode: function setNode(element) {
@@ -4183,6 +4215,8 @@ function treeWalkerTraverseChildren(inst, pChild, pSib) {
 
     node = node[pSib];
   }
+
+  return null;
 }
 
 function treeWalkerTraverseSibling(inst, pChild, pSib) {
@@ -4205,6 +4239,8 @@ function treeWalkerTraverseSibling(inst, pChild, pSib) {
       return null;
     }
   }
+
+  return null;
 }
 
 definePrototype(TreeWalker, {
@@ -4230,6 +4266,8 @@ definePrototype(TreeWalker, {
         return parentNode;
       }
     }
+
+    return null;
   },
   previousNode: function previousNode() {
     var self = this;
@@ -4264,6 +4302,8 @@ definePrototype(TreeWalker, {
         return node;
       }
     }
+
+    return null;
   },
   nextNode: function nextNode() {
     var self = this;
