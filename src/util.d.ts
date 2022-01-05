@@ -612,9 +612,9 @@ export function watch(obj: object, sync: true): ((callback: () => any) => void);
  * @param obj An object to observe.
  * @param handler A callback which receives changed values.
  */
-export function watch<T extends object>(obj: T, handler: (e: { oldValues: Partial<T>, newValues: Partial<T> }) => any): void;
+export function watch<T extends object>(obj: T, handler: (e: { oldValues: Partial<T>, newValues: Partial<T> }) => any): Zeta.UnregisterCallback;
 
-export function watch<T extends object, P extends keyof T>(obj: T, prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): void;
+export function watch<T extends object, P extends keyof T>(obj: T, prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
 
 export function watchOnce<T extends object, P extends keyof T>(obj: T, prop: P): Promise<T[P]>;
 

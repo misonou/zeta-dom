@@ -666,23 +666,33 @@ function watch(obj, prop, handler, fireInit) {
         var state = getObservableState(obj, true);
         return state.handleChanges;
     }
+    var wrapper, handlers;
     if (isFunction(prop)) {
-        getObservableState(obj).handlers.push(prop);
+        wrapper = prop;
+        handlers = getObservableState(obj).handlers;
+        handlers.push(prop);
     } else {
         defineObservableProperty(obj, prop);
         if (isFunction(handler)) {
             var alias = getObservableState(obj).alias[prop] || [obj, prop];
-            var handlers = getObservableState(alias[0]).handlers;
-            handlers.push(function (e) {
+            handlers = getObservableState(alias[0]).handlers;
+            wrapper = function (e) {
                 if (alias[1] in e.newValues) {
                     handler.call(obj, e.newValues[alias[1]], e.oldValues[alias[1]], prop, obj);
                 }
-            });
+            };
+            handlers.push(wrapper);
             if (fireInit) {
                 handler.call(obj, obj[prop], null, prop, obj);
             }
         }
     }
+    if (wrapper) {
+        return executeOnce(function () {
+            arrRemove(handlers, wrapper);
+        });
+    }
+    return noop;
 }
 
 function watchOnce(obj, prop, handler) {
@@ -708,7 +718,7 @@ function watchable(obj) {
     obj = obj || {};
     define(obj, {
         watch: function (prop, handler, fireInit) {
-            watch(this, prop, handler, fireInit);
+            return watch(this, prop, handler, fireInit);
         },
         watchOnce: function (prop, handler) {
             return watchOnce(this, prop, handler);

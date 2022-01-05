@@ -749,6 +749,73 @@ describe('watch', () => {
             [82, 42, 'prop2', expect.sameObject(obj)]
         ]);
     });
+
+    it('should return an unregistering callback that remove the handler', async () => {
+        const obj = {
+            prop: 1
+        };
+        const cb = mockFn();
+        const unwatch = watch(obj, 'prop', cb);
+        await after(() => {
+            obj.prop = 2;
+        });
+        verifyCalls(cb, [
+            [2, 1, 'prop', expect.sameObject(obj)]
+        ]);
+
+        cb.mockReset();
+        unwatch();
+        await after(() => {
+            obj.prop = 3;
+            obj.prop = 4;
+        });
+        expect(cb).not.toBeCalled();
+    });
+
+    it('should return an unregistering callback that only remove the first occurence of an handler', async () => {
+        const obj = {
+            prop: 1
+        };
+        defineObservableProperty(obj, 'prop');
+
+        const cb = mockFn();
+        const unwatch = watch(obj, cb);
+        watch(obj, cb);
+        await after(() => {
+            obj.prop = 2;
+        });
+        expect(cb).toBeCalledTimes(2);
+
+        cb.mockReset();
+        unwatch();
+        await after(() => {
+            obj.prop = 3;
+        });
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should return an unregistering callback that only remove an handler once', async () => {
+        const obj = {
+            prop: 1
+        };
+        defineObservableProperty(obj, 'prop');
+
+        const cb = mockFn();
+        const unwatch = watch(obj, cb);
+        await after(() => {
+            obj.prop = 2;
+        });
+        expect(cb).toBeCalledTimes(1);
+
+        cb.mockReset();
+        unwatch();
+        watch(obj, cb);
+        unwatch();
+        await after(() => {
+            obj.prop = 3;
+        });
+        expect(cb).toBeCalledTimes(1);
+    });
 });
 
 describe('watchOnce', () => {

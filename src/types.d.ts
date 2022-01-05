@@ -62,7 +62,7 @@ declare namespace Zeta {
          * @param handler Callback to be fired and the property is changed.
          * @param fireInit Optionally fire the handler immediately.
          */
-        watch<P extends keyof T>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): void;
+        watch<P extends keyof T>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
         /**
          * Watches a property and resolves when the property is changed.
          * @param prop Property name.
