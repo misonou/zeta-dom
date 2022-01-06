@@ -53,18 +53,12 @@ export function isPlainObject<T>(obj: T): T extends Record<any, any> ? T : false
 export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? T : false;
 
 /**
- * Creates an array containing the specified item if the given object is not an array.
+ * Creates an array from input if it is not an array.
  * @param obj An input object.
- * @returns A copy of array if the object is an array; or an array containing items in an array-like object or iterable collection like Map or Set.
+ * @returns A copy of array if the object is an array; or an array containing items in an array-like object or iterable collection like Map or Set;
+ * or an array with exactly one item (the input object) if it does not equals to null or undefined; otherwise an empty array.
  */
-export function makeArray<T>(obj: T[] | ArrayLike<T> | Map<any, T> | Set<T> | undefined): T[];
-
-/**
- * Creates an array containing the specified item.
- * @param obj An input object.
- * @returns An array with exactly one item (the input object) if it does not equals to null or undefined; otherwise an empty array.
- */
-export function makeArray<T>(obj: T): Exclude<T, null | undefined>[];
+export function makeArray<T>(obj: T): T extends (infer U)[] | ArrayLike<infer U> | Map<any, infer U> | Set<infer U> ? U[] : Exclude<T, null | undefined>[];
 
 export function extend<T extends object, U>(obj: T, arg1: U): T & U;
 
@@ -97,7 +91,7 @@ export function extend<T extends object>(deep: true, obj: T, ...args): T & Zeta.
  * @param obj An array or an array-like object.
  * @param callback Function that will be executed in the context of each item.
  */
-export function each<T>(obj: T[] | ArrayLike<T>, callback: (i: number, v: T) => any): void;
+export function each<T>(obj: readonly T[] | ArrayLike<T>, callback: (i: number, v: T) => any): void;
 
 /**
  * Iterates through items of the given set and performs action on each item.
@@ -133,7 +127,7 @@ export function each(obj: any, callback: (i: any, v: any) => any): void;
  * @param callback Function called for each original item which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
  * @returns An array containing resulting items from the callback.
  */
-export function map<T, R>(obj: T[] | ArrayLike<T>, callback: (v: T, i: number) => Zeta.MapResultValue<R>): R[];
+export function map<T, R>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: number) => Zeta.MapResultValue<R>): R[];
 
 /**
  * Creates an array containing items that is mapped from each item of the given set.
@@ -165,7 +159,7 @@ export function map<R>(obj: any, callback: (v: any, i: any) => Zeta.MapResultVal
  * @param callback Function called for each item which returns if the item should be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function grep<T>(obj: T[] | ArrayLike<T>, callback: (v: T, i: number) => any): T[];
+export function grep<T>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: number) => any): T[];
 
 /**
  * Filters items from the given set.
@@ -205,7 +199,7 @@ export function splice<T>(arr: T[], callback: (v: T, i: number) => any): T[];
  * @param callback Function called for each original item which determines if the item satifies a condition.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<T>(obj: T[] | ArrayLike<T>, callback: (v: T, i: number) => any): T | false;
+export function any<T>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: number) => any): T | false;
 
 /**
  * Extracts the first item in the given set that satifies a condition.
@@ -237,7 +231,7 @@ export function any(obj: any, callback: (v: any, i: any) => any): any;
  * @param callback Function called for each original item which either returns a non-falsy value to stop iteration or a falsy value to continue.
  * @returns The non-falsy value returned by the last invocation of the given callback.
  */
-export function single<T, R>(obj: T[] | ArrayLike<T>, callback: (v: T, i: number) => R): R | false;
+export function single<T, R>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: number) => R): R | false;
 
 /**
  * Iterates the given set until a non-falsy value is returned by the given callback.
@@ -276,7 +270,7 @@ export function kv<T extends string | number | symbol, V>(key: T, value: V): Rec
  * @param obj An object from which properties are copied.
  * @param keys Names of properties to be copied.
  */
-export function pick<T>(obj: T, keys: string[]): Partial<T>;
+export function pick<T>(obj: T, keys: readonly (keyof T)[]): Partial<T>;
 
 export function pick<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
 
@@ -285,7 +279,7 @@ export function pick<T>(obj: T, callback: (value: any, key: keyof T) => any): Pa
  * @param obj An object from which properties are copied.
  * @param keys Names of properties to be excluded.
  */
-export function exclude<T>(obj: T, keys: string[]): Partial<T>;
+export function exclude<T>(obj: T, keys: readonly (keyof T)[]): Partial<T>;
 
 export function exclude<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
 
@@ -343,7 +337,7 @@ export function equal(a: Set<any>, b: Set<any>): boolean;
  * @param a An array to compare.
  * @param b An array to compare.
  */
-export function equal(a: any[], b: any[]): boolean;
+export function equal(a: readonly any[], b: readonly any[]): boolean;
 
 /**
  * Determines whether two objects have the same properties and each property associates the same value.
@@ -356,7 +350,7 @@ export function equal(a: any, b: any): boolean;
  * Creates a callback that when called, each supplied callback are called once with the arguments.
  * @param arr An array of callbacks.
  */
-export function combineFn<T extends Zeta.AnyFunction>(arr: T[]): ReturnType<T> extends void ? T : (...args: Parameters<T>) => void;
+export function combineFn<T extends Zeta.AnyFunction>(arr: readonly T[]): ReturnType<T> extends void ? T : (...args: Parameters<T>) => void;
 
 /**
  * Creates a callback that when called, each supplied callback are called once with the arguments.
@@ -479,9 +473,9 @@ export function resolveAll<T, R>(promises: T, callback: (result: T extends Promi
  * @param promises Promises to be waited.
  * @returns A promise object.
  */
-export function resolveAll<T>(promises: Promise<T>[]): Promise<T[]>;
+export function resolveAll<T>(promises: readonly Promise<T>[]): Promise<T[]>;
 
-export function resolveAll<T, R>(promises: Promise<T>[], callback: (result: T[]) => R): Promise<R>;
+export function resolveAll<T, R>(promises: readonly Promise<T>[], callback: (result: T[]) => R): Promise<R>;
 
 export function resolveAll<T extends object>(promises: T): Promise<{ [P in keyof T]: P[K] extends Promise<infer V> ? V : P[K] }>;
 

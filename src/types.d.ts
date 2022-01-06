@@ -7,7 +7,7 @@ declare namespace Zeta {
     type HtmlContent = string | Node | Node[] | NodeList | JQuery<any> | JQuery.htmlString;
 
     type Dictionary<T = any> = Record<string, T>;
-    type DeepReadonly<T> = { readonly [P in keyof T]: DeepReadonly<T[P]> };
+    type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
     type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
     type WatchableInstance<T> = T & Watchable<T>;
 
@@ -455,7 +455,7 @@ declare namespace Zeta {
         initEvent?: (e: ZetaEventBase & ZetaEventContext<T>) => void;
     }
 
-    declare class ZetaEventContainer<T = Element> implements HasElement {
+    declare class ZetaEventContainer<T = Element, M = ZetaDOMEventMap> implements HasElement {
         /**
          * Createa a new event container for listening or dispatching events.
          * @param root A DOM element of which DOM events fired on descedant elements will be captured.
@@ -506,7 +506,7 @@ declare namespace Zeta {
          * @param handlers An object which each entry represent the handler to be registered on the event.
          * @returns A function that will unregister the handler when called.
          */
-        add(target: any, handlers: ZetaEventHandlers<string, ZetaDOMEventMap, T>): UnregisterCallback;
+        add(target: any, handlers: ZetaEventHandlers<string, M, T>): UnregisterCallback;
 
         /**
          * Registers event handlers to a DOM element or a custom event target.
@@ -515,7 +515,7 @@ declare namespace Zeta {
          * @param handler A callback function to be fired when the specified event is triggered.
          * @returns A function that will unregister the handlers when called.
          */
-        add<E extends string>(target: any, event: E, handlers: ZetaEventHandler<E, ZetaDOMEventMap, T>): UnregisterCallback;
+        add<E extends string>(target: any, event: E, handlers: ZetaEventHandler<E, M, T>): UnregisterCallback;
 
         /**
          * Removes the DOM element or custom event target from the container.
