@@ -312,6 +312,14 @@ export function mapGet<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> 
 export function mapRemove<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> : never), key: K): V;
 
 /**
+ * Removes an item from an array. If the item appears more than one time, only the first entry is removed.
+ * @param arr An array.
+ * @param obj Object to remove.
+ * @returns The object if the item was in the array; or undefined otherwise.
+ */
+export function arrRemove<T>(arr: T[], obj: T): T | undefined;
+
+/**
  * Adds item to a set and returns whether the set is changed, i.e. the item is not in the set before.
  * @param set A set or weak set object.
  * @param obj An item to be added.
@@ -357,6 +365,12 @@ export function combineFn<T extends Zeta.AnyFunction>(arr: readonly T[]): Return
  * @param arr An list of callbacks.
  */
 export function combineFn<T extends Zeta.AnyFunction>(...arr: T[]): ReturnType<T> extends void ? T : (...args: Parameters<T>) => void;
+
+/**
+ * Creates a callback that executes the given callback exactly once, and returns cached value in subsequent calls.
+ * @param fn A callback.
+ */
+export function executeOnce<T extends Zeta.AnyFunction>(fn: T): T;
 
 /**
  * Creates a data store to associate private data to objects, filling the use case of private variables.

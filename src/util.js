@@ -279,6 +279,13 @@ function mapRemove(map, key) {
     return value;
 }
 
+function arrRemove(arr, obj) {
+    var index = arr.indexOf(obj);
+    if (index >= 0) {
+        return arr.splice(index, 1);
+    }
+}
+
 function setAdd(set, obj) {
     var result = !set.has(obj);
     set.add(obj);
@@ -304,6 +311,17 @@ function combineFn(arr) {
         each(arr, function (i, v) {
             v.apply(self, args);
         });
+    };
+}
+
+function executeOnce(fn) {
+    var value;
+    return function () {
+        if (isFunction(fn)) {
+            value = fn.apply(this, arguments);
+        }
+        fn = undefined;
+        return value;
     };
 }
 
@@ -676,7 +694,7 @@ function watchOnce(obj, prop, handler) {
             if (alias[1] in e.newValues) {
                 var value = e.newValues[alias[1]];
                 var returnValue;
-                handlers.splice(handlers.indexOf(fn), 1);
+                arrRemove(handlers, fn);
                 if (isFunction(handler)) {
                     returnValue = handler(value);
                 }
@@ -723,9 +741,11 @@ export {
     exclude,
     mapGet,
     mapRemove,
+    arrRemove,
     setAdd,
     equal,
     combineFn,
+    executeOnce,
     createPrivateStore,
     setTimeoutOnce,
     setImmediate,

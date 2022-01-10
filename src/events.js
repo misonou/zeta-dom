@@ -1,6 +1,6 @@
 import Promise from "./include/promise-polyfill.js";
 import { window, root } from "./env.js";
-import { createPrivateStore, definePrototype, each, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { arrRemove, createPrivateStore, definePrototype, each, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { afterDetached } from "./observe.js";
 import dom, { textInputAllowed, getShortcut } from "./dom.js";
@@ -168,7 +168,7 @@ function removeAsyncEvent(eventName, container, target) {
     if (dict && dict[eventName]) {
         var event = dict[eventName];
         delete dict[eventName];
-        asyncEvents.splice(asyncEvents.indexOf(event), 1);
+        arrRemove(asyncEvents, event);
         return event.data || { data: event.data };
     }
 }
