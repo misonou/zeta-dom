@@ -67,6 +67,7 @@ __webpack_require__.r(util_namespaceObject);
 __webpack_require__.d(util_namespaceObject, {
   "always": function() { return always; },
   "any": function() { return any; },
+  "arrRemove": function() { return arrRemove; },
   "camel": function() { return camel; },
   "catchAsync": function() { return catchAsync; },
   "combineFn": function() { return combineFn; },
@@ -83,6 +84,7 @@ __webpack_require__.d(util_namespaceObject, {
   "either": function() { return either; },
   "equal": function() { return equal; },
   "exclude": function() { return exclude; },
+  "executeOnce": function() { return executeOnce; },
   "extend": function() { return extend; },
   "getOwnPropertyDescriptors": function() { return getOwnPropertyDescriptors; },
   "grep": function() { return grep; },
@@ -521,6 +523,14 @@ function mapRemove(map, key) {
   return value;
 }
 
+function arrRemove(arr, obj) {
+  var index = arr.indexOf(obj);
+
+  if (index >= 0) {
+    return arr.splice(index, 1);
+  }
+}
+
 function setAdd(set, obj) {
   var result = !set.has(obj);
   set.add(obj);
@@ -549,6 +559,18 @@ function combineFn(arr) {
     each(arr, function (i, v) {
       v.apply(self, args);
     });
+  };
+}
+
+function executeOnce(fn) {
+  var value;
+  return function () {
+    if (isFunction(fn)) {
+      value = fn.apply(this, arguments);
+    }
+
+    fn = undefined;
+    return value;
   };
 }
 
@@ -913,25 +935,40 @@ function _watch(obj, prop, handler, fireInit) {
     return state.handleChanges;
   }
 
+  var wrapper, handlers;
+
   if (isFunction(prop)) {
-    getObservableState(obj).handlers.push(prop);
+    wrapper = prop;
+    handlers = getObservableState(obj).handlers;
+    handlers.push(prop);
   } else {
     defineObservableProperty(obj, prop);
 
     if (isFunction(handler)) {
       var alias = getObservableState(obj).alias[prop] || [obj, prop];
-      var handlers = getObservableState(alias[0]).handlers;
-      handlers.push(function (e) {
+      handlers = getObservableState(alias[0]).handlers;
+
+      wrapper = function wrapper(e) {
         if (alias[1] in e.newValues) {
           handler.call(obj, e.newValues[alias[1]], e.oldValues[alias[1]], prop, obj);
         }
-      });
+      };
+
+      handlers.push(wrapper);
 
       if (fireInit) {
         handler.call(obj, obj[prop], null, prop, obj);
       }
     }
   }
+
+  if (wrapper) {
+    return executeOnce(function () {
+      arrRemove(handlers, wrapper);
+    });
+  }
+
+  return noop;
 }
 
 function _watchOnce(obj, prop, handler) {
@@ -943,7 +980,7 @@ function _watchOnce(obj, prop, handler) {
       if (alias[1] in e.newValues) {
         var value = e.newValues[alias[1]];
         var returnValue;
-        handlers.splice(handlers.indexOf(fn), 1);
+        arrRemove(handlers, fn);
 
         if (isFunction(handler)) {
           returnValue = handler(value);
@@ -959,7 +996,7 @@ function watchable(obj) {
   obj = obj || {};
   define(obj, {
     watch: function watch(prop, handler, fireInit) {
-      _watch(this, prop, handler, fireInit);
+      return _watch(this, prop, handler, fireInit);
     },
     watchOnce: function watchOnce(prop, handler) {
       return _watchOnce(this, prop, handler);
@@ -2344,7 +2381,7 @@ function removeAsyncEvent(eventName, container, target) {
   if (dict && dict[eventName]) {
     var event = dict[eventName];
     delete dict[eventName];
-    asyncEvents.splice(asyncEvents.indexOf(event), 1);
+    arrRemove(asyncEvents, event);
     return event.data || {
       data: event.data
     };
