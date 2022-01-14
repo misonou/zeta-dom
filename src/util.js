@@ -270,7 +270,10 @@ function exclude(obj, keys) {
 }
 
 function mapGet(map, key, fn) {
-    return map.get(key) || fn && (map.set(key, new fn()), map.get(key));
+    if (!map.has(key) && fn) {
+        map.set(key, new fn());
+    }
+    return map.get(key);
 }
 
 function mapRemove(map, key) {
