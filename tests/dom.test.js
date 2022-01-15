@@ -1,5 +1,6 @@
 import syn from "syn";
 import dom from "../src/dom";
+import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
 import { after, body, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
@@ -27,6 +28,16 @@ describe('activeElement', () => {
         button.focus();
         expect(dom.activeElement).toBe(button);
     });
+
+    it('should not return detached element', async () => {
+        await dom.ready;
+        const { button } = initBody(`
+            <button id="button"></button>
+        `);
+        button.focus();
+        removeNode(button);
+        expect(dom.activeElement).toBe(body);
+    });
 });
 
 describe('focusedElements', () => {
@@ -37,6 +48,16 @@ describe('focusedElements', () => {
         `);
         button.focus();
         expect(dom.focusedElements).toEqual([button, body, root]);
+    });
+
+    it('should not return detached element', async () => {
+        await dom.ready;
+        const { button } = initBody(`
+            <button id="button"></button>
+        `);
+        button.focus();
+        removeNode(button);
+        expect(dom.focusedElements).toEqual([body, root]);
     });
 
     it('should exclude elements that is not descandents of modal element', async () => {

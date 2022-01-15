@@ -47,6 +47,22 @@ function textInputAllowed(v) {
  * Focus management
  * -------------------------------------- */
 
+function cleanupFocusPath() {
+    for (var i = focusPath.length - 1; i >= 0; i--) {
+        if (!containsOrEquals(root, focusPath[i])) {
+            setFocus(focusPath[i + 1] || document.body);
+            break;
+        }
+    }
+}
+
+function getActiveElement() {
+    if (!containsOrEquals(root, focusPath[0])) {
+        cleanupFocusPath();
+    }
+    return focusPath[0];
+}
+
 function focused(element, strict) {
     // @ts-ignore: activeElement is not null
     return element === window ? !windowFocusedOut : focusElements.has(element) && (!strict || containsOrEquals(element, document.activeElement));
@@ -629,12 +645,7 @@ domReady.then(function () {
                 setFocus(modelPath[0], false, null, path);
             }
         });
-        for (var i = focusPath.length - 1; i >= 0; i--) {
-            if (!containsOrEquals(root, focusPath[i])) {
-                setFocus(focusPath[i + 1] || body);
-                break;
-            }
-        }
+        cleanupFocusPath();
     });
 
     listenDOMEvent('escape', function () {
@@ -662,12 +673,13 @@ export default {
         return currentEvent;
     },
     get context() {
-        return getEventContext(focusPath[0]).context;
+        return getEventContext(getActiveElement()).context;
     },
     get activeElement() {
-        return focusPath[0];
+        return getActiveElement();
     },
     get focusedElements() {
+        cleanupFocusPath();
         return focusPath.slice(0);
     },
     get eventSource() {
