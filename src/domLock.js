@@ -1,6 +1,6 @@
 import Promise from "./include/promise-polyfill.js";
 import { window, root } from "./env.js";
-import { any, createPrivateStore, definePrototype, extend, makeArray, mapRemove, reject, resolve } from "./util.js";
+import { any, catchAsync, createPrivateStore, definePrototype, extend, makeArray, mapRemove, reject, resolve } from "./util.js";
 import { parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
 import { afterDetached } from "./observe.js";
@@ -108,7 +108,7 @@ definePrototype(DOMLock, {
             state.deferred = extend(deferred, callback);
             for (var parent = self.element.parentNode; parent && !lockedElements.has(parent); parent = parent.parentNode);
             if (parent) {
-                lockedElements.get(parent).wait(deferred, self.cancel.bind(self));
+                catchAsync(lockedElements.get(parent).wait(deferred, self.cancel.bind(self)));
             }
             emitDOMEvent('asyncStart', self.element);
         }
