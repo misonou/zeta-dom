@@ -1,7 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
 import { window, root } from "./env.js";
-import { any, catchAsync, createPrivateStore, definePrototype, extend, makeArray, mapRemove, reject, resolve } from "./util.js";
-import { parentsAndSelf } from "./domUtil.js";
+import { any, catchAsync, createPrivateStore, definePrototype, each, extend, is, makeArray, mapRemove, reject, resolve, setImmediate } from "./util.js";
+import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
 import { afterDetached } from "./observe.js";
 
@@ -58,7 +58,17 @@ function DOMLock(element) {
 
 definePrototype(DOMLock, {
     get locked() {
-        return _(this).promises.size > 0;
+        var self = this;
+        var promises = _(self).promises;
+        each(promises, function (i, v) {
+            if (is(i.lock, DOMLock) && !containsOrEquals(self.element, i.lock.element)) {
+                promises.delete(i);
+            }
+        });
+        if (!promises.size) {
+            self.cancel(true);
+        }
+        return promises.size > 0;
     },
     cancel: function (force) {
         var self = this;
@@ -66,13 +76,17 @@ definePrototype(DOMLock, {
         var promises = state.promises;
         if (force || !promises.size) {
             if (promises.size) {
-                // @ts-ignore: unable to reflect on interface member
-                emitDOMEvent('cancelled', self.element);
+                setImmediate(function () {
+                    emitDOMEvent('cancelled', self.element);
+                });
             }
             // remove all promises from the dictionary so that
             // filtered promise from lock.wait() will be rejected by cancellation
             promises.clear();
             state.handler = null;
+            if (self.element !== root) {
+                lockedElements.delete(self.element);
+            }
             if (state.deferred) {
                 state.deferred.resolve();
             }
@@ -100,7 +114,9 @@ definePrototype(DOMLock, {
         };
         promises.set(promise, retryable(oncancel === true ? resolve : oncancel || reject, finish));
         if (promises.size === 1) {
-            var callback = {};
+            var callback = {
+                lock: this
+            };
             var deferred = new Promise(function (resolve, reject) {
                 callback.resolve = resolve;
                 callback.reject = reject;

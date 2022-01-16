@@ -1,6 +1,7 @@
 import { after, body, combineFn, delay, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
 import { cancelLock, lock, locked } from "../src/domLock";
 import { noop } from "../src/util";
+import { removeNode } from "../src/domUtil";
 import dom from "../src/dom";
 
 describe('lock', () => {
@@ -111,6 +112,17 @@ describe('locked', () => {
         expect(locked(root)).toBe(true);
         await delay();
         expect(locked(root)).toBe(false);
+    });
+
+    it('should return false if locked child element has just be detached',  async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const promise = lock(div, delay());
+        expect(locked(root)).toBe(true);
+        removeNode(div);
+        expect(locked(root)).toBe(false);
+        await expect(promise).rejects.toMatch('user_cancelled');
     });
 });
 
