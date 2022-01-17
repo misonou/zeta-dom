@@ -514,7 +514,11 @@ function exclude(obj, keys) {
 }
 
 function mapGet(map, key, fn) {
-  return map.get(key) || fn && (map.set(key, new fn()), map.get(key));
+  if (!map.has(key) && fn) {
+    map.set(key, new fn());
+  }
+
+  return map.get(key);
 }
 
 function mapRemove(map, key) {
@@ -1337,7 +1341,21 @@ function DOMLock(element) {
 
 definePrototype(DOMLock, {
   get locked() {
-    return _(this).promises.size > 0;
+    var self = this;
+
+    var promises = _(self).promises;
+
+    each(promises, function (i, v) {
+      if (is(i.lock, DOMLock) && !containsOrEquals(self.element, i.lock.element)) {
+        promises.delete(i);
+      }
+    });
+
+    if (!promises.size) {
+      self.cancel(true);
+    }
+
+    return promises.size > 0;
   },
 
   cancel: function cancel(force) {
@@ -1349,14 +1367,19 @@ definePrototype(DOMLock, {
 
     if (force || !promises.size) {
       if (promises.size) {
-        // @ts-ignore: unable to reflect on interface member
-        emitDOMEvent('cancelled', self.element);
+        setImmediate(function () {
+          emitDOMEvent('cancelled', self.element);
+        });
       } // remove all promises from the dictionary so that
       // filtered promise from lock.wait() will be rejected by cancellation
 
 
       promises.clear();
       state.handler = null;
+
+      if (self.element !== root) {
+        lockedElements.delete(self.element);
+      }
 
       if (state.deferred) {
         state.deferred.resolve();
@@ -1392,7 +1415,9 @@ definePrototype(DOMLock, {
     promises.set(promise, retryable(oncancel === true ? resolve : oncancel || reject, finish));
 
     if (promises.size === 1) {
-      var callback = {};
+      var callback = {
+        lock: this
+      };
       var deferred = new promise_polyfill(function (resolve, reject) {
         callback.resolve = resolve;
         callback.reject = reject;
@@ -1404,7 +1429,7 @@ definePrototype(DOMLock, {
       }
 
       if (parent) {
-        lockedElements.get(parent).wait(deferred, self.cancel.bind(self));
+        catchAsync(lockedElements.get(parent).wait(deferred, self.cancel.bind(self)));
       }
 
       emitDOMEvent('asyncStart', self.element);
@@ -1487,6 +1512,23 @@ function textInputAllowed(v) {
  * Focus management
  * -------------------------------------- */
 
+
+function cleanupFocusPath() {
+  for (var i = focusPath.length - 1; i >= 0; i--) {
+    if (!containsOrEquals(root, focusPath[i])) {
+      setFocus(focusPath[i + 1] || env_document.body);
+      break;
+    }
+  }
+}
+
+function getActiveElement() {
+  if (!containsOrEquals(root, focusPath[0])) {
+    cleanupFocusPath();
+  }
+
+  return focusPath[0];
+}
 
 function focused(element, strict) {
   // @ts-ignore: activeElement is not null
@@ -2116,13 +2158,7 @@ domReady.then(function () {
         setFocus(modelPath[0], false, null, path);
       }
     });
-
-    for (var i = focusPath.length - 1; i >= 0; i--) {
-      if (!containsOrEquals(root, focusPath[i])) {
-        setFocus(focusPath[i + 1] || body);
-        break;
-      }
-    }
+    cleanupFocusPath();
   });
   listenDOMEvent('escape', function () {
     setFocus(env_document.body);
@@ -2148,14 +2184,15 @@ function dom_focus(element) {
   },
 
   get context() {
-    return getEventContext(focusPath[0]).context;
+    return getEventContext(getActiveElement()).context;
   },
 
   get activeElement() {
-    return focusPath[0];
+    return getActiveElement();
   },
 
   get focusedElements() {
+    cleanupFocusPath();
     return focusPath.slice(0);
   },
 
