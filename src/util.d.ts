@@ -270,7 +270,7 @@ export function kv<T extends string | number | symbol, V>(key: T, value: V): Rec
  * @param obj An object from which properties are copied.
  * @param keys Names of properties to be copied.
  */
-export function pick<T>(obj: T, keys: readonly (keyof T)[]): Partial<T>;
+export function pick<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Pick<T, Zeta.ArrayMember<K>>;
 
 export function pick<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
 
@@ -279,7 +279,7 @@ export function pick<T>(obj: T, callback: (value: any, key: keyof T) => any): Pa
  * @param obj An object from which properties are copied.
  * @param keys Names of properties to be excluded.
  */
-export function exclude<T>(obj: T, keys: readonly (keyof T)[]): Partial<T>;
+export function exclude<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Exclude<T, Zeta.ArrayMember<K>>;
 
 export function exclude<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
 

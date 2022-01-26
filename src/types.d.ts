@@ -7,6 +7,7 @@ declare namespace Zeta {
     type HtmlContent = string | Node | Node[] | NodeList | JQuery<any> | JQuery.htmlString;
 
     type Dictionary<T = any> = Record<string, T>;
+    type ArrayMember<T> = { [P in Extract<keyof T, number>]: K[P] }[Extract<keyof T, number>];
     type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
     type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
     type WatchableInstance<T> = T & Watchable<T>;
