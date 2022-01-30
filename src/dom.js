@@ -487,7 +487,10 @@ domReady.then(function () {
             if (!imeNode && e.cancelable) {
                 switch (e.inputType) {
                     case 'insertText':
-                        return triggerUIEvent('textInput', e.data);
+                        if (triggerUIEvent('textInput', e.data)) {
+                            e.preventDefault();
+                        }
+                        return;
                     case 'deleteContent':
                     case 'deleteContentBackward':
                         return triggerKeystrokeEvent('backspace', '');
