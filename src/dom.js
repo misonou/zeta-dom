@@ -366,20 +366,25 @@ domReady.then(function () {
     }
 
     function handleUIEventWrapper(type, callback) {
+        var isMoveEvent = matchWord(type, 'mousemove touchmove');
         return function (e) {
             currentEvent = e;
             setTimeout(function () {
-                currentEvent = null;
-            });
-            setLastEventSource(null);
-            if (!focusable(e.target)) {
-                e.stopImmediatePropagation();
-                e.preventDefault();
-                if (matchWord(type, 'touchstart mousedown keydown')) {
-                    emitDOMEvent('focusreturn', focusPath.slice(-1)[0]);
+                if (currentEvent === e) {
+                    currentEvent = null;
                 }
+            });
+            if (!isMoveEvent) {
+                setLastEventSource(null);
+                if (!focusable(e.target)) {
+                    e.stopImmediatePropagation();
+                    e.preventDefault();
+                    if (matchWord(type, 'touchstart mousedown keydown')) {
+                        emitDOMEvent('focusreturn', focusPath.slice(-1)[0]);
+                    }
+                }
+                setLastEventSource(e.target);
             }
-            setLastEventSource(e.target);
             callback(e);
         };
     }
@@ -581,7 +586,7 @@ domReady.then(function () {
     };
 
     each(uiEvents, function (i, v) {
-        bind(root, i, matchWord(i, 'mousemove touchmove') ? v : handleUIEventWrapper(i, v), true);
+        bind(root, i, handleUIEventWrapper(i, v), true);
     });
 
     bind(root, {
