@@ -1,40 +1,69 @@
 /// <reference path="types.d.ts" />
 
-/**
- * Gets the DOM event which triggers the current event loop.
- */
-export var event: Event | null;
+import { getEventContext, getEventSource, listenDOMEvent, emitDOMEvent } from "./events";
+import * as lock from "./domLock";
+import * as observe from "./observe";
 
-/**
- * Gets the active component registered through event container.
- * @see Zeta.ZetaEventContainer<T>
- */
-export var context: any;
+declare const methods = {
+    textInputAllowed,
+    focusable,
+    focused,
+    setModal,
+    retainFocus,
+    releaseFocus,
+    focus,
+    beginDrag,
+    beginPinchZoom,
+    getShortcut,
+    setShortcut,
+};
 
-/**
- * Gets the current active element which is readily receiving user input.
- */
-export var activeElement: HTMLElement;
+declare const events = {
+    getEventContext,
+    getEventSource,
+    on: listenDOMEvent,
+    emit: emitDOMEvent
+};
 
-/**
- * Gets the element, and also any ancestors, which are in focus.
- */
-export var focusedElements: HTMLElement[];
+declare const dom: typeof lock & typeof observe & typeof events & typeof methods & {
+    /**
+     * Gets the DOM event which triggers the current event loop.
+     */
+    readonly event: Event | null;
 
-/**
- * Gets the type of user interaction that triggers the current event.
- */
-export var eventSource: Zeta.ZetaEventSourceName;
+    /**
+     * Gets the active component registered through event container.
+     * @see Zeta.ZetaEventContainer<T>
+     */
+    readonly context: any;
 
-/**
- * Gets the root element of the document, usually the `<html>` element.
- */
-export const root: HTMLHtmlElement;
+    /**
+     * Gets the current active element which is readily receiving user input.
+     */
+    readonly activeElement: HTMLElement;
 
-/**
- * Gets a promise which is resolved when DOM is ready.
- */
-export const ready: Promise<void>;
+    /**
+     * Gets the element, and also any ancestors, which are in focus.
+     */
+    readonly focusedElements: HTMLElement[];
+
+    /**
+     * Gets the type of user interaction that triggers the current event.
+     */
+    readonly eventSource: Zeta.ZetaEventSourceName;
+
+    /**
+     * Gets the root element of the document, usually the `<html>` element.
+     */
+    readonly root: HTMLHtmlElement;
+
+    /**
+     * Gets a promise which is resolved when DOM is ready.
+     */
+    readonly ready: Promise<void>;
+}
+
+export default dom;
 
 /**
  * Determines whether the element can receive text input.
@@ -81,9 +110,3 @@ export function beginDrag(progressCallback?: (x: number, y: number) => void): Pr
 export function beginDrag(within: Element, progressCallback?: (x: number, y: number) => void): PromiseLike<void>;
 
 export function beginPinchZoom(progressCallback?: (deg: number, scale: number, translateX: number, translateY: number) => void): PromiseLike<void>;
-
-export { getEventContext, getEventSource, listenDOMEvent as on, emitDOMEvent as emit } from "./events";
-
-export * from "./domLock";
-
-export * from "./observe";
