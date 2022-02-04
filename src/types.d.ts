@@ -8,9 +8,17 @@ declare namespace Zeta {
 
     type Dictionary<T = any> = Record<string, T>;
     type ArrayMember<T> = { [P in Extract<keyof T, number>]: T[P] }[Extract<keyof T, number>];
+    type KeyOf<T> = T extends (any[] | ArrayLike<any>) ? number :
+        T extends Map<infer K, any> ? K :
+        T extends Set<infer V> ? V :
+        T extends object ? Exclude<keyof T, symbol> : never;
+    type ValueOf<T> = T extends (any[] | ArrayLike<any>) ? ArrayMember<T> :
+        T extends Map<any, infer V> ? V :
+        T extends Set<infer V> ? V :
+        T extends object ? T[Exclude<keyof T, symbol>] : never;
     type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
     type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
-    type WatchableInstance<T> = T & Watchable<T>;
+    type WatchableInstance<T, K = keyof T> = T & Watchable<T, K>;
 
     type IteratorNodeFilterResult = 1 | 2 | 3;
     type IteratorNodeFilter<T> = (node: T) => IteratorNodeFilterResult | undefined;
@@ -56,20 +64,20 @@ declare namespace Zeta {
     type ClickName = 'click' | 'rightClick' | 'doubleClick' | 'ctrlClick' | 'shiftClick' | 'altClick' | 'ctrlShiftClick' | 'ctrlAltClick' | 'altShiftClick' | 'ctrlAltShiftClick';
     type GestureName = 'swipeUp' | 'swipeDown' | 'swipeLeft' | 'swipeRight' | 'pinchZoom';
 
-    interface Watchable<T> {
+    interface Watchable<T, K = keyof T> {
         /**
          * Watches a property on the object.
          * @param prop Property name.
          * @param handler Callback to be fired and the property is changed.
          * @param fireInit Optionally fire the handler immediately.
          */
-        watch<P extends keyof T>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
+        watch<P extends K>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
         /**
          * Watches a property and resolves when the property is changed.
          * @param prop Property name.
          * @param handler Callback to be fired when the property is changed.
          */
-        watchOnce<P extends keyof T>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void): Promise<T[P]>;
+        watchOnce<P extends K>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void): Promise<T[P]>;
     }
 
     interface PrivateStore<K extends object, V> {

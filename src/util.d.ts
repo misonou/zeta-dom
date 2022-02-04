@@ -119,7 +119,7 @@ export function each<K, V>(obj: Record<K, V>, callback: (i: K, v: V) => any): vo
  * @param obj An object.
  * @param callback Function that will be executed in the context of each key-value pair.
  */
-export function each(obj: any, callback: (i: any, v: any) => any): void;
+export function each<T>(obj: T, callback: (i: Zeta.KeyOf<T>, v: Zeta.ValueOf<T>) => any): void;
 
 /**
  * Creates an array containing items that is mapped from each item of the given array or array-like object.
@@ -183,7 +183,7 @@ export function grep<K, V>(obj: Map<K, V>, callback: (v: V, i: K) => any): V[];
  * @param callback  Function called for each property which returns if the property value should be included.
  * @returns An array containing property values for which the callback returned a truthy value.
  */
-export function grep(obj: any, callback: (v: any, i: any) => any): any[];
+export function grep<T>(obj: T, callback: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T>[];
 
 /**
  * Removes items that satifies a condition from an array and returns them as a new array.
@@ -223,7 +223,7 @@ export function any<K, V>(obj: Map<K, V>, callback: (v: V, i: K) => any): V | fa
  * @param callback Function called for each original item which determines if the item satifies a condition.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any(obj: any, callback: (v: any, i: any) => any): any;
+export function any<T>(obj: T, callback: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T> | false;
 
 /**
  * Iterates the given array or array-like object until a non-falsy value is returned by the given callback.
