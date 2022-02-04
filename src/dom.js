@@ -8,7 +8,7 @@ import { lock, cancelLock, locked } from "./domLock.js";
 import { afterDetached, observe, registerCleanup, watchAttributes, watchElements } from "./observe.js";
 
 const SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
-const META_KEYS = [16, 17, 18, 91, 93];
+const META_KEYS = [16, 17, 18, 91, 93, 224];
 
 const focusPath = [];
 const focusFriends = new WeakMap();
