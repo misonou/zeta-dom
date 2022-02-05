@@ -32,6 +32,11 @@ declare const dom: typeof lock & typeof observe & typeof events & typeof methods
     readonly event: Event | null;
 
     /**
+     * Gets the currently pressed key modifiers.
+     */
+    readonly metaKey: '' | Zeta.KeyNameModifier;
+
+    /**
      * Gets the active component registered through event container.
      * @see Zeta.ZetaEventContainer<T>
      */

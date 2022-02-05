@@ -18,6 +18,7 @@ const shortcuts = {};
 
 var windowFocusedOut;
 var currentEvent;
+var currentMetaKey = '';
 
 
 /* --------------------------------------
@@ -374,6 +375,13 @@ domReady.then(function () {
                     currentEvent = null;
                 }
             });
+            if ('ctrlKey' in e) {
+                var metaKey = getEventName(e, '');
+                if (metaKey !== currentMetaKey) {
+                    currentMetaKey = metaKey;
+                    triggerUIEvent('metakeychange', metaKey);
+                }
+            }
             if (!isMoveEvent) {
                 setLastEventSource(null);
                 if (!focusable(e.target)) {
@@ -457,9 +465,6 @@ domReady.then(function () {
             if (!imeNode) {
                 var keyCode = e.keyCode;
                 var isModifierKey = (META_KEYS.indexOf(keyCode) >= 0);
-                if (isModifierKey && keyCode !== modifiedKeyCode) {
-                    triggerUIEvent('metakeychange', getEventName(e));
-                }
                 var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || (keyCode >= 96 && keyCode <= 111));
                 // @ts-ignore: boolean arithmetic
                 modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !isModifierKey;
@@ -476,9 +481,6 @@ domReady.then(function () {
             if (!imeNode && (isModifierKey || modifiedKeyCode === e.keyCode)) {
                 modifiedKeyCode = null;
                 modifierCount--;
-                if (isModifierKey) {
-                    triggerUIEvent('metakeychange', getEventName(e) || '');
-                }
             }
         },
         keypress: function (e) {
@@ -679,6 +681,9 @@ function focus(element) {
 export default {
     get event() {
         return currentEvent;
+    },
+    get metaKey() {
+        return currentMetaKey;
     },
     get context() {
         return getEventContext(getActiveElement()).context;
