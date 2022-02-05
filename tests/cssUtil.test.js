@@ -66,7 +66,7 @@ describe('runCSSTransition', () => {
         const promise = runCSSTransition(node1, 'active', cb);
         expect(cb).toBeCalledTimes(1);
         expect(node1.classList).toContain('active');
-        await expect(promise).resolves.toBeUndefined();
+        await expect(promise).resolves.toBe(node1);
     });
 
     it('should ignore hidden elements', async () => {
@@ -90,7 +90,7 @@ describe('runCSSTransition', () => {
         const promise = runCSSTransition(node1, 'active', cb);
         expect(cb).toBeCalledTimes(1);
         expect(node1.classList).toContain('active');
-        await expect(promise).resolves.toBeUndefined();
+        await expect(promise).resolves.toBe(node1);
     });
 
     it('should resolve when the triggered CSS animation have ended', async () => {
@@ -192,7 +192,7 @@ describe('runCSSTransition', () => {
         const promise = runCSSTransition(node1, 'active', cb);
         expect(cb).toBeCalledTimes(1);
         expect(node1.classList).toContain('active');
-        await expect(promise).resolves.toBeUndefined();
+        await expect(promise).resolves.toBe(node1);
     });
 
     it('should normalize identity matrix in transform', async () => {
@@ -213,7 +213,7 @@ describe('runCSSTransition', () => {
         const promise = runCSSTransition(node1, 'active', cb);
         expect(cb).toBeCalledTimes(1);
         expect(node1.classList).toContain('active');
-        await expect(promise).resolves.toBeUndefined();
+        await expect(promise).resolves.toBe(node1);
     });
 
     it('should remove CSS class after resolved when last argument is true', async () => {

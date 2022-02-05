@@ -1,8 +1,10 @@
 import Promise from "./include/promise-polyfill.js";
 import $ from "./include/jquery.js";
-import { window, document, getComputedStyle } from "./env.js";
+import { window, document, getComputedStyle, root } from "./env.js";
 import { getClass, setClass, iterateNode, createNodeIterator, isVisible, bind } from "./domUtil.js";
-import { reject, noop, resolve, each, matchWord, keys } from "./util.js";
+import { reject, noop, resolve, each, matchWord, keys, resolveAll, grep } from "./util.js";
+
+const getAnimationsImpl = root.getAnimations;
 
 function parseCSS(value) {
     var styles = {};
@@ -49,7 +51,30 @@ function runCSSTransition(element, className, callback) {
     if (callback === true) {
         callback = setClass.bind(null, element, className, false);
     }
-    setClass(element, className, true);
+
+    function complete() {
+        if (getClass(element, className)) {
+            callback();
+            return resolve(element);
+        } else {
+            return reject(element);
+        }
+    }
+
+    if (getAnimationsImpl) {
+        var anim = getAnimationsImpl.call(element, { subtree: true });
+        setClass(element, className, true);
+        anim = grep(getAnimationsImpl.call(element, { subtree: true }), function (v) {
+            return !anim.includes(v);
+        });
+        if (!anim[0]) {
+            return complete();
+        }
+        return resolveAll(anim.map(function (v) {
+            return v.finished;
+        })).then(complete);
+    }
+
     var arr = [];
     var map1 = new Map();
     var test = function (element, pseudoElement) {
@@ -60,6 +85,7 @@ function runCSSTransition(element, className, callback) {
             arr.push(key);
         }
     };
+    setClass(element, className, true);
     iterateNode(createNodeIterator(element, 1, function (v) {
         if (!isVisible(v)) {
             return 2;
@@ -69,8 +95,7 @@ function runCSSTransition(element, className, callback) {
         test(v, '::after');
     }));
     if (!arr[0]) {
-        callback();
-        return resolve();
+        return complete();
     }
 
     var targets = arr.map(function (v) {
@@ -124,8 +149,7 @@ function runCSSTransition(element, className, callback) {
     });
     setClass(element, className, true);
     if (!map.size) {
-        callback();
-        return resolve();
+        return complete();
     }
 
     return new Promise(function (resolve, reject) {
@@ -135,12 +159,7 @@ function runCSSTransition(element, className, callback) {
             delete dict[(e.propertyName ? removeVendorPrefix(e.propertyName) : '@' + e.animationName) + (e.pseudoElement || '')];
             if (!keys(dict)[0] && map.delete(e.target) && !map.size) {
                 unbind();
-                if (getClass(element, className)) {
-                    callback();
-                    resolve(element);
-                } else {
-                    reject(element);
-                }
+                resolve(complete());
             }
         });
     });
