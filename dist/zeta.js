@@ -1478,7 +1478,7 @@ env_window.onbeforeunload = function (e) {
 
 
 var SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
-var META_KEYS = [16, 17, 18, 91, 93];
+var META_KEYS = [16, 17, 18, 91, 93, 224];
 var focusPath = [];
 var focusFriends = new WeakMap();
 var focusElements = new Set();
@@ -1486,6 +1486,7 @@ var modalElements = new Map();
 var shortcuts = {};
 var windowFocusedOut;
 var currentEvent;
+var currentMetaKey = '';
 /* --------------------------------------
  * Helper functions
  * -------------------------------------- */
@@ -1857,23 +1858,39 @@ domReady.then(function () {
   }
 
   function handleUIEventWrapper(type, callback) {
+    var isMoveEvent = matchWord(type, 'mousemove touchmove');
     return function (e) {
       currentEvent = e;
       setTimeout(function () {
-        currentEvent = null;
+        if (currentEvent === e) {
+          currentEvent = null;
+        }
       });
-      setLastEventSource(null);
 
-      if (!focusable(e.target)) {
-        e.stopImmediatePropagation();
-        e.preventDefault();
+      if ('ctrlKey' in e) {
+        var metaKey = getEventName(e, '');
 
-        if (matchWord(type, 'touchstart mousedown keydown')) {
-          emitDOMEvent('focusreturn', focusPath.slice(-1)[0]);
+        if (metaKey !== currentMetaKey) {
+          currentMetaKey = metaKey;
+          triggerUIEvent('metakeychange', metaKey);
         }
       }
 
-      setLastEventSource(e.target);
+      if (!isMoveEvent) {
+        setLastEventSource(null);
+
+        if (!focusable(e.target)) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+
+          if (matchWord(type, 'touchstart mousedown keydown')) {
+            emitDOMEvent('focusreturn', focusPath.slice(-1)[0]);
+          }
+        }
+
+        setLastEventSource(e.target);
+      }
+
       callback(e);
     };
   }
@@ -1950,11 +1967,6 @@ domReady.then(function () {
       if (!imeNode) {
         var keyCode = e.keyCode;
         var isModifierKey = META_KEYS.indexOf(keyCode) >= 0;
-
-        if (isModifierKey && keyCode !== modifiedKeyCode) {
-          triggerUIEvent('metakeychange', getEventName(e));
-        }
-
         var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || keyCode >= 96 && keyCode <= 111); // @ts-ignore: boolean arithmetic
 
         modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !isModifierKey; // @ts-ignore: boolean arithmetic
@@ -1973,10 +1985,6 @@ domReady.then(function () {
       if (!imeNode && (isModifierKey || modifiedKeyCode === e.keyCode)) {
         modifiedKeyCode = null;
         modifierCount--;
-
-        if (isModifierKey) {
-          triggerUIEvent('metakeychange', getEventName(e) || '');
-        }
       }
     },
     keypress: function keypress(e) {
@@ -1990,7 +1998,11 @@ domReady.then(function () {
       if (!imeNode && e.cancelable) {
         switch (e.inputType) {
           case 'insertText':
-            return triggerUIEvent('textInput', e.data);
+            if (triggerUIEvent('textInput', e.data)) {
+              e.preventDefault();
+            }
+
+            return;
 
           case 'deleteContent':
           case 'deleteContentBackward':
@@ -2090,7 +2102,7 @@ domReady.then(function () {
     }
   };
   each(uiEvents, function (i, v) {
-    bind(root, i, matchWord(i, 'mousemove touchmove') ? v : handleUIEventWrapper(i, v), true);
+    bind(root, i, handleUIEventWrapper(i, v), true);
   });
   bind(root, {
     focusin: function focusin(e) {
@@ -2181,6 +2193,10 @@ function dom_focus(element) {
 /* harmony default export */ const dom = ({
   get event() {
     return currentEvent;
+  },
+
+  get metaKey() {
+    return currentMetaKey;
   },
 
   get context() {
@@ -3481,6 +3497,7 @@ function elementFromPoint(x, y, container) {
 
 
 
+var getAnimationsImpl = root.getAnimations;
 
 function parseCSS(value) {
   var styles = {};
@@ -3531,7 +3548,35 @@ function runCSSTransition(element, className, callback) {
     callback = setClass.bind(null, element, className, false);
   }
 
-  setClass(element, className, true);
+  function complete() {
+    if (getClass(element, className)) {
+      callback();
+      return resolve(element);
+    } else {
+      return reject(element);
+    }
+  }
+
+  if (getAnimationsImpl) {
+    var anim = getAnimationsImpl.call(element, {
+      subtree: true
+    });
+    setClass(element, className, true);
+    anim = grep(getAnimationsImpl.call(element, {
+      subtree: true
+    }), function (v) {
+      return !anim.includes(v);
+    });
+
+    if (!anim[0]) {
+      return complete();
+    }
+
+    return resolveAll(anim.map(function (v) {
+      return v.finished;
+    })).then(complete);
+  }
+
   var arr = [];
   var map1 = new Map();
 
@@ -3548,6 +3593,7 @@ function runCSSTransition(element, className, callback) {
     }
   };
 
+  setClass(element, className, true);
   iterateNode(createNodeIterator(element, 1, function (v) {
     if (!isVisible(v)) {
       return 2;
@@ -3559,8 +3605,7 @@ function runCSSTransition(element, className, callback) {
   }));
 
   if (!arr[0]) {
-    callback();
-    return resolve();
+    return complete();
   }
 
   var targets = arr.map(function (v) {
@@ -3617,8 +3662,7 @@ function runCSSTransition(element, className, callback) {
   setClass(element, className, true);
 
   if (!map.size) {
-    callback();
-    return resolve();
+    return complete();
   }
 
   return new promise_polyfill(function (resolve, reject) {
@@ -3629,13 +3673,7 @@ function runCSSTransition(element, className, callback) {
 
       if (!keys(dict)[0] && map.delete(e.target) && !map.size) {
         unbind();
-
-        if (getClass(element, className)) {
-          callback();
-          resolve(element);
-        } else {
-          reject(element);
-        }
+        resolve(complete());
       }
     });
   });
