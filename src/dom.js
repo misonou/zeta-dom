@@ -2,7 +2,7 @@ import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyl
 import { KEYNAMES } from "./constants.js";
 import $ from "./include/jquery.js";
 import { always, any, combineFn, each, extend, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, single, ucfirst } from "./util.js";
-import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
+import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
 import { afterDetached, observe, registerCleanup, watchAttributes, watchElements } from "./observe.js";
@@ -44,6 +44,10 @@ function measureLine(p1, p2) {
 
 function textInputAllowed(v) {
     return v.isContentEditable || matchSelector(v, 'input,textarea,select');
+}
+
+function isMouseDown(e) {
+    return (e.buttons || e.which) === 1;
 }
 
 /* --------------------------------------
@@ -294,7 +298,6 @@ function beginPinchZoom(callback) {
 }
 
 domReady.then(function () {
-    var body = document.body;
     var modifierCount;
     var modifiedKeyCode;
     var mouseInitialPoint;
@@ -361,9 +364,9 @@ domReady.then(function () {
         }
     }
 
-    function triggerMouseEvent(eventName) {
+    function triggerMouseEvent(eventName, target) {
         var data = {
-            target: currentEvent.target,
+            target: target || currentEvent.target,
             metakey: getEventName(currentEvent) || ''
         };
         return triggerUIEvent(eventName, data, mouseInitialPoint || currentEvent);
@@ -560,7 +563,7 @@ domReady.then(function () {
         },
         mousedown: function (e) {
             setFocus(e.target);
-            if ((e.buttons || e.which) === 1) {
+            if (isMouseDown(e)) {
                 triggerMouseEvent('mousedown');
             }
             mouseInitialPoint = e;
@@ -568,10 +571,15 @@ domReady.then(function () {
         },
         mousemove: function (e) {
             if (mouseInitialPoint && measureLine(e, mouseInitialPoint).length > 5) {
+                var target = mouseInitialPoint.target;
+                if (isMouseDown(e) && containsOrEquals(target, elementFromPoint(mouseInitialPoint.clientX, mouseInitialPoint.clientY))) {
+                    triggerMouseEvent('drag', target);
+                }
                 mouseInitialPoint = null;
             }
         },
         mouseup: function () {
+            mouseInitialPoint = null;
             if (mousedownFocus && document.activeElement !== mousedownFocus) {
                 mousedownFocus.focus();
             }

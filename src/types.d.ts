@@ -194,6 +194,7 @@ declare namespace Zeta {
     type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & ZetaCustomEventMap & {
         focusin: ZetaFocusEvent;
         focusout: ZetaFocusEvent;
+        drag: ZetaMouseEvent;
         longPress: ZetaMouseEvent;
         mousedown: ZetaMouseEvent;
         mousewheel: ZetaWheelEvent;
