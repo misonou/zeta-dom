@@ -123,8 +123,7 @@ function extend() {
                     }
                     // never move original objects, clone them
                     target[name] = extend(deep, clone, copy);
-                } else if (copy !== undefined) {
-                    // don't bring in undefined values
+                } else {
                     target[name] = copy;
                 }
             }
