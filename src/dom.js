@@ -294,6 +294,7 @@ domReady.then(function () {
     var mousedownFocus;
     var normalizeTouchEvents;
     var pressTimeout;
+    var hasCompositionUpdate;
     var imeNode;
     var imeOffset;
     var imeText;
@@ -404,6 +405,7 @@ domReady.then(function () {
         },
         compositionupdate: function (e) {
             imeText = e.data;
+            hasCompositionUpdate = true;
         },
         compositionend: function (e) {
             var isInputElm = 'selectionEnd' in imeNode;
@@ -450,6 +452,7 @@ domReady.then(function () {
                 }
             }
             imeNode = null;
+            hasCompositionUpdate = false;
             setTimeout(function () {
                 imeText = null;
             });
@@ -457,7 +460,7 @@ domReady.then(function () {
         textInput: function (e) {
             // required for older mobile browsers that do not support beforeinput event
             // ignore in case browser fire textInput before/after compositionend
-            if (!imeNode && (e.data === imeText || triggerUIEvent('textInput', e.data))) {
+            if (!hasCompositionUpdate && (e.data === imeText || triggerUIEvent('textInput', e.data))) {
                 e.preventDefault();
             }
         },
@@ -491,6 +494,7 @@ domReady.then(function () {
             }
         },
         beforeinput: function (e) {
+            hasCompositionUpdate = false;
             if (!imeNode && e.cancelable) {
                 switch (e.inputType) {
                     case 'insertText':
@@ -602,6 +606,8 @@ domReady.then(function () {
             }
         },
         focusout: function (e) {
+            imeNode = null;
+            hasCompositionUpdate = false;
             // browser set focus to body if the focused element is no longer visible
             // which is not a desirable behavior in many cases
             // find the first visible element in focusPath to focus
