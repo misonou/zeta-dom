@@ -112,6 +112,9 @@ export function setShortcut(setting: Zeta.Dictionary<string | string[]>): void;
 
 export function beginDrag(progressCallback?: (x: number, y: number) => void): PromiseLike<void>;
 
+/**
+ * @deprecated `within` parameter has no effect
+ */
 export function beginDrag(within: Element, progressCallback?: (x: number, y: number) => void): PromiseLike<void>;
 
 export function beginPinchZoom(progressCallback?: (deg: number, scale: number, translateX: number, translateY: number) => void): PromiseLike<void>;

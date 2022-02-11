@@ -1,8 +1,8 @@
 import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import $ from "./include/jquery.js";
-import { always, any, each, extend, is, isFunction, isPlainObject, keys, lcfirst, map, mapRemove, matchWord, noop, reject, single, ucfirst } from "./util.js";
-import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
+import { always, any, combineFn, each, extend, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, single, ucfirst } from "./util.js";
+import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
 import { afterDetached, observe, registerCleanup, watchAttributes, watchElements } from "./observe.js";
@@ -19,6 +19,8 @@ const shortcuts = {};
 var windowFocusedOut;
 var currentEvent;
 var currentMetaKey = '';
+var trackPromise;
+var trackCallbacks;
 
 
 /* --------------------------------------
@@ -201,13 +203,44 @@ function setShortcut(command, keystroke) {
 }
 
 function trackPointer(callback) {
+    if (trackCallbacks) {
+        trackCallbacks.push(callback);
+        return trackPromise;
+    }
     var lastPoint = currentEvent;
+    var scrollParent = getScrollParent(currentEvent.target);
+    var scrollTimeout;
     var resolve, reject;
-    var promise = new Promise(function (res, rej) {
+
+    trackCallbacks = [callback];
+    trackPromise = prepEventSource(new Promise(function (res, rej) {
         resolve = res.bind(0, undefined);
         reject = rej;
-    });
-    bindUntil(promise, window, {
+    }));
+    callback = combineFn(trackCallbacks);
+    if (root.setCapture) {
+        root.setCapture();
+    }
+
+    var stopScroll = function () {
+        clearInterval(scrollTimeout);
+        scrollTimeout = null;
+    };
+    var startScroll = function () {
+        scrollTimeout = scrollTimeout || setInterval(function () {
+            var x = lastPoint.clientX;
+            var y = lastPoint.clientY;
+            var r = getRect(scrollParent);
+            var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
+            var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
+            if ((dx || dy) && scrollIntoView(scrollParent, toPlainRect(x, y).expand(dx, dy))) {
+                callback(lastPoint);
+            } else {
+                stopScroll();
+            }
+        }, 20);
+    };
+    bindUntil(trackPromise, window, {
         mouseup: resolve,
         touchend: resolve,
         keydown: function (e) {
@@ -216,62 +249,36 @@ function trackPointer(callback) {
             }
         },
         mousemove: function (e) {
-            e.preventDefault();
+            startScroll();
             if (!e.which && !lastPoint.touches) {
                 resolve();
             } else if (e.clientX !== lastPoint.clientX || e.clientY !== lastPoint.clientY) {
                 lastPoint = e;
-                callback([lastPoint]);
+                callback(lastPoint);
             }
         },
         touchmove: function (e) {
-            callback(e.touches);
+            callback.apply(0, makeArray(e.touches));
         }
     });
-    return prepEventSource(promise);
+    always(trackPromise, function () {
+        stopScroll();
+        trackCallbacks = null;
+        if (root.releaseCapture) {
+            root.releaseCapture();
+        }
+    });
+    return trackPromise;
 }
 
 function beginDrag(within, callback) {
-    if (!currentEvent || currentEvent.type !== 'mousedown') {
+    if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove')) {
         return reject();
     }
     callback = isFunction(callback || within) || noop;
-    within = is(within, Node) || currentEvent.target;
-
-    var lastPoint = currentEvent;
-    var scrollParent = getScrollParent(within);
-    var scrollTimeout;
-    var callbackWrapper = function (points) {
-        lastPoint = points[0];
-        callback(lastPoint.clientX, lastPoint.clientY);
-    };
-    var cleanUp = function () {
-        clearInterval(scrollTimeout);
-        scrollTimeout = null;
-    };
-    var promise = trackPointer(callbackWrapper);
-    bindUntil(promise, scrollParent, {
-        mouseout: function (e) {
-            var relatedTarget = e.relatedTarget;
-            // @ts-ignore: relatedTarget is Element
-            if (!scrollTimeout && (!containsOrEquals(scrollParent, relatedTarget) || (scrollParent === root && relatedTarget === root))) {
-                scrollTimeout = setInterval(function () {
-                    if (scrollIntoView(scrollParent, toPlainRect(lastPoint.clientX, lastPoint.clientY).expand(50))) {
-                        callbackWrapper([lastPoint]);
-                    } else {
-                        cleanUp();
-                    }
-                }, 20);
-            }
-        },
-        mouseover: function (e) {
-            if (e.target !== root) {
-                cleanUp();
-            }
-        }
+    return trackPointer(function (p) {
+        callback(p.clientX, p.clientY);
     });
-    always(promise, cleanUp);
-    return promise;
 }
 
 function beginPinchZoom(callback) {
@@ -280,9 +287,9 @@ function beginPinchZoom(callback) {
         return reject();
     }
     var m0 = measureLine(initialPoints[0], initialPoints[1]);
-    return trackPointer(function (points) {
-        var m1 = measureLine(points[0], points[1]);
-        callback((m1.deg - m0.deg + 540) % 360 - 180, m1.length / m0.length, points[0].clientX - initialPoints[0].clientX + (m0.dx - m1.dx) / 2, points[0].clientY - initialPoints[0].clientY + (m0.dy - m1.dy) / 2);
+    return trackPointer(function (p1, p2) {
+        var m1 = measureLine(p1, p2);
+        callback((m1.deg - m0.deg + 540) % 360 - 180, m1.length / m0.length, p1.clientX - initialPoints[0].clientX + (m0.dx - m1.dx) / 2, p1.clientY - initialPoints[0].clientY + (m0.dy - m1.dy) / 2);
     });
 }
 
