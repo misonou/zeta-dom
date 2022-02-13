@@ -346,8 +346,7 @@ function extend() {
 
 
           target[name] = extend(deep, clone, copy);
-        } else if (copy !== undefined) {
-          // don't bring in undefined values
+        } else {
           target[name] = copy;
         }
       }
@@ -1487,6 +1486,8 @@ var shortcuts = {};
 var windowFocusedOut;
 var currentEvent;
 var currentMetaKey = '';
+var trackPromise;
+var trackCallbacks;
 /* --------------------------------------
  * Helper functions
  * -------------------------------------- */
@@ -1508,6 +1509,10 @@ function measureLine(p1, p2) {
 
 function textInputAllowed(v) {
   return v.isContentEditable || matchSelector(v, 'input,textarea,select');
+}
+
+function isMouseDown(e) {
+  return (e.buttons || e.which) === 1;
 }
 /* --------------------------------------
  * Focus management
@@ -1681,13 +1686,48 @@ function setShortcut(command, keystroke) {
 }
 
 function trackPointer(callback) {
+  if (trackCallbacks) {
+    trackCallbacks.push(callback);
+    return trackPromise;
+  }
+
   var lastPoint = currentEvent;
+  var scrollParent = getScrollParent(currentEvent.target);
+  var scrollTimeout;
   var resolve, reject;
-  var promise = new Promise(function (res, rej) {
+  trackCallbacks = [callback];
+  trackPromise = prepEventSource(new Promise(function (res, rej) {
     resolve = res.bind(0, undefined);
     reject = rej;
-  });
-  bindUntil(promise, env_window, {
+  }));
+  callback = combineFn(trackCallbacks);
+
+  if (root.setCapture) {
+    root.setCapture();
+  }
+
+  var stopScroll = function stopScroll() {
+    clearInterval(scrollTimeout);
+    scrollTimeout = null;
+  };
+
+  var startScroll = function startScroll() {
+    scrollTimeout = scrollTimeout || setInterval(function () {
+      var x = lastPoint.clientX;
+      var y = lastPoint.clientY;
+      var r = getRect(scrollParent);
+      var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
+      var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
+
+      if ((dx || dy) && scrollIntoView(scrollParent, toPlainRect(x, y).expand(dx, dy))) {
+        callback(lastPoint);
+      } else {
+        stopScroll();
+      }
+    }, 20);
+  };
+
+  bindUntil(trackPromise, env_window, {
     mouseup: resolve,
     touchend: resolve,
     keydown: function keydown(e) {
@@ -1696,66 +1736,39 @@ function trackPointer(callback) {
       }
     },
     mousemove: function mousemove(e) {
-      e.preventDefault();
+      startScroll();
 
       if (!e.which && !lastPoint.touches) {
         resolve();
       } else if (e.clientX !== lastPoint.clientX || e.clientY !== lastPoint.clientY) {
         lastPoint = e;
-        callback([lastPoint]);
+        callback(lastPoint);
       }
     },
     touchmove: function touchmove(e) {
-      callback(e.touches);
+      callback.apply(0, makeArray(e.touches));
     }
   });
-  return prepEventSource(promise);
+  always(trackPromise, function () {
+    stopScroll();
+    trackCallbacks = null;
+
+    if (root.releaseCapture) {
+      root.releaseCapture();
+    }
+  });
+  return trackPromise;
 }
 
 function beginDrag(within, callback) {
-  if (!currentEvent || currentEvent.type !== 'mousedown') {
+  if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove')) {
     return reject();
   }
 
   callback = isFunction(callback || within) || noop;
-  within = is(within, Node) || currentEvent.target;
-  var lastPoint = currentEvent;
-  var scrollParent = getScrollParent(within);
-  var scrollTimeout;
-
-  var callbackWrapper = function callbackWrapper(points) {
-    lastPoint = points[0];
-    callback(lastPoint.clientX, lastPoint.clientY);
-  };
-
-  var cleanUp = function cleanUp() {
-    clearInterval(scrollTimeout);
-    scrollTimeout = null;
-  };
-
-  var promise = trackPointer(callbackWrapper);
-  bindUntil(promise, scrollParent, {
-    mouseout: function mouseout(e) {
-      var relatedTarget = e.relatedTarget; // @ts-ignore: relatedTarget is Element
-
-      if (!scrollTimeout && (!containsOrEquals(scrollParent, relatedTarget) || scrollParent === root && relatedTarget === root)) {
-        scrollTimeout = setInterval(function () {
-          if (scrollIntoView(scrollParent, toPlainRect(lastPoint.clientX, lastPoint.clientY).expand(50))) {
-            callbackWrapper([lastPoint]);
-          } else {
-            cleanUp();
-          }
-        }, 20);
-      }
-    },
-    mouseover: function mouseover(e) {
-      if (e.target !== root) {
-        cleanUp();
-      }
-    }
+  return trackPointer(function (p) {
+    callback(p.clientX, p.clientY);
   });
-  always(promise, cleanUp);
-  return promise;
 }
 
 function beginPinchZoom(callback) {
@@ -1766,20 +1779,20 @@ function beginPinchZoom(callback) {
   }
 
   var m0 = measureLine(initialPoints[0], initialPoints[1]);
-  return trackPointer(function (points) {
-    var m1 = measureLine(points[0], points[1]);
-    callback((m1.deg - m0.deg + 540) % 360 - 180, m1.length / m0.length, points[0].clientX - initialPoints[0].clientX + (m0.dx - m1.dx) / 2, points[0].clientY - initialPoints[0].clientY + (m0.dy - m1.dy) / 2);
+  return trackPointer(function (p1, p2) {
+    var m1 = measureLine(p1, p2);
+    callback((m1.deg - m0.deg + 540) % 360 - 180, m1.length / m0.length, p1.clientX - initialPoints[0].clientX + (m0.dx - m1.dx) / 2, p1.clientY - initialPoints[0].clientY + (m0.dy - m1.dy) / 2);
   });
 }
 
 domReady.then(function () {
-  var body = env_document.body;
   var modifierCount;
   var modifiedKeyCode;
   var mouseInitialPoint;
   var mousedownFocus;
   var normalizeTouchEvents;
   var pressTimeout;
+  var hasCompositionUpdate;
   var imeNode;
   var imeOffset;
   var imeText;
@@ -1844,9 +1857,9 @@ domReady.then(function () {
     }
   }
 
-  function triggerMouseEvent(eventName) {
+  function triggerMouseEvent(eventName, target) {
     var data = {
-      target: currentEvent.target,
+      target: target || currentEvent.target,
       metakey: getEventName(currentEvent) || ''
     };
     return triggerUIEvent(eventName, data, mouseInitialPoint || currentEvent);
@@ -1902,6 +1915,7 @@ domReady.then(function () {
     },
     compositionupdate: function compositionupdate(e) {
       imeText = e.data;
+      hasCompositionUpdate = true;
     },
     compositionend: function compositionend(e) {
       var isInputElm = ('selectionEnd' in imeNode);
@@ -1952,6 +1966,7 @@ domReady.then(function () {
       }
 
       imeNode = null;
+      hasCompositionUpdate = false;
       setTimeout(function () {
         imeText = null;
       });
@@ -1959,7 +1974,7 @@ domReady.then(function () {
     textInput: function textInput(e) {
       // required for older mobile browsers that do not support beforeinput event
       // ignore in case browser fire textInput before/after compositionend
-      if (!imeNode && (e.data === imeText || triggerUIEvent('textInput', e.data))) {
+      if (!hasCompositionUpdate && (e.data === imeText || triggerUIEvent('textInput', e.data))) {
         e.preventDefault();
       }
     },
@@ -1995,6 +2010,8 @@ domReady.then(function () {
       }
     },
     beforeinput: function beforeinput(e) {
+      hasCompositionUpdate = false;
+
       if (!imeNode && e.cancelable) {
         switch (e.inputType) {
           case 'insertText':
@@ -2062,7 +2079,7 @@ domReady.then(function () {
     mousedown: function mousedown(e) {
       setFocus(e.target);
 
-      if ((e.buttons || e.which) === 1) {
+      if (isMouseDown(e)) {
         triggerMouseEvent('mousedown');
       }
 
@@ -2071,10 +2088,18 @@ domReady.then(function () {
     },
     mousemove: function mousemove(e) {
       if (mouseInitialPoint && measureLine(e, mouseInitialPoint).length > 5) {
+        var target = mouseInitialPoint.target;
+
+        if (isMouseDown(e) && containsOrEquals(target, elementFromPoint(mouseInitialPoint.clientX, mouseInitialPoint.clientY))) {
+          triggerMouseEvent('drag', target);
+        }
+
         mouseInitialPoint = null;
       }
     },
     mouseup: function mouseup() {
+      mouseInitialPoint = null;
+
       if (mousedownFocus && env_document.activeElement !== mousedownFocus) {
         mousedownFocus.focus();
       }
@@ -2116,10 +2141,12 @@ domReady.then(function () {
       }
     },
     focusout: function focusout(e) {
-      // browser set focus to body if the focused element is no longer visible
+      imeNode = null;
+      hasCompositionUpdate = false; // browser set focus to body if the focused element is no longer visible
       // which is not a desirable behavior in many cases
       // find the first visible element in focusPath to focus
       // @ts-ignore: e.target is Element
+
       if (!e.relatedTarget && !isVisible(e.target)) {
         var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
 
