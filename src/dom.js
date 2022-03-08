@@ -298,10 +298,10 @@ function trackPointer(callback) {
 }
 
 function beginDrag(within, callback) {
-    if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove')) {
+    if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove touchstart touchmove')) {
         return reject();
     }
-    var initialPoint = currentEvent;
+    var initialPoint = (currentEvent.touches || [currentEvent])[0];
     callback = isFunction(callback || within) || noop;
     return trackPointer(function (p) {
         var x = p.clientX;
@@ -570,6 +570,10 @@ domReady.then(function () {
             if (mouseInitialPoint) {
                 if (!e.touches[1]) {
                     var line = measureLine(e.touches[0], mouseInitialPoint);
+                    if (line.length > 5 && triggerMouseEvent('drag', mouseInitialPoint)) {
+                        mouseInitialPoint = null;
+                        return;
+                    }
                     if (line.length > 50 && approxMultipleOf(line.deg, 90)) {
                         triggerGestureEvent('swipe' + (approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Bottom' : 'Top')));
                     }
