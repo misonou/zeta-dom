@@ -181,6 +181,44 @@ describe('setModal', () => {
     });
 });
 
+describe('releaseModal', () => {
+    it('should keep currently focused element', async () => {
+        await dom.ready;
+        const { modal, other, button } = initBody(`
+            <div id="modal"></div>
+            <div id="other">
+                <button id="button"></button>
+            </div>
+        `);
+        button.focus();
+        expect(dom.focusedElements).toEqual([button, other, body, root]);
+        dom.setModal(modal);
+        expect(dom.focusable(button)).toBe(false);
+        expect(dom.focusedElements).toEqual([modal]);
+
+        dom.releaseModal(modal);
+        expect(dom.focusable(button)).toBeTruthy();
+        expect(dom.focusedElements).toEqual([modal, body, root]);
+    });
+
+    it('should fire focusout event on previously focused element', async () => {
+        await dom.ready;
+        const { modal, other, button } = initBody(`
+            <div id="modal"></div>
+            <div id="other">
+                <button id="button"></button>
+            </div>
+        `);
+        const cb = mockFn();
+        const unregister = dom.on(button, 'focusout', cb);
+        button.focus();
+        dom.setModal(modal);
+        dom.releaseModal(modal);
+        expect(cb).toBeCalled();
+        unregister();
+    });
+});
+
 describe('retainFocus', () => {
     it('should return keep element given as first argument in focused state', async () => {
         await dom.ready;

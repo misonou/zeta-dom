@@ -172,6 +172,24 @@ function setModal(element, within) {
     }
 }
 
+function releaseModal(element) {
+    var modalPath = mapRemove(modalElements, element);
+    var index = focusPath.indexOf(element);
+    if (modalPath && index >= 0) {
+        var index2 = modalPath.findIndex(function (v) {
+            return containsOrEquals(v, element);
+        });
+        if (index2 >= 0) {
+            // trigger focusout event for previously focused element
+            // which focus is lost to modal element
+            setFocus(modalPath[index2], false, null, modalPath)
+        }
+        focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
+        setFocus(focusPath[0], false);
+        cleanupFocusPath();
+    }
+}
+
 function retainFocus(a, b) {
     focusFriends.set(b, a);
 }
@@ -672,16 +690,11 @@ domReady.then(function () {
     });
 
     registerCleanup(function () {
-        each(modalElements, function (element, modelPath) {
-            if (!containsOrEquals(root, element) && mapRemove(modalElements, element) && focused(element)) {
-                var path = any(modalElements, function (w) {
-                    return w.indexOf(element) >= 0;
-                }) || focusPath;
-                path.push.apply(path, modelPath);
-                setFocus(modelPath[0], false, null, path);
+        each(modalElements, function (element) {
+            if (!containsOrEquals(root, element)) {
+                releaseModal(element);
             }
         });
-        cleanupFocusPath();
     });
 
     listenDOMEvent('escape', function () {
@@ -731,6 +744,7 @@ export default {
     focusable,
     focused,
     setModal,
+    releaseModal,
     retainFocus,
     releaseFocus,
     focus,
@@ -764,6 +778,7 @@ export {
     focusable,
     focused,
     setModal,
+    releaseModal,
     retainFocus,
     releaseFocus,
     focus

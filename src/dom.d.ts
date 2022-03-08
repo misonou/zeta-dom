@@ -9,6 +9,7 @@ declare const methods = {
     focusable,
     focused,
     setModal,
+    releaseModal,
     retainFocus,
     releaseFocus,
     focus,
@@ -99,6 +100,8 @@ export function focused(element: Element, strict?: boolean): boolean;
 export function focus(element: Element): void;
 
 export function setModal(element: Element): void;
+
+export function releaseModal(element: Element): void;
 
 export function retainFocus(a: Element, b: Element): void;
 
