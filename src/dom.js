@@ -164,8 +164,12 @@ function setModal(element, within) {
     if (!focused(focusWithin)) {
         setFocus(focusWithin);
     }
-    modalElements.set(element, focusPath.splice(0, focusWithin === root || document.body ? focusPath.length : focusPath.indexOf(focusWithin)));
-    setFocus(element);
+    var from = focusPath.indexOf(element) + 1;
+    var until = focusWithin === root || document.body ? focusPath.length : focusPath.indexOf(focusWithin);
+    modalElements.set(element, focusPath.splice(from, until - from));
+    if (!focusPath[0]) {
+        setFocus(element);
+    }
 }
 
 function retainFocus(a, b) {

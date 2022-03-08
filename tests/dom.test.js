@@ -116,6 +116,18 @@ describe('setModal', () => {
         expect(dom.activeElement).toBe(modal);
     });
 
+    it('should keep modal element and its descendant as focused', async () => {
+        await dom.ready;
+        const { modal, child } = initBody(`
+            <div id="modal">
+                <div id="child"></div>
+            </div>
+        `);
+        dom.focus(child);
+        dom.setModal(modal);
+        expect(dom.focusedElements).toEqual([child, modal]);
+    });
+
     it('should keep focus inside modal element', async () => {
         await dom.ready;
         const { modal, button } = initBody(`
