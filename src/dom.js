@@ -364,12 +364,13 @@ domReady.then(function () {
         }
     }
 
-    function triggerMouseEvent(eventName, target) {
+    function triggerMouseEvent(eventName, event) {
+        event = event || currentEvent;
         var data = {
-            target: target || currentEvent.target,
-            metakey: getEventName(currentEvent) || ''
+            target: event.target,
+            metakey: getEventName(event) || ''
         };
-        return triggerUIEvent(eventName, data, mouseInitialPoint || currentEvent);
+        return triggerUIEvent(eventName, data, mouseInitialPoint || event);
     }
 
     function triggerGestureEvent(gesture) {
@@ -532,7 +533,7 @@ domReady.then(function () {
                 }
                 pressTimeout = setTimeout(function () {
                     if (mouseInitialPoint) {
-                        triggerMouseEvent('longPress');
+                        triggerMouseEvent('longPress', e);
                         mouseInitialPoint = null;
                     }
                 }, 1000);
@@ -573,7 +574,7 @@ domReady.then(function () {
             if (mouseInitialPoint && measureLine(e, mouseInitialPoint).length > 5) {
                 var target = mouseInitialPoint.target;
                 if (isMouseDown(e) && containsOrEquals(target, elementFromPoint(mouseInitialPoint.clientX, mouseInitialPoint.clientY))) {
-                    triggerMouseEvent('drag', target);
+                    triggerMouseEvent('drag', mouseInitialPoint);
                 }
                 mouseInitialPoint = null;
             }
