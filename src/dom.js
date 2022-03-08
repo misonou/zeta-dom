@@ -301,9 +301,12 @@ function beginDrag(within, callback) {
     if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove')) {
         return reject();
     }
+    var initialPoint = currentEvent;
     callback = isFunction(callback || within) || noop;
     return trackPointer(function (p) {
-        callback(p.clientX, p.clientY);
+        var x = p.clientX;
+        var y = p.clientY;
+        callback(x, y, x - initialPoint.clientX, y - initialPoint.clientY);
     });
 }
 
