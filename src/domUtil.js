@@ -389,17 +389,21 @@ function getContentRect(element) {
     return parentRect;
 }
 
-function scrollIntoView(element, rect) {
+function scrollIntoView(element, rect, within) {
+    within = within || root;
     if (!rect || rect.top === undefined) {
         rect = getRect(element, rect);
     }
     var parent = getScrollParent(element);
+    if (!containsOrEquals(within, parent)) {
+        return false;
+    }
     var parentRect = getContentRect(parent);
     var deltaX = Math.max(0, rect.right - parentRect.right) || Math.min(rect.left - parentRect.left, 0);
     var deltaY = Math.max(0, rect.bottom - parentRect.bottom) || Math.min(rect.top - parentRect.top, 0);
     var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
     if (parent !== root) {
-        var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y));
+        var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y), within);
         if (parentResult) {
             result = {
                 x: result.x + parentResult.x,
