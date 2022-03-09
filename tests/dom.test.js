@@ -203,6 +203,22 @@ describe('setModal', () => {
         expect(dom.setModal(body)).toBe(false);
         expect(dom.focusedElements).toEqual([modal]);
     });
+
+    it('should emit modalchange event', async () => {
+        await dom.ready;
+        const { modal } = initBody(`
+            <div id="modal"></div>
+        `);
+        const cb = mockFn();
+        const unregister = dom.on('modalchange', cb);
+        await after(() => {
+            dom.setModal(modal);
+        });
+        verifyCalls(cb, [
+            [objectContaining({ type: 'modalchange' }), _]
+        ]);
+        unregister();
+    });
 });
 
 describe('releaseModal', () => {
@@ -239,6 +255,25 @@ describe('releaseModal', () => {
         dom.setModal(modal);
         dom.releaseModal(modal);
         expect(cb).toBeCalled();
+        unregister();
+    });
+
+    it('should emit modalchange event', async () => {
+        await dom.ready;
+        const { modal } = initBody(`
+            <div id="modal"></div>
+        `);
+        await after(() => {
+            dom.setModal(modal);
+        });
+        const cb = mockFn();
+        const unregister = dom.on('modalchange', cb);
+        await after(() => {
+            dom.releaseModal(modal);
+        });
+        verifyCalls(cb, [
+            [objectContaining({ type: 'modalchange' }), _]
+        ]);
         unregister();
     });
 });

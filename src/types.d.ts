@@ -189,7 +189,7 @@ declare namespace Zeta {
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaDOMEventName = keyof ZetaDOMEventMap | KeyNameSpecial | ClickName | GestureName | 'focusreturn' | 'asyncStart' | 'asyncEnd' | 'cancelled';
+    type ZetaDOMEventName = keyof ZetaDOMEventMap | KeyNameSpecial | ClickName | GestureName | 'focusreturn' | 'modalchange' | 'asyncStart' | 'asyncEnd' | 'cancelled';
 
     type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & ZetaCustomEventMap & {
         focusin: ZetaFocusEvent;

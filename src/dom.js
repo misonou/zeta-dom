@@ -1,7 +1,7 @@
 import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, extend, grep, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, single, ucfirst } from "./util.js";
+import { always, any, combineFn, each, extend, grep, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, setImmediateOnce, single, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
@@ -102,6 +102,10 @@ function triggerFocusEvent(eventName, elements, relatedTarget, source) {
     });
 }
 
+function triggerModalChangeEvent() {
+    emitDOMEvent('modalchange', root);
+}
+
 function setFocus(element, focusOnInput, source, path) {
     if (focusOnInput && !matchSelector(element, SELECTOR_FOCUSABLE)) {
         element = $(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
@@ -176,6 +180,7 @@ function setModal(element, within) {
     if (!focusPath[0]) {
         setFocus(element);
     }
+    setImmediateOnce(triggerModalChangeEvent);
     return true;
 }
 
@@ -194,6 +199,7 @@ function releaseModal(element) {
         focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
         setFocus(focusPath[0], false);
         cleanupFocusPath();
+        setImmediateOnce(triggerModalChangeEvent);
     }
 }
 
