@@ -483,9 +483,9 @@ export function always<T, R>(promise: T, callback: (resolved: boolean, value: an
  * @param promises Promises to be waited.
  * @returns A promise object.
  */
-export function resolveAll<T>(promises: readonly PromiseLike<T>[]): Promise<T[]>;
+export function resolveAll<T extends readonly unknown[] | []>(promises: T): Promise<{ -readonly [P in keyof T]: Zeta.PromiseResult<T[P]> }>;
 
-export function resolveAll<T, R>(promises: readonly PromiseLike<T>[], callback: (result: T[]) => R): Promise<Zeta.PromiseResult<R>>;
+export function resolveAll<T extends readonly unknown[] | [], R>(promises: T, callback: (result: { -readonly [P in keyof T]: Zeta.PromiseResult<T[P]> }) => R): Promise<Zeta.PromiseResult<R>>;
 
 export function resolveAll<T extends object>(promises: T): Promise<{ [P in keyof T]: Zeta.PromiseResult<T[P]> }>;
 
