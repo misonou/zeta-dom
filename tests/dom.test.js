@@ -112,7 +112,7 @@ describe('setModal', () => {
         const { modal } = initBody(`
             <div id="modal"></div>
         `);
-        dom.setModal(modal);
+        expect(dom.setModal(modal)).toBe(true);
         expect(dom.activeElement).toBe(modal);
     });
 
@@ -178,6 +178,30 @@ describe('setModal', () => {
         });
         expect(dom.focusable(button)).toBeTruthy();
         expect(dom.focusedElements).toEqual([button, other, body, root]);
+    });
+
+    it('should do no-op and return true when element is already modal', async () => {
+        await dom.ready;
+        const { modal } = initBody(`
+            <div id="modal"></div>
+        `);
+        dom.setModal(modal);
+        expect(dom.focusedElements).toEqual([modal]);
+
+        expect(dom.setModal(modal)).toBe(true);
+        expect(dom.focusedElements).toEqual([modal]);
+    });
+
+    it('should do no-op and return false when element is not focusable', async () => {
+        await dom.ready;
+        const { modal } = initBody(`
+            <div id="modal"></div>
+        `);
+        dom.setModal(modal);
+        expect(dom.focusedElements).toEqual([modal]);
+
+        expect(dom.setModal(body)).toBe(false);
+        expect(dom.focusedElements).toEqual([modal]);
     });
 });
 

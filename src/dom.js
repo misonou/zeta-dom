@@ -160,6 +160,12 @@ function setFocus(element, focusOnInput, source, path) {
 }
 
 function setModal(element, within) {
+    if (modalElements.has(element)) {
+        return true;
+    }
+    if (!focusable(element)) {
+        return false;
+    }
     var focusWithin = is(within, Node) || root;
     if (!focused(focusWithin)) {
         setFocus(focusWithin);
@@ -170,6 +176,7 @@ function setModal(element, within) {
     if (!focusPath[0]) {
         setFocus(element);
     }
+    return true;
 }
 
 function releaseModal(element) {
