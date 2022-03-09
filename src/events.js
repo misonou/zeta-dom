@@ -1,4 +1,5 @@
 import Promise from "./include/promise-polyfill.js";
+import $ from "./include/jquery.js";
 import { window, root } from "./env.js";
 import { arrRemove, createPrivateStore, definePrototype, each, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
@@ -141,11 +142,24 @@ function emitDOMEvent(eventName, target, data, options) {
     }) || emitter.emit();
 }
 
-function listenDOMEvent(element, event, handler) {
+function wrapSelectorHandler(selector, callback) {
+    return function (e) {
+        var matched = $(e.target).closest(selector)[0];
+        if (matched) {
+            return callback.call(matched, e);
+        }
+    };
+}
+
+function listenDOMEvent(element, event, handler, extra) {
     if (!is(element, Node)) {
+        extra = handler;
         handler = event;
         event = element;
         element = root;
+    }
+    if (typeof handler === 'string') {
+        handler = wrapSelectorHandler(handler, extra);
     }
     return domContainer.add(element, event, handler);
 }
