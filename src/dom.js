@@ -1,7 +1,7 @@
 import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, extend, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, single, ucfirst } from "./util.js";
+import { always, any, combineFn, each, extend, grep, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, single, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
@@ -234,6 +234,9 @@ function trackPointer(callback) {
         return trackPromise;
     }
     var lastPoint = currentEvent;
+    var scrollWithin = grep(focusPath, function (v) {
+        return containsOrEquals(v, currentEvent.target);
+    }).slice(-1)[0];
     var scrollParent = getScrollParent(currentEvent.target);
     var scrollTimeout;
     var resolve, reject;
@@ -259,7 +262,7 @@ function trackPointer(callback) {
             var r = getRect(scrollParent);
             var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
             var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
-            if ((dx || dy) && scrollIntoView(scrollParent, toPlainRect(x, y).expand(dx, dy))) {
+            if ((dx || dy) && scrollIntoView(scrollParent, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
                 callback(lastPoint);
             } else {
                 stopScroll();
