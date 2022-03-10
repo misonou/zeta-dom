@@ -1568,6 +1568,10 @@ function triggerFocusEvent(eventName, elements, relatedTarget, source) {
   });
 }
 
+function triggerModalChangeEvent() {
+  emitDOMEvent('modalchange', root);
+}
+
 function setFocus(element, focusOnInput, source, path) {
   if (focusOnInput && !matchSelector(element, SELECTOR_FOCUSABLE)) {
     element = jquery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
@@ -1638,14 +1642,52 @@ function setFocus(element, focusOnInput, source, path) {
 }
 
 function setModal(element, within) {
+  if (modalElements.has(element)) {
+    return true;
+  }
+
+  if (!focusable(element)) {
+    return false;
+  }
+
   var focusWithin = is(within, Node) || root;
 
   if (!focused(focusWithin)) {
     setFocus(focusWithin);
   }
 
-  modalElements.set(element, focusPath.splice(0, focusWithin === root || env_document.body ? focusPath.length : focusPath.indexOf(focusWithin)));
-  setFocus(element);
+  var from = focusPath.indexOf(element) + 1;
+  var until = focusWithin === root || env_document.body ? focusPath.length : focusPath.indexOf(focusWithin);
+  modalElements.set(element, focusPath.splice(from, until - from));
+
+  if (!focusPath[0]) {
+    setFocus(element);
+  }
+
+  setImmediateOnce(triggerModalChangeEvent);
+  return true;
+}
+
+function releaseModal(element) {
+  var modalPath = mapRemove(modalElements, element);
+  var index = focusPath.indexOf(element);
+
+  if (modalPath && index >= 0) {
+    var index2 = modalPath.findIndex(function (v) {
+      return containsOrEquals(v, element);
+    });
+
+    if (index2 >= 0) {
+      // trigger focusout event for previously focused element
+      // which focus is lost to modal element
+      setFocus(modalPath[index2], false, null, modalPath);
+    }
+
+    focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
+    setFocus(focusPath[0], false);
+    cleanupFocusPath();
+    setImmediateOnce(triggerModalChangeEvent);
+  }
 }
 
 function retainFocus(a, b) {
@@ -1692,6 +1734,9 @@ function trackPointer(callback) {
   }
 
   var lastPoint = currentEvent;
+  var scrollWithin = grep(focusPath, function (v) {
+    return containsOrEquals(v, currentEvent.target);
+  }).slice(-1)[0];
   var scrollParent = getScrollParent(currentEvent.target);
   var scrollTimeout;
   var resolve, reject;
@@ -1719,7 +1764,7 @@ function trackPointer(callback) {
       var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
       var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
 
-      if ((dx || dy) && scrollIntoView(scrollParent, toPlainRect(x, y).expand(dx, dy))) {
+      if ((dx || dy) && scrollIntoView(scrollParent, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
         callback(lastPoint);
       } else {
         stopScroll();
@@ -1761,13 +1806,16 @@ function trackPointer(callback) {
 }
 
 function beginDrag(within, callback) {
-  if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove')) {
+  if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove touchstart touchmove')) {
     return reject();
   }
 
+  var initialPoint = (currentEvent.touches || [currentEvent])[0];
   callback = isFunction(callback || within) || noop;
   return trackPointer(function (p) {
-    callback(p.clientX, p.clientY);
+    var x = p.clientX;
+    var y = p.clientY;
+    callback(x, y, x - initialPoint.clientX, y - initialPoint.clientY);
   });
 }
 
@@ -1857,12 +1905,13 @@ domReady.then(function () {
     }
   }
 
-  function triggerMouseEvent(eventName, target) {
+  function triggerMouseEvent(eventName, event) {
+    event = event || currentEvent;
     var data = {
-      target: target || currentEvent.target,
-      metakey: getEventName(currentEvent) || ''
+      target: event.target,
+      metakey: getEventName(event) || ''
     };
-    return triggerUIEvent(eventName, data, mouseInitialPoint || currentEvent);
+    return triggerUIEvent(eventName, data, mouseInitialPoint || event);
   }
 
   function triggerGestureEvent(gesture) {
@@ -2044,7 +2093,7 @@ domReady.then(function () {
 
         pressTimeout = setTimeout(function () {
           if (mouseInitialPoint) {
-            triggerMouseEvent('longPress');
+            triggerMouseEvent('longPress', e);
             mouseInitialPoint = null;
           }
         }, 1000);
@@ -2057,6 +2106,11 @@ domReady.then(function () {
       if (mouseInitialPoint) {
         if (!e.touches[1]) {
           var line = measureLine(e.touches[0], mouseInitialPoint);
+
+          if (line.length > 5 && triggerMouseEvent('drag', mouseInitialPoint)) {
+            mouseInitialPoint = null;
+            return;
+          }
 
           if (line.length > 50 && approxMultipleOf(line.deg, 90)) {
             triggerGestureEvent('swipe' + (approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Bottom' : 'Top'));
@@ -2091,7 +2145,7 @@ domReady.then(function () {
         var target = mouseInitialPoint.target;
 
         if (isMouseDown(e) && containsOrEquals(target, elementFromPoint(mouseInitialPoint.clientX, mouseInitialPoint.clientY))) {
-          triggerMouseEvent('drag', target);
+          triggerMouseEvent('drag', mouseInitialPoint);
         }
 
         mouseInitialPoint = null;
@@ -2188,16 +2242,11 @@ domReady.then(function () {
     }
   });
   registerCleanup(function () {
-    each(modalElements, function (element, modelPath) {
-      if (!containsOrEquals(root, element) && mapRemove(modalElements, element) && focused(element)) {
-        var path = any(modalElements, function (w) {
-          return w.indexOf(element) >= 0;
-        }) || focusPath;
-        path.push.apply(path, modelPath);
-        setFocus(modelPath[0], false, null, path);
+    each(modalElements, function (element) {
+      if (!containsOrEquals(root, element)) {
+        releaseModal(element);
       }
     });
-    cleanupFocusPath();
   });
   listenDOMEvent('escape', function () {
     setFocus(env_document.body);
@@ -2249,6 +2298,7 @@ function dom_focus(element) {
   focusable: focusable,
   focused: focused,
   setModal: setModal,
+  releaseModal: releaseModal,
   retainFocus: retainFocus,
   releaseFocus: releaseFocus,
   focus: dom_focus,
@@ -2271,6 +2321,7 @@ function dom_focus(element) {
 });
 
 // CONCATENATED MODULE: ./src/events.js
+
 
 
 
@@ -2429,11 +2480,26 @@ function emitDOMEvent(eventName, target, data, options) {
   }) || emitter.emit();
 }
 
-function listenDOMEvent(element, event, handler) {
+function wrapSelectorHandler(selector, callback) {
+  return function (e) {
+    var matched = jquery(e.target).closest(selector)[0];
+
+    if (matched) {
+      return callback.call(matched, e);
+    }
+  };
+}
+
+function listenDOMEvent(element, event, handler, extra) {
   if (!is(element, Node)) {
+    extra = handler;
     handler = event;
     event = element;
     element = root;
+  }
+
+  if (typeof handler === 'string') {
+    handler = wrapSelectorHandler(handler, extra);
   }
 
   return domContainer.add(element, event, handler);
@@ -3276,19 +3342,26 @@ function getContentRect(element) {
   return parentRect;
 }
 
-function scrollIntoView(element, rect) {
+function scrollIntoView(element, rect, within) {
+  within = within || root;
+
   if (!rect || rect.top === undefined) {
     rect = getRect(element, rect);
   }
 
   var parent = getScrollParent(element);
+
+  if (!containsOrEquals(within, parent)) {
+    return false;
+  }
+
   var parentRect = getContentRect(parent);
   var deltaX = Math.max(0, rect.right - parentRect.right) || Math.min(rect.left - parentRect.left, 0);
   var deltaY = Math.max(0, rect.bottom - parentRect.bottom) || Math.min(rect.top - parentRect.top, 0);
   var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
 
   if (parent !== root) {
-    var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y));
+    var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y), within);
 
     if (parentResult) {
       result = {
