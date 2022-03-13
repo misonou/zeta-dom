@@ -282,7 +282,7 @@ function trackPointer(callback) {
             }
         }, 20);
     };
-    bindUntil(trackPromise, window, {
+    bindUntil(trackPromise, root, {
         mouseup: resolve,
         touchend: resolve,
         keydown: function (e) {
@@ -307,7 +307,7 @@ function trackPointer(callback) {
             }
             callback.apply(0, points);
         }
-    });
+    }, true);
     always(trackPromise, function () {
         stopScroll();
         trackCallbacks = null;
