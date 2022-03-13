@@ -300,7 +300,12 @@ function trackPointer(callback) {
             }
         },
         touchmove: function (e) {
-            callback.apply(0, makeArray(e.touches));
+            var points = makeArray(e.touches);
+            if (!points[1]) {
+                startScroll();
+                lastPoint = points[0];
+            }
+            callback.apply(0, points);
         }
     });
     always(trackPromise, function () {
