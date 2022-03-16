@@ -243,7 +243,9 @@ function setShortcut(command, keystroke) {
 
 function trackPointer(callback) {
     if (trackCallbacks) {
-        trackCallbacks.push(callback);
+        if (callback) {
+            trackCallbacks.push(callback);
+        }
         return trackPromise;
     }
     var lastPoint = currentEvent;
@@ -254,7 +256,7 @@ function trackPointer(callback) {
     var scrollTimeout;
     var resolve, reject;
 
-    trackCallbacks = [callback];
+    trackCallbacks = callback ? [callback] : [];
     trackPromise = prepEventSource(new Promise(function (res, rej) {
         resolve = res.bind(0, undefined);
         reject = rej;
@@ -301,7 +303,7 @@ function trackPointer(callback) {
         },
         touchmove: function (e) {
             var points = makeArray(e.touches);
-            if (!points[1]) {
+            if (!points[1] && trackCallbacks[0]) {
                 startScroll();
                 lastPoint = points[0];
             }
@@ -323,8 +325,8 @@ function beginDrag(within, callback) {
         return reject();
     }
     var initialPoint = (currentEvent.touches || [currentEvent])[0];
-    callback = isFunction(callback || within) || noop;
-    return trackPointer(function (p) {
+    callback = isFunction(callback || within);
+    return trackPointer(callback && function (p) {
         var x = p.clientX;
         var y = p.clientY;
         callback(x, y, x - initialPoint.clientX, y - initialPoint.clientY);
@@ -337,7 +339,7 @@ function beginPinchZoom(callback) {
         return reject();
     }
     var m0 = measureLine(initialPoints[0], initialPoints[1]);
-    return trackPointer(function (p1, p2) {
+    return trackPointer(isFunction(callback) && function (p1, p2) {
         var m1 = measureLine(p1, p2);
         callback((m1.deg - m0.deg + 540) % 360 - 180, m1.length / m0.length, p1.clientX - initialPoints[0].clientX + (m0.dx - m1.dx) / 2, p1.clientY - initialPoints[0].clientY + (m0.dy - m1.dy) / 2);
     });
