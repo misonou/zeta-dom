@@ -1772,7 +1772,7 @@ function trackPointer(callback) {
     }, 20);
   };
 
-  bindUntil(trackPromise, env_window, {
+  bindUntil(trackPromise, root, {
     mouseup: resolve,
     touchend: resolve,
     keydown: function keydown(e) {
@@ -1791,9 +1791,16 @@ function trackPointer(callback) {
       }
     },
     touchmove: function touchmove(e) {
-      callback.apply(0, makeArray(e.touches));
+      var points = makeArray(e.touches);
+
+      if (!points[1]) {
+        startScroll();
+        lastPoint = points[0];
+      }
+
+      callback.apply(0, points);
     }
-  });
+  }, true);
   always(trackPromise, function () {
     stopScroll();
     trackCallbacks = null;
