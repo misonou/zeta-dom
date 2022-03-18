@@ -352,6 +352,7 @@ domReady.then(function () {
     var mousedownFocus;
     var normalizeTouchEvents;
     var pressTimeout;
+    var swipeDir;
     var hasCompositionUpdate;
     var imeNode;
     var imeOffset;
@@ -574,6 +575,7 @@ domReady.then(function () {
             var container = getEventContext(e.target);
             normalizeTouchEvents = container.normalizeTouchEvents;
             mouseInitialPoint = extend({}, e.touches[0]);
+            swipeDir = '';
             if (!e.touches[1]) {
                 // @ts-ignore: e.target is Element
                 if (normalizeTouchEvents && focused(container.element)) {
@@ -597,8 +599,10 @@ domReady.then(function () {
                         mouseInitialPoint = null;
                         return;
                     }
-                    if (line.length > 50 && approxMultipleOf(line.deg, 90)) {
-                        triggerGestureEvent('swipe' + (approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Bottom' : 'Top')));
+                    if (swipeDir !== false && line.length > 50 && approxMultipleOf(line.deg, 90)) {
+                        var dir = approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Bottom' : 'Top');
+                        swipeDir = !swipeDir || swipeDir === dir ? dir : false;
+                        mouseInitialPoint = extend({}, e.touches[0]);
                     }
                 } else if (!e.touches[2]) {
                     triggerGestureEvent('pinchZoom');
@@ -607,7 +611,9 @@ domReady.then(function () {
         },
         touchend: function (e) {
             clearTimeout(pressTimeout);
-            if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
+            if (swipeDir) {
+                triggerGestureEvent('swipe' + swipeDir);
+            } else if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
                 setFocus(e.target);
                 triggerMouseEvent('click');
                 dispatchDOMMouseEvent('click', mouseInitialPoint, e);
