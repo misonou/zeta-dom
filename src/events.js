@@ -277,7 +277,7 @@ function emitterGetElements(emitter, target) {
 }
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
-    if (!handlerName && matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data, handlerName)) {
+    if (!handlerName && matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data || data, handlerName)) {
         return true;
     }
     var sourceContainer = component.container;
