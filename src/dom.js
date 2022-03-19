@@ -613,11 +613,13 @@ domReady.then(function () {
             clearTimeout(pressTimeout);
             if (swipeDir) {
                 triggerGestureEvent('swipe' + swipeDir);
-            } else if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
+            } else {
                 setFocus(e.target);
-                triggerMouseEvent('click');
-                dispatchDOMMouseEvent('click', mouseInitialPoint, e);
-                e.preventDefault();
+                if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
+                    triggerMouseEvent('click');
+                    dispatchDOMMouseEvent('click', mouseInitialPoint, e);
+                    e.preventDefault();
+                }
             }
         },
         mousedown: function (e) {
