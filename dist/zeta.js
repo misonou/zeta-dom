@@ -1729,7 +1729,10 @@ function setShortcut(command, keystroke) {
 
 function trackPointer(callback) {
   if (trackCallbacks) {
-    trackCallbacks.push(callback);
+    if (callback) {
+      trackCallbacks.push(callback);
+    }
+
     return trackPromise;
   }
 
@@ -1740,7 +1743,7 @@ function trackPointer(callback) {
   var scrollParent = getScrollParent(currentEvent.target);
   var scrollTimeout;
   var resolve, reject;
-  trackCallbacks = [callback];
+  trackCallbacks = callback ? [callback] : [];
   trackPromise = prepEventSource(new Promise(function (res, rej) {
     resolve = res.bind(0, undefined);
     reject = rej;
@@ -1793,7 +1796,7 @@ function trackPointer(callback) {
     touchmove: function touchmove(e) {
       var points = makeArray(e.touches);
 
-      if (!points[1]) {
+      if (!points[1] && trackCallbacks[0]) {
         startScroll();
         lastPoint = points[0];
       }
@@ -1818,8 +1821,8 @@ function beginDrag(within, callback) {
   }
 
   var initialPoint = (currentEvent.touches || [currentEvent])[0];
-  callback = isFunction(callback || within) || noop;
-  return trackPointer(function (p) {
+  callback = isFunction(callback || within);
+  return trackPointer(callback && function (p) {
     var x = p.clientX;
     var y = p.clientY;
     callback(x, y, x - initialPoint.clientX, y - initialPoint.clientY);
@@ -1834,7 +1837,7 @@ function beginPinchZoom(callback) {
   }
 
   var m0 = measureLine(initialPoints[0], initialPoints[1]);
-  return trackPointer(function (p1, p2) {
+  return trackPointer(isFunction(callback) && function (p1, p2) {
     var m1 = measureLine(p1, p2);
     callback((m1.deg - m0.deg + 540) % 360 - 180, m1.length / m0.length, p1.clientX - initialPoints[0].clientX + (m0.dx - m1.dx) / 2, p1.clientY - initialPoints[0].clientY + (m0.dy - m1.dy) / 2);
   });
@@ -1847,6 +1850,7 @@ domReady.then(function () {
   var mousedownFocus;
   var normalizeTouchEvents;
   var pressTimeout;
+  var swipeDir;
   var hasCompositionUpdate;
   var imeNode;
   var imeOffset;
@@ -2091,6 +2095,7 @@ domReady.then(function () {
       var container = getEventContext(e.target);
       normalizeTouchEvents = container.normalizeTouchEvents;
       mouseInitialPoint = extend({}, e.touches[0]);
+      swipeDir = '';
 
       if (!e.touches[1]) {
         // @ts-ignore: e.target is Element
@@ -2119,8 +2124,10 @@ domReady.then(function () {
             return;
           }
 
-          if (line.length > 50 && approxMultipleOf(line.deg, 90)) {
-            triggerGestureEvent('swipe' + (approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Bottom' : 'Top'));
+          if (swipeDir !== false && line.length > 50 && approxMultipleOf(line.deg, 90)) {
+            var dir = approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Bottom' : 'Top';
+            swipeDir = !swipeDir || swipeDir === dir ? dir : false;
+            mouseInitialPoint = extend({}, e.touches[0]);
           }
         } else if (!e.touches[2]) {
           triggerGestureEvent('pinchZoom');
@@ -2130,11 +2137,16 @@ domReady.then(function () {
     touchend: function touchend(e) {
       clearTimeout(pressTimeout);
 
-      if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
+      if (swipeDir) {
+        triggerGestureEvent('swipe' + swipeDir);
+      } else {
         setFocus(e.target);
-        triggerMouseEvent('click');
-        dispatchDOMMouseEvent('click', mouseInitialPoint, e);
-        e.preventDefault();
+
+        if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
+          triggerMouseEvent('click');
+          dispatchDOMMouseEvent('click', mouseInitialPoint, e);
+          e.preventDefault();
+        }
       }
     },
     mousedown: function mousedown(e) {
@@ -2641,7 +2653,7 @@ function emitterGetElements(emitter, target) {
 }
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
-  if (!handlerName && matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data, handlerName)) {
+  if (!handlerName && matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data || data, handlerName)) {
     return true;
   }
 
