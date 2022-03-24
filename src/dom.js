@@ -392,8 +392,8 @@ domReady.then(function () {
         }
     }
 
-    function triggerUIEvent(eventName, data, point) {
-        return emitDOMEvent(eventName, focusPath[0], data, {
+    function triggerUIEvent(eventName, data, point, target) {
+        return emitDOMEvent(eventName, target || focusPath[0], data, {
             clientX: (point || '').clientX,
             clientY: (point || '').clientY,
             bubbles: true,
@@ -646,12 +646,9 @@ domReady.then(function () {
             }
         },
         wheel: function (e) {
-            // @ts-ignore: e.target is Element
-            if (containsOrEquals(e.target, focusPath[0]) || !textInputAllowed(e.target)) {
-                var dir = e.deltaY || e.detail;
-                if (dir && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1))) {
-                    e.preventDefault();
-                }
+            var dir = e.deltaY || e.deltaX || e.detail;
+            if (dir && !textInputAllowed(e.target) && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1), e, e.target)) {
+                e.preventDefault();
             }
         },
         click: function (e) {
