@@ -648,7 +648,7 @@ domReady.then(function () {
         wheel: function (e) {
             var dir = e.deltaY || e.deltaX || e.detail;
             if (dir && !textInputAllowed(e.target) && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1), e, e.target)) {
-                e.preventDefault();
+                e.stopPropagation();
             }
         },
         click: function (e) {
