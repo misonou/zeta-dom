@@ -87,6 +87,13 @@ export function extend<T extends object, U, V>(deep: true, obj: T, arg1: U, arg2
 export function extend<T extends object>(deep: true, obj: T, ...args): T & Zeta.Dictionary;
 
 /**
+ * Treats the specified string as a whitespace-deimited list of tokens and performs action on each token.
+ * @param value A whitespace-deimited string.
+ * @param callback Function that will be executed in the context of each item.
+ */
+export function each<T extends string>(value: T, callback: (i: number, v: Zeta.WhitespaceDelimited<T>) => any): void;
+
+/**
  * Iterates through items of the given array or array-like object and performs action on each item.
  * @param obj An array or an array-like object.
  * @param callback Function that will be executed in the context of each item.
@@ -449,7 +456,7 @@ export function trim(str: string): string;
  * @param haystack A whitespace-separated list of words to match.
  * @returns The first word that appears in both word list; otherwise false.
  */
-export function matchWord(needle: string, haystack: string): string | false;
+export function matchWord<T extends string>(needle: string, haystack: T): Zeta.WhitespaceDelimited<T> | false;
 
 /**
  * Decodes HTML character entities to its represented characters, such as `&lt;` to `<`.

@@ -16,6 +16,7 @@ declare namespace Zeta {
         T extends Map<any, infer V> ? V :
         T extends Set<infer V> ? V :
         T extends object ? T[Exclude<keyof T, symbol>] : never;
+    type WhitespaceDelimited<T extends string> = T extends `${infer L} ${infer R}` ? Exclude<L, ''> | WhitespaceDelimited<R> : Exclude<T, ''>;
     type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
     type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
     type WatchableInstance<T, K = keyof T> = T & Watchable<T, K>;
@@ -42,6 +43,77 @@ declare namespace Zeta {
         [11]: DocumentFragment;
         [a: number]: Node;
     }[T];
+
+    type DOMEventNames =
+        keyof AbortSignalEventMap |
+        keyof AbstractWorkerEventMap |
+        keyof AnimationEventMap |
+        keyof AudioScheduledSourceNodeEventMap |
+        keyof AudioWorkletNodeEventMap |
+        keyof BaseAudioContextEventMap |
+        keyof BroadcastChannelEventMap |
+        keyof DocumentEventMap |
+        keyof DocumentAndElementEventHandlersEventMap |
+        keyof ElementEventMap |
+        keyof EventSourceEventMap |
+        keyof FileReaderEventMap |
+        keyof FontFaceSetEventMap |
+        keyof GlobalEventHandlersEventMap |
+        keyof HTMLBodyElementEventMap |
+        keyof HTMLElementEventMap |
+        keyof HTMLFrameSetElementEventMap |
+        keyof HTMLMediaElementEventMap |
+        keyof HTMLVideoElementEventMap |
+        keyof IDBDatabaseEventMap |
+        keyof IDBOpenDBRequestEventMap |
+        keyof IDBRequestEventMap |
+        keyof IDBTransactionEventMap |
+        keyof MathMLElementEventMap |
+        keyof MediaDevicesEventMap |
+        keyof MediaKeySessionEventMap |
+        keyof MediaQueryListEventMap |
+        keyof MediaRecorderEventMap |
+        keyof MediaSourceEventMap |
+        keyof MediaStreamEventMap |
+        keyof MediaStreamTrackEventMap |
+        keyof MessagePortEventMap |
+        keyof NotificationEventMap |
+        keyof OfflineAudioContextEventMap |
+        keyof PaymentRequestEventMap |
+        keyof PerformanceEventMap |
+        keyof PermissionStatusEventMap |
+        keyof PictureInPictureWindowEventMap |
+        keyof RTCDTMFSenderEventMap |
+        keyof RTCDataChannelEventMap |
+        keyof RTCDtlsTransportEventMap |
+        keyof RTCPeerConnectionEventMap |
+        keyof RemotePlaybackEventMap |
+        keyof SVGElementEventMap |
+        keyof SVGSVGElementEventMap |
+        keyof ScreenOrientationEventMap |
+        keyof ScriptProcessorNodeEventMap |
+        keyof ServiceWorkerEventMap |
+        keyof ServiceWorkerContainerEventMap |
+        keyof ServiceWorkerRegistrationEventMap |
+        keyof ShadowRootEventMap |
+        keyof SourceBufferEventMap |
+        keyof SourceBufferListEventMap |
+        keyof SpeechSynthesisEventMap |
+        keyof SpeechSynthesisUtteranceEventMap |
+        keyof TextTrackEventMap |
+        keyof TextTrackCueEventMap |
+        keyof TextTrackListEventMap |
+        keyof VisualViewportEventMap |
+        keyof WebSocketEventMap |
+        keyof WindowEventMap |
+        keyof WindowEventHandlersEventMap |
+        keyof WorkerEventMap |
+        keyof XMLHttpRequestEventMap |
+        keyof XMLHttpRequestEventTargetEventMap;
+
+    type DOMEventIDLProp<K extends string, E extends Event> = { [P in `on${K}`]: ((ev: E) => any) | null };
+    type DOMEventType<T extends EventTarget, K extends string> = T extends DOMEventIDLProp<K, infer E> ? E : never;
+    type DOMEventsOf<T extends EventTarget> = ({ [K in DOMEventNames]: T extends DOMEventIDLProp<K, any> ? K : never })[DOMEventNames];
 
     type Direction = 'left' | 'top' | 'right' | 'bottom';
     type Direction2D = Direction
