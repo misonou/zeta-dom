@@ -580,7 +580,7 @@ declare namespace Zeta {
          * Gets context object associated with the event target.
          * @param target An event target, typically a DOM element.
          */
-        getContexts(target: any): (T extends ZetaEventContextBase<infer R> ? R : T)[];
+        getContexts(target: T): (T extends ZetaEventContextBase<infer R> ? R : T)[];
 
         /**
          * Registers event handlers to a DOM element or a custom event target.
@@ -588,7 +588,7 @@ declare namespace Zeta {
          * @param handlers An object which each entry represent the handler to be registered on the event.
          * @returns A function that will unregister the handler when called.
          */
-        add(target: any, handlers: ZetaEventHandlers<string, M, T>): UnregisterCallback;
+        add(target: T, handlers: ZetaEventHandlers<keyof M, M, T>): UnregisterCallback;
 
         /**
          * Registers event handlers to a DOM element or a custom event target.
@@ -597,14 +597,14 @@ declare namespace Zeta {
          * @param handler A callback function to be fired when the specified event is triggered.
          * @returns A function that will unregister the handlers when called.
          */
-        add<E extends string>(target: any, event: E, handlers: ZetaEventHandler<E, M, T>): UnregisterCallback;
+        add<E extends keyof M>(target: T, event: E, handlers: ZetaEventHandler<E, M, T>): UnregisterCallback;
 
         /**
          * Removes the DOM element or custom event target from the container.
          * All event handlers are also removed.
          * @param target An event target.
          */
-        delete(target: any): void;
+        delete(target: T): void;
 
         /**
          * Defunct the container. Destroy event will be fired for all registered elements.
@@ -619,7 +619,7 @@ declare namespace Zeta {
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(event: ZetaEventBase, target?: any, data?: any, options?: boolean | EventEmitOptions): any;
+        emit(event: ZetaEventBase, target?: T, data?: any, options?: boolean | EventEmitOptions): any;
 
         /**
          * Emits an event to components synchronously.
@@ -629,7 +629,7 @@ declare namespace Zeta {
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(eventName: string, target?: any, data?: any, options?: boolean | EventEmitOptions): any;
+        emit<E extends keyof M>(eventName: E, target?: T, data?: any, options?: boolean | EventEmitOptions): any;
 
         /**
          * Emits an event to components asynchronously.
@@ -639,7 +639,7 @@ declare namespace Zeta {
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
          */
-        emitAsync(eventName: string, target?: any, data?: any, options?: boolean | EventEmitOptions, mergeData?: (v, a) => any): void;
+        emitAsync<E extends keyof M, V = any>(eventName: E, target?: T, data?: V, options?: boolean | EventEmitOptions, mergeData?: (v: V, a: V) => V): void;
 
         /**
          * Adds a handler to intercept event being fired within this container.
