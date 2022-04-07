@@ -130,9 +130,11 @@ definePrototype(DOMLock, {
         }
         promise.catch(function (error) {
             if (error && !handledErrors.has(error)) {
-                emitDOMEvent('error', self.element, {
-                    error: error
-                }, true);
+                any(parentsAndSelf(self.element), function (v) {
+                    return emitDOMEvent('error', v, {
+                        error: error
+                    });
+                });
                 // avoid firing error event for the same error for multiple target
                 // while propagating through the promise chain
                 if (typeof error === 'object') {
