@@ -1,4 +1,4 @@
-import { any, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep } from "./util.js";
+import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep } from "./util.js";
 import $ from "./include/jquery.js";
 import { window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { emitDOMEvent } from "./events.js";
@@ -6,7 +6,6 @@ import { emitDOMEvent } from "./events.js";
 // @ts-ignore: non-standard member
 const elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
 const compareDocumentPositionImpl = document.compareDocumentPosition;
-const compareBoundaryPointsImpl = Range.prototype.compareBoundaryPoints;
 const OFFSET_ZERO = Object.freeze({
     x: 0,
     y: 0
@@ -85,21 +84,6 @@ definePrototype(Rect, {
 
 function tagName(element) {
     return element && element.tagName && element.tagName.toLowerCase();
-}
-
-function is(element, selector) {
-    if (!element || !selector) {
-        return false;
-    }
-    // constructors of native DOM objects in Safari refuse to be functions
-    // use a fairly accurate but fast checking instead of isFunction
-    if (selector.prototype) {
-        return element instanceof selector && element;
-    }
-    if (selector.toFixed) {
-        return element.nodeType === selector && element;
-    }
-    return matchSelector(element, selector);
 }
 
 function matchSelector(element, selector) {
@@ -419,80 +403,23 @@ function scrollIntoView(element, rect, within) {
  * Range and rect
  * -------------------------------------- */
 
-function createRange(startNode, startOffset, endNode, endOffset) {
-    if (startNode && isFunction(startNode.getRange)) {
-        return startNode.getRange();
-    }
-    var range;
-    if (is(startNode, Node)) {
-        range = document.createRange();
-        if (+startOffset !== startOffset) {
-            range[(startOffset === 'contents' || !startNode.parentNode) ? 'selectNodeContents' : 'selectNode'](startNode);
-            if (typeof startOffset === 'boolean') {
-                range.collapse(startOffset);
-            }
-        } else {
-            range.setStart(startNode, getOffset(startNode, startOffset));
-        }
-        if (is(endNode, Node) && connected(startNode, endNode)) {
-            range.setEnd(endNode, getOffset(endNode, endOffset));
-        }
-    } else if (is(startNode, Range)) {
-        range = startNode.cloneRange();
-        if (!range.collapsed && typeof startOffset === 'boolean') {
-            range.collapse(startOffset);
-        }
-    }
-    if (is(startOffset, Range) && connected(range, startOffset)) {
-        var inverse = range.collapsed && startOffset.collapsed ? -1 : 1;
-        if (compareBoundaryPointsImpl.call(range, 0, startOffset) * inverse < 0) {
-            range.setStart(startOffset.startContainer, startOffset.startOffset);
-        }
-        if (compareBoundaryPointsImpl.call(range, 2, startOffset) * inverse > 0) {
-            range.setEnd(startOffset.endContainer, startOffset.endOffset);
-        }
-    }
-    return range;
-}
-
-function rangeIntersects(a, b) {
-    a = is(a, Range) || createRange(a);
-    b = is(b, Range) || createRange(b);
-    return connected(a, b) && compareBoundaryPointsImpl.call(a, 3, b) <= 0 && compareBoundaryPointsImpl.call(a, 1, b) >= 0;
-}
-
-function rangeCovers(a, b) {
-    a = is(a, Range) || createRange(a);
-    b = is(b, Range) || createRange(b);
-    return connected(a, b) && compareBoundaryPointsImpl.call(a, 0, b) <= 0 && compareBoundaryPointsImpl.call(a, 2, b) >= 0;
-}
-
-function rangeEquals(a, b) {
-    a = is(a, Range) || createRange(a);
-    b = is(b, Range) || createRange(b);
-    return connected(a, b) && compareBoundaryPointsImpl.call(a, 0, b) === 0 && compareBoundaryPointsImpl.call(a, 2, b) === 0;
-}
-
-function compareRangePosition(a, b, strict) {
-    a = is(a, Range) || createRange(a);
-    b = is(b, Range) || createRange(b);
-    var value = !connected(a, b) ? NaN : compareBoundaryPointsImpl.call(a, 0, b) + compareBoundaryPointsImpl.call(a, 2, b);
-    return (strict && ((value !== 0 && rangeIntersects(a, b)) || (value === 0 && !rangeEquals(a, b)))) ? NaN : value && value / Math.abs(value);
-}
-
 function makeSelection(b, e) {
     var selection = getSelection();
     if (!selection) {
         return;
     }
+    e = e || b;
+
     // for newer browsers that supports setBaseAndExtent
     // avoid undesirable effects when direction of editor's selection direction does not match native one
-    if (selection.setBaseAndExtent && is(e, Range)) {
-        selection.setBaseAndExtent(b.startContainer, b.startOffset, e.startContainer, e.startOffset);
+    if (selection.setBaseAndExtent) {
+        selection.setBaseAndExtent(b.startContainer, b.startOffset, e.endContainer, e.endOffset);
         return;
     }
 
-    var range = createRange(b, e);
+    var range = document.createRange();
+    range.setStart(b.startContainer, b.startOffset);
+    range.setEnd(e.endContainer, e.endOffset);
     try {
         selection.removeAllRanges();
     } catch (e) {
@@ -510,7 +437,9 @@ function makeSelection(b, e) {
         // IE may throws unspecified error even though the selection is successfully moved to the given range
         // if the range is not successfully selected retry after selecting other range
         if (!selection.rangeCount) {
-            selection.addRange(createRange(document.body));
+            var r1 = document.createRange();
+            r1.selectNode(document.body);
+            selection.addRange(r1);
             selection.removeAllRanges();
             selection.addRange(range);
         }
@@ -552,13 +481,13 @@ function getRect(elm, includeMargin) {
     return rect;
 }
 
-function getOffset(node, offset) {
-    var len = node.length || node.childNodes.length;
-    return 1 / offset < 0 ? Math.max(0, len + offset) : Math.min(len, offset);
-}
-
 function getRects(range) {
-    return map((is(range, Range) || createRange(range, 'contents')).getClientRects(), toPlainRect);
+    if (!is(range, Range)) {
+        var r1 = document.createRange();
+        r1.selectNodeContents(range);
+        range = r1;
+    }
+    return map(range.getClientRects(), toPlainRect);
 }
 
 function toPlainRect(l, t, r, b) {
@@ -610,7 +539,6 @@ function elementFromPoint(x, y, container) {
 export {
     domReady,
     tagName,
-    is,
     isVisible,
     matchSelector,
     comparePosition,
@@ -641,12 +569,6 @@ export {
     getContentRect,
     scrollBy,
     scrollIntoView,
-
-    createRange,
-    rangeIntersects,
-    rangeEquals,
-    rangeCovers,
-    compareRangePosition,
     makeSelection,
 
     getRect,

@@ -1,4 +1,4 @@
-import { acceptNode, bind, bindUntil, combineNodeFilters, comparePosition, createNodeIterator, createTreeWalker, dispatchDOMMouseEvent, elementFromPoint, getClass, getCommonAncestor, getContentRect, getRect, getScrollOffset, getScrollParent, is, isVisible, iterateNode, iterateNodeToArray, matchSelector, mergeRect, parentsAndSelf, pointInRect, rectCovers, rectEquals, rectIntersects, removeNode, scrollBy, scrollIntoView, selectClosestRelative, selectIncludeSelf, setClass, toPlainRect } from "../src/domUtil";
+import { acceptNode, bind, bindUntil, combineNodeFilters, comparePosition, createNodeIterator, createTreeWalker, dispatchDOMMouseEvent, elementFromPoint, getClass, getCommonAncestor, getContentRect, getRect, getScrollOffset, getScrollParent, isVisible, iterateNode, iterateNodeToArray, matchSelector, mergeRect, parentsAndSelf, pointInRect, rectCovers, rectEquals, rectIntersects, removeNode, scrollBy, scrollIntoView, selectClosestRelative, selectIncludeSelf, setClass, toPlainRect } from "../src/domUtil";
 import { bindEvent, body, delay, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
 import { jest } from "@jest/globals";
 
@@ -12,23 +12,6 @@ const [getBoundingClientRect] = [
     jest.spyOn(document, 'createTreeWalker'),
     jest.spyOn(window, 'scrollBy')
 ];
-
-describe('is', () => {
-    it('should check DOM node with node type enum', () => {
-        // fix @ 19d1d38
-        const cases = [
-            document.createElement('div'),
-            document.createTextNode(''),
-            document.createDocumentFragment(),
-            document.createComment('')
-        ];
-        cases.forEach((node) => {
-            for (var i = 1; i <= 11; i++) {
-                expect(`(${node.nodeType}, ${i}) = ${!!is(node, i)}`).toBe(`(${node.nodeType}, ${i}) = ${i === node.nodeType}`);
-            }
-        });
-    });
-});
 
 describe('combineNodeFilters', () => {
     /** @type {() => 1} */

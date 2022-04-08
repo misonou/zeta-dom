@@ -496,12 +496,14 @@ domReady.then(function () {
                 imeOffset += imeText.length;
             }
             var newText = curText.substr(0, startOffset) + curText.slice(imeOffset);
+            var range = document.createRange();
             if (isInputElm) {
                 imeNode.value = newText;
                 imeNode.setSelectionRange(startOffset, startOffset);
             } else {
                 imeNode.data = newText;
-                makeSelection(imeNode, startOffset);
+                range.setStart(imeNode, startOffset);
+                makeSelection(range);
             }
             if (!triggerUIEvent('textInput', imeText)) {
                 if (isInputElm) {
@@ -509,7 +511,8 @@ domReady.then(function () {
                     imeNode.setSelectionRange(imeOffset, imeOffset);
                 } else {
                     imeNode.data = curText;
-                    makeSelection(imeNode, imeOffset);
+                    range.setStart(imeNode, imeOffset);
+                    makeSelection(range);
                 }
             }
             imeNode = null;

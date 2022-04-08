@@ -18,33 +18,6 @@ export const domReady: Promise<void>;
 export function tagName(element: Element): string;
 
 /**
- * Tests whether a given object is an instance of the specified function.
- * @param a An input object to test against.
- * @param b A function.
- * @returns Returns the same object if it is an instance of the function; otherwise false.
- * @deprecated This function is be moved to util.
- */
-export function is<T extends (Zeta.AnyFunction | Zeta.AnyConstructor)>(a: any, b: T): InstanceType<T> | false;
-
-/**
- * Tests whether a given element matches a CSS selector.
- * @param a A DOM element to test against.
- * @param b A valid CSS selector.
- * @returns Returns the given element if the given selector matches the element; otherwise false.
- * @deprecated This function is renamed matchSelector.
- */
-export function is(a: Element, b: string): Element | false;
-
-/**
- * Tests whether a given element matches a CSS selector.
- * @param a A DOM node to test against.
- * @param b Node type.
- * @returns Returns the given node if the given node is of the specified node type; otherwise false.
- * @deprecated Use instanceof overload instead.
- */
-export function is<T extends number>(a: Node, b: T): Zeta.NodeOfType<T> | false;
-
-/**
  * Tests whether a given element matches a CSS selector.
  * @param a A DOM element to test against.
  * @param b A valid CSS selector.
@@ -287,108 +260,6 @@ export function scrollIntoView(element: Element, margin: number, within?: Elemen
  * -------------------------------------- */
 
 /**
- * Creates a range that select DOM contents describe by the object.
- * @param range An object that encloses part of contents in DOM.
- * @returns A DOM range.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function createRange(range: Zeta.HasRange | Range | Node): Range;
-
-/**
- * Creates a range that select inner content of a DOM node.
- * If the given node is a DOM element, the element itself is excluded from the result range.
- * @param startNode A DOM node.
- * @param mode Must be the string 'content'.
- * @returns A DOM range.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function createRange(startNode: Node, mode: 'contents'): Range;
-
-/**
- * Creates a collapsed range before or after, the start or the end of the specified node.
- * @param startNode A DOM node.
- * @param collapse Indicating the position of resulting range: before the start of a node for true; after the end of a node for false; after the start of a node (0-th child) for 0; and before the end of a node (last child) for -0.
- * @returns A DOM range.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function createRange(startNode: Node, collapse: boolean | 0 | -0): Range;
-
-/**
- * Creates a collapsed range at the specified node and offset.
- * @param startNode A DOM node.
- * @param startOffset A number representing the n-th child of an element or the n-th characters of a text node.
- * @returns A DOM range.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function createRange(startNode: Node, startOffset: number): Range;
-
-/**
- * Creates a range that starts and ends at the specified node and offset.
- * @param startNode A DOM node.
- * @param startOffset A number representing the n-th child of an element or the n-th characters of a text node.
- * @param endNode A DOM node.
- * @param endOffset A number representing the n-th child of an element or the n-th characters of a text node.
- * @returns A DOM range.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function createRange(startNode: Node, startOffset: number, endNode: Node, endOffset: number): Range;
-
-/**
- * Creates a range that only includes the starting or ending point of a range.
- * @param range A DOM range.
- * @param collapse Includes starting point if true; ending point otherwise.
- * @returns A new DOM range.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function createRange(range: Range, collapse: boolean): Range;
-
-/**
- * Creates a range that only starts from the starting or ending point of the first range, and ends at the ending point of the second range.
- * @param start A DOM range indicating the starting point.
- * @param end A DOM range indicating the ending point.
- * @returns A new DOM range.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function createRange(start: Range, end: Range): Range;
-
-/**
- * Tests if the first range covers the second range.
- * @param a A range.
- * @param b A range.
- * @returns true if covers.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function rangeCovers(a: Zeta.RangeLike, b: Zeta.RangeLike): boolean;
-
-/**
- * Tests if the two given ranges are equal.
- * @param a A range.
- * @param b A range.
- * @returns true if equals.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function rangeEquals(a: Zeta.RangeLike, b: Zeta.RangeLike): boolean;
-
-/**
- * Tests if the two given ranges intersect, i.e. has common content selected.
- * @param a A range.
- * @param b A range.
- * @returns true if intersects
- * @deprecated This function will be moved to zeta-editor.
- */
-export function rangeIntersects(a: Zeta.RangeLike, b: Zeta.RangeLike): boolean;
-
-/**
- * Compares if the first range selects content that comes first in document order or vice versa.
- * @param a A range.
- * @param b A range.
- * @param [strict] Do not compare if two ranges intersect.
- * @returns -1 if the first range precedes the second; 1 if the second range precedes the first; 0 if they selects the same range; or NaN if two ranges intersect when strict to set to true.
- * @deprecated This function will be moved to zeta-editor.
- */
-export function compareRangePosition(a: Zeta.RangeLike, b: Zeta.RangeLike, strict?: boolean): number;
-
-/**
  * Gets a rect object referring the size of current window. Same as passing window as the first argument.
  * @returns A rect object.
  */
@@ -490,11 +361,4 @@ export function elementFromPoint(x: number, y: number, within?: Element): Elemen
  * @param base Starting position.
  * @param extent Ending position.
  */
-export function makeSelection(base: Zeta.RangeLike, extent: Zeta.RangeLike): void;
-
-/**
- * Places a text cursor at the specified position.
- * @param node A DOM element or text node.
- * @param offset A number representing the n-th child of an element or the n-th characters of a text node.
- */
-export function makeSelection(node: Node, offset: number): void;
+export function makeSelection(base: Range, extent?: Range): void;
