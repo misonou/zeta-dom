@@ -406,6 +406,12 @@ function throwNotFunction(obj, name) {
     return obj;
 }
 
+function errorWithCode(code, message, props) {
+    return extend(new Error(message || code), props, {
+        code: code
+    });
+}
+
 
 /* --------------------------------------
  * Strings
@@ -802,6 +808,7 @@ export {
 
     // throw
     throwNotFunction,
+    errorWithCode,
 
     // property and prototype related
     keys,
