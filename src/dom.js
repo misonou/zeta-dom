@@ -1,7 +1,8 @@
 import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { KEYNAMES } from "./constants.js";
+import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, extend, grep, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, setImmediateOnce, single, ucfirst } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, extend, grep, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, setImmediateOnce, single, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked } from "./domLock.js";
@@ -289,7 +290,7 @@ function trackPointer(callback) {
         touchend: resolve,
         keydown: function (e) {
             if (e.which === 27) {
-                reject();
+                reject(errorWithCode(ErrorCode.cancelled));
             }
         },
         mousemove: function (e) {
@@ -322,7 +323,7 @@ function trackPointer(callback) {
 
 function beginDrag(within, callback) {
     if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove touchstart touchmove')) {
-        return reject();
+        return reject(errorWithCode(ErrorCode.invalidOperation));
     }
     var initialPoint = (currentEvent.touches || [currentEvent])[0];
     callback = isFunction(callback || within);
@@ -336,7 +337,7 @@ function beginDrag(within, callback) {
 function beginPinchZoom(callback) {
     var initialPoints = (currentEvent || '').touches;
     if (!initialPoints || !initialPoints[1]) {
-        return reject();
+        return reject(errorWithCode(ErrorCode.invalidOperation));
     }
     var m0 = measureLine(initialPoints[0], initialPoints[1]);
     return trackPointer(isFunction(callback) && function (p1, p2) {

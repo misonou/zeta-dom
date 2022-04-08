@@ -2,6 +2,8 @@ import $ from 'jquery';
 import { jest } from '@jest/globals';
 import { listenDOMEvent } from '../src/events';
 
+export * as ErrorCode from '../src/errorCode';
+
 export const root = document.documentElement;
 export const body = document.body;
 export const mockFn = jest.fn;

@@ -1,4 +1,5 @@
 import { IS_IOS, IS_IE10, IS_IE, IS_MAC, IS_TOUCH } from "./env.js";
+import * as ErrorCode from "./errorCode.js";
 import * as _util from "./util.js";
 import * as _domUtil from "./domUtil.js";
 import * as cssUtil from "./cssUtil.js";
@@ -17,6 +18,7 @@ export default {
     util,
     dom,
     css: cssUtil,
+    ErrorCode,
     EventContainer: ZetaEventContainer,
     InheritedNode,
     InheritedNodeTree,
@@ -34,6 +36,7 @@ export {
     util,
     dom,
     cssUtil as css,
+    ErrorCode,
     ZetaEventContainer as EventContainer,
     InheritedNode,
     InheritedNodeTree,

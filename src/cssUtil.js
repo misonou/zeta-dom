@@ -1,8 +1,9 @@
 import Promise from "./include/promise-polyfill.js";
 import $ from "./include/jquery.js";
+import * as ErrorCode from "./errorCode.js";
 import { window, document, getComputedStyle, root } from "./env.js";
 import { getClass, setClass, iterateNode, createNodeIterator, isVisible, bind } from "./domUtil.js";
-import { reject, noop, resolve, each, matchWord, keys, resolveAll, grep } from "./util.js";
+import { reject, noop, resolve, each, matchWord, keys, resolveAll, grep, errorWithCode } from "./util.js";
 
 const getAnimationsImpl = root.getAnimations;
 
@@ -45,7 +46,7 @@ function removeVendorPrefix(name) {
 
 function runCSSTransition(element, className, callback) {
     if (getClass(element, className)) {
-        return reject();
+        return reject(errorWithCode(ErrorCode.invalidOperation));
     }
     callback = callback || noop;
     if (callback === true) {
@@ -57,7 +58,7 @@ function runCSSTransition(element, className, callback) {
             callback();
             return resolve(element);
         } else {
-            return reject(element);
+            return reject(errorWithCode(ErrorCode.cancelled));
         }
     }
 

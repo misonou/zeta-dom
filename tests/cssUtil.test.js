@@ -1,5 +1,5 @@
 import { isCssUrlValue, parseCSS, runCSSTransition } from "../src/cssUtil";
-import { initBody, mockFn, _ } from "./testUtil";
+import { ErrorCode, initBody, mockFn, _ } from "./testUtil";
 
 const transitionProps = [
     { property: 'opacity', from: '0', to: '1' },
@@ -55,7 +55,7 @@ describe('runCSSTransition', () => {
         const { node1 } = initBody(`
             <div id="node1" class="active"></div>
         `);
-        await expect(runCSSTransition(node1, 'active')).rejects.toBeUndefined();
+        await expect(runCSSTransition(node1, 'active')).rejects.toBeErrorWithCode(ErrorCode.invalidOperation);
     });
 
     it('should resolve immediately if there are no CSS transitions or animations triggered', async () => {
@@ -141,7 +141,7 @@ describe('runCSSTransition', () => {
         }
     });
 
-    it('should resolve when all triggered CSS animation or transition have ended', async()=>{
+    it('should resolve when all triggered CSS animation or transition have ended', async () => {
         const p1 = transitionProps[0];
         const p2 = transitionProps[1];
         const { node1 } = initBody(`

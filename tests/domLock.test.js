@@ -1,4 +1,4 @@
-import { after, body, combineFn, delay, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
+import { after, body, combineFn, delay, ErrorCode, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
 import { cancelLock, lock, locked } from "../src/domLock";
 import { noop } from "../src/util";
 import { removeNode } from "../src/domUtil";
@@ -22,7 +22,7 @@ describe('lock', () => {
         `);
         const promise = lock(div, delay());
         body.removeChild(div);
-        await expect(promise).rejects.toMatch('user_cancelled');
+        await expect(promise).rejects.toBeErrorWithCode(ErrorCode.cancelled);
     });
 
     it('should emit asyncStart event when element is first locked', async () => {
@@ -122,7 +122,7 @@ describe('locked', () => {
         expect(locked(root)).toBe(true);
         removeNode(div);
         expect(locked(root)).toBe(false);
-        await expect(promise).rejects.toMatch('user_cancelled');
+        await expect(promise).rejects.toBeErrorWithCode(ErrorCode.cancelled);
     });
 });
 
@@ -137,7 +137,7 @@ describe('cancelLock', () => {
         const cancelResult = cancelLock(div);
         await expect(cancelResult).resolves.toBeUndefined();
 
-        await expect(lockResult).rejects.toMatch('user_cancelled');
+        await expect(lockResult).rejects.toBeErrorWithCode(ErrorCode.cancelled);
         expect(cb).toBeCalledTimes(1);
         expect(locked(div)).toBe(false);
     });
@@ -150,12 +150,12 @@ describe('cancelLock', () => {
         const lockResult = lock(div, delay(100), cb);
 
         const cancelResult1 = cancelLock(div);
-        await expect(cancelResult1).rejects.toMatch('user_cancelled');
+        await expect(cancelResult1).rejects.toBeErrorWithCode(ErrorCode.cancellationRejected);
 
         const cancelResult2 = cancelLock(div);
         await expect(cancelResult2).resolves.toBeUndefined();
 
-        await expect(lockResult).rejects.toMatch('user_cancelled');
+        await expect(lockResult).rejects.toBeErrorWithCode(ErrorCode.cancelled);
         expect(cb).toBeCalledTimes(2);
         expect(locked(div)).toBe(false);
     });

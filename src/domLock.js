@@ -1,6 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
+import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
-import { any, catchAsync, createPrivateStore, definePrototype, each, extend, is, makeArray, mapRemove, reject, resolve, setImmediate } from "./util.js";
+import { any, catchAsync, createPrivateStore, definePrototype, each, errorWithCode, extend, is, makeArray, mapRemove, reject, resolve, setImmediate } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
 import { afterDetached } from "./observe.js";
@@ -16,7 +17,7 @@ function retryable(fn, done) {
             // user has rejected the cancellation
             // remove the promise object so that user will be prompted again
             promise = null;
-            return reject('user_cancelled');
+            return reject(errorWithCode(ErrorCode.cancellationRejected));
         }));
     };
 }
@@ -148,7 +149,7 @@ definePrototype(DOMLock, {
             finish();
             // the returned promise will be rejected
             // if the current lock has been released or cancelled
-            return cancelled ? reject('user_cancelled') : value;
+            return cancelled ? reject(errorWithCode(ErrorCode.cancelled)) : value;
         });
     }
 });
