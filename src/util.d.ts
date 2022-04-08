@@ -385,12 +385,31 @@ export function executeOnce<T extends Zeta.AnyFunction>(fn: T): T;
  */
 export function createPrivateStore<K extends object = object, V = any>(): Zeta.PrivateStore<K, V>;
 
-export function setImmediate(fn: Zeta.AnyFunction, ...args): void;
+export function setImmediate<T extends Zeta.AnyFunction>(fn: T, ...args: Parameters<T>): void;
 
 export function setImmediateOnce(fn: Zeta.AnyFunction): void;
 
 export function setTimeoutOnce(fn: Zeta.AnyFunction): void;
 
+/**
+ * Equivalent to calling `window.setTimeout` except that a callback for cancelling timeout is returned.
+ * @returns A callback that will cancel the timeout when invoked.
+ */
+export function setTimeout<T extends Zeta.AnyFunction>(callback: T, ms?: number, ...args: Parameters<T>): Zeta.UnregisterCallback;
+
+/**
+ * Equivalent to calling `window.setInterval` except that a callback for cancelling timed repeating action is returned.
+ * @returns A callback that will cancel the timed, repeating action when invoked.
+ */
+export function setInterval<T extends Zeta.AnyFunction>(callback: T, ms?: number, ...args: Parameters<T>): Zeta.UnregisterCallback;
+
+/**
+ * Similar to {@link setInterval} but the next invocation of the action will not be scheduled until
+ * the promise returned from callback is fulfilled or rejected.
+ * This avoids simultaneous running of action in case the action took longer than the scheduled interval.
+ * @returns A callback that will cancel the timed, repeating action when invoked.
+ */
+export function setIntervalSafe<T extends Zeta.AnyFunction>(callback: T, ms?: number, ...args: Parameters<T>): Zeta.UnregisterCallback;
 
 /* --------------------------------------
  * Throw helper

@@ -360,6 +360,40 @@ function setTimeoutOnce(fn) {
     });
 }
 
+function setTimeout() {
+    var t = window.setTimeout.apply(window, arguments);
+    return function () {
+        clearTimeout(t);
+    };
+}
+
+function setInterval() {
+    var t = window.setInterval.apply(window, arguments);
+    return function () {
+        clearInterval(t);
+    };
+}
+
+function setIntervalSafe(callback, ms) {
+    var args = makeArray(arguments).slice(2);
+    var cancelled = false;
+    var last = 0;
+    var t;
+    (function next() {
+        var now = Date.now();
+        if (!cancelled) {
+            t = window.setTimeout(function () {
+                always(callback.apply(this, args), next);
+            }, Math.max(0, Math.min(ms || 0, now - last)));
+            last = now;
+        }
+    })();
+    return function () {
+        clearTimeout(t);
+        cancelled = true;
+    };
+}
+
 
 /* --------------------------------------
  * Throw helper
@@ -759,7 +793,10 @@ export {
     combineFn,
     executeOnce,
     createPrivateStore,
+    setTimeout,
     setTimeoutOnce,
+    setInterval,
+    setIntervalSafe,
     setImmediate,
     setImmediateOnce,
 
