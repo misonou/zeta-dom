@@ -35,7 +35,7 @@ module.exports = Promise;
 
 /***/ }),
 
-/***/ 411:
+/***/ 510:
 /***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -44,6 +44,7 @@ __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
+  "ErrorCode": function() { return /* reexport */ errorCode_namespaceObject; },
   "EventContainer": function() { return /* reexport */ ZetaEventContainer; },
   "IS_IE": function() { return /* reexport */ IS_IE; },
   "IS_IE10": function() { return /* reexport */ IS_IE10; },
@@ -59,6 +60,15 @@ __webpack_require__.d(__webpack_exports__, {
   "default": function() { return /* binding */ src; },
   "dom": function() { return /* reexport */ dom; },
   "util": function() { return /* binding */ util; }
+});
+
+// NAMESPACE OBJECT: ./src/errorCode.js
+var errorCode_namespaceObject = {};
+__webpack_require__.r(errorCode_namespaceObject);
+__webpack_require__.d(errorCode_namespaceObject, {
+  "cancellationRejected": function() { return cancellationRejected; },
+  "cancelled": function() { return errorCode_cancelled; },
+  "invalidOperation": function() { return invalidOperation; }
 });
 
 // NAMESPACE OBJECT: ./src/util.js
@@ -83,6 +93,7 @@ __webpack_require__.d(util_namespaceObject, {
   "each": function() { return each; },
   "either": function() { return either; },
   "equal": function() { return equal; },
+  "errorWithCode": function() { return errorWithCode; },
   "exclude": function() { return exclude; },
   "executeOnce": function() { return executeOnce; },
   "extend": function() { return extend; },
@@ -118,7 +129,10 @@ __webpack_require__.d(util_namespaceObject, {
   "setAdd": function() { return setAdd; },
   "setImmediate": function() { return setImmediate; },
   "setImmediateOnce": function() { return setImmediateOnce; },
+  "setInterval": function() { return util_setInterval; },
+  "setIntervalSafe": function() { return setIntervalSafe; },
   "setPromiseTimeout": function() { return setPromiseTimeout; },
+  "setTimeout": function() { return util_setTimeout; },
   "setTimeoutOnce": function() { return setTimeoutOnce; },
   "single": function() { return single; },
   "splice": function() { return splice; },
@@ -140,11 +154,9 @@ __webpack_require__.d(domUtil_namespaceObject, {
   "bindUntil": function() { return bindUntil; },
   "combineNodeFilters": function() { return combineNodeFilters; },
   "comparePosition": function() { return comparePosition; },
-  "compareRangePosition": function() { return compareRangePosition; },
   "connected": function() { return connected; },
   "containsOrEquals": function() { return containsOrEquals; },
   "createNodeIterator": function() { return createNodeIterator; },
-  "createRange": function() { return createRange; },
   "createTreeWalker": function() { return createTreeWalker; },
   "dispatchDOMMouseEvent": function() { return dispatchDOMMouseEvent; },
   "domReady": function() { return domReady; },
@@ -156,7 +168,6 @@ __webpack_require__.d(domUtil_namespaceObject, {
   "getRects": function() { return getRects; },
   "getScrollOffset": function() { return getScrollOffset; },
   "getScrollParent": function() { return getScrollParent; },
-  "is": function() { return domUtil_is; },
   "isVisible": function() { return isVisible; },
   "iterateNode": function() { return iterateNode; },
   "iterateNodeToArray": function() { return iterateNodeToArray; },
@@ -165,9 +176,6 @@ __webpack_require__.d(domUtil_namespaceObject, {
   "mergeRect": function() { return mergeRect; },
   "parentsAndSelf": function() { return parentsAndSelf; },
   "pointInRect": function() { return pointInRect; },
-  "rangeCovers": function() { return rangeCovers; },
-  "rangeEquals": function() { return rangeEquals; },
-  "rangeIntersects": function() { return rangeIntersects; },
   "rectCovers": function() { return rectCovers; },
   "rectEquals": function() { return rectEquals; },
   "rectIntersects": function() { return rectIntersects; },
@@ -209,6 +217,10 @@ var IS_IE10 = !!env_window.ActiveXObject;
 var IS_IE = IS_IE10 || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
 var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
 var IS_TOUCH = ('ontouchstart' in env_window);
+// CONCATENATED MODULE: ./src/errorCode.js
+var cancellationRejected = 'zeta/cancellation-rejected';
+var errorCode_cancelled = 'zeta/cancelled';
+var invalidOperation = 'zeta/invalid-operation';
 // CONCATENATED MODULE: ./src/util.js
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
@@ -607,8 +619,45 @@ function setImmediateOnce(fn) {
 
 function setTimeoutOnce(fn) {
   mapGet(setImmediateStore, fn, function () {
-    return setTimeout(setImmediateOnceCallback.bind(0, fn)), fn;
+    return util_setTimeout(setImmediateOnceCallback.bind(0, fn)), fn;
   });
+}
+
+function util_setTimeout() {
+  var t = env_window.setTimeout.apply(env_window, arguments);
+  return function () {
+    clearTimeout(t);
+  };
+}
+
+function util_setInterval() {
+  var t = env_window.setInterval.apply(env_window, arguments);
+  return function () {
+    clearInterval(t);
+  };
+}
+
+function setIntervalSafe(callback, ms) {
+  var args = makeArray(arguments).slice(2);
+  var cancelled = false;
+  var last = 0;
+  var t;
+
+  (function next() {
+    var now = Date.now();
+
+    if (!cancelled) {
+      t = env_window.setTimeout(function () {
+        always(callback.apply(this, args), next);
+      }, Math.max(0, Math.min(ms || 0, now - last)));
+      last = now;
+    }
+  })();
+
+  return function () {
+    clearTimeout(t);
+    cancelled = true;
+  };
 }
 /* --------------------------------------
  * Throw helper
@@ -621,6 +670,12 @@ function throwNotFunction(obj, name) {
   }
 
   return obj;
+}
+
+function errorWithCode(code, message, props) {
+  return extend(new Error(message || code), props, {
+    code: code
+  });
 }
 /* --------------------------------------
  * Strings
@@ -724,7 +779,7 @@ function catchAsync(promise) {
 function setPromiseTimeout(promise, ms, resolveWhenTimeout) {
   return new promise_polyfill(function (resolve, reject) {
     promise.then(resolve, reject);
-    setTimeout(function () {
+    util_setTimeout(function () {
       (resolveWhenTimeout ? resolve : reject)('timeout');
     }, ms);
   });
@@ -1282,6 +1337,7 @@ function domLock_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === 
 
 
 
+
 var lockedElements = new WeakMap();
 var handledErrors = new WeakMap();
 
@@ -1294,7 +1350,7 @@ function retryable(fn, done) {
       // user has rejected the cancellation
       // remove the promise object so that user will be prompted again
       promise = null;
-      return reject('user_cancelled');
+      return reject(errorWithCode(cancellationRejected));
     }));
   };
 }
@@ -1436,9 +1492,11 @@ definePrototype(DOMLock, {
 
     promise.catch(function (error) {
       if (error && !handledErrors.has(error)) {
-        emitDOMEvent('error', self.element, {
-          error: error
-        }, true); // avoid firing error event for the same error for multiple target
+        any(parentsAndSelf(self.element), function (v) {
+          return emitDOMEvent('error', v, {
+            error: error
+          });
+        }); // avoid firing error event for the same error for multiple target
         // while propagating through the promise chain
 
         if (domLock_typeof(error) === 'object') {
@@ -1453,7 +1511,7 @@ definePrototype(DOMLock, {
       finish(); // the returned promise will be rejected
       // if the current lock has been released or cancelled
 
-      return cancelled ? reject('user_cancelled') : value;
+      return cancelled ? reject(errorWithCode(errorCode_cancelled)) : value;
     });
   }
 });
@@ -1468,6 +1526,7 @@ env_window.onbeforeunload = function (e) {
 
 
 // CONCATENATED MODULE: ./src/dom.js
+
 
 
 
@@ -1780,7 +1839,7 @@ function trackPointer(callback) {
     touchend: resolve,
     keydown: function keydown(e) {
       if (e.which === 27) {
-        reject();
+        reject(errorWithCode(errorCode_cancelled));
       }
     },
     mousemove: function mousemove(e) {
@@ -1817,7 +1876,7 @@ function trackPointer(callback) {
 
 function beginDrag(within, callback) {
   if (!currentEvent || !matchWord(currentEvent.type, 'mousedown mousemove touchstart touchmove')) {
-    return reject();
+    return reject(errorWithCode(invalidOperation));
   }
 
   var initialPoint = (currentEvent.touches || [currentEvent])[0];
@@ -1833,7 +1892,7 @@ function beginPinchZoom(callback) {
   var initialPoints = (currentEvent || '').touches;
 
   if (!initialPoints || !initialPoints[1]) {
-    return reject();
+    return reject(errorWithCode(invalidOperation));
   }
 
   var m0 = measureLine(initialPoints[0], initialPoints[1]);
@@ -1894,8 +1953,8 @@ domReady.then(function () {
     }
   }
 
-  function triggerUIEvent(eventName, data, point) {
-    return emitDOMEvent(eventName, focusPath[0], data, {
+  function triggerUIEvent(eventName, data, point, target) {
+    return emitDOMEvent(eventName, target || focusPath[0], data, {
       clientX: (point || '').clientX,
       clientY: (point || '').clientY,
       bubbles: true,
@@ -2006,13 +2065,15 @@ domReady.then(function () {
       }
 
       var newText = curText.substr(0, startOffset) + curText.slice(imeOffset);
+      var range = env_document.createRange();
 
       if (isInputElm) {
         imeNode.value = newText;
         imeNode.setSelectionRange(startOffset, startOffset);
       } else {
         imeNode.data = newText;
-        makeSelection(imeNode, startOffset);
+        range.setStart(imeNode, startOffset);
+        makeSelection(range);
       }
 
       if (!triggerUIEvent('textInput', imeText)) {
@@ -2021,7 +2082,8 @@ domReady.then(function () {
           imeNode.setSelectionRange(imeOffset, imeOffset);
         } else {
           imeNode.data = curText;
-          makeSelection(imeNode, imeOffset);
+          range.setStart(imeNode, imeOffset);
+          makeSelection(range);
         }
       }
 
@@ -2178,13 +2240,10 @@ domReady.then(function () {
       }
     },
     wheel: function wheel(e) {
-      // @ts-ignore: e.target is Element
-      if (containsOrEquals(e.target, focusPath[0]) || !textInputAllowed(e.target)) {
-        var dir = e.deltaY || e.detail;
+      var dir = e.deltaY || e.deltaX || e.detail;
 
-        if (dir && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1))) {
-          e.preventDefault();
-        }
+      if (dir && !textInputAllowed(e.target) && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1), e, e.target)) {
+        e.stopPropagation();
       }
     },
     click: function click(e) {
@@ -2915,7 +2974,6 @@ function containerGetComponents(container, elements, bubbles) {
 
 var elementsFromPoint = env_document.msElementsFromPoint || env_document.elementsFromPoint;
 var compareDocumentPositionImpl = env_document.compareDocumentPosition;
-var compareBoundaryPointsImpl = Range.prototype.compareBoundaryPoints;
 var OFFSET_ZERO = Object.freeze({
   x: 0,
   y: 0
@@ -3001,24 +3059,6 @@ definePrototype(Rect, {
 
 function tagName(element) {
   return element && element.tagName && element.tagName.toLowerCase();
-}
-
-function domUtil_is(element, selector) {
-  if (!element || !selector) {
-    return false;
-  } // constructors of native DOM objects in Safari refuse to be functions
-  // use a fairly accurate but fast checking instead of isFunction
-
-
-  if (selector.prototype) {
-    return element instanceof selector && element;
-  }
-
-  if (selector.toFixed) {
-    return element.nodeType === selector && element;
-  }
-
-  return matchSelector(element, selector);
 }
 
 function matchSelector(element, selector) {
@@ -3397,92 +3437,24 @@ function scrollIntoView(element, rect, within) {
  * -------------------------------------- */
 
 
-function createRange(startNode, startOffset, endNode, endOffset) {
-  if (startNode && isFunction(startNode.getRange)) {
-    return startNode.getRange();
-  }
-
-  var range;
-
-  if (domUtil_is(startNode, Node)) {
-    range = env_document.createRange();
-
-    if (+startOffset !== startOffset) {
-      range[startOffset === 'contents' || !startNode.parentNode ? 'selectNodeContents' : 'selectNode'](startNode);
-
-      if (typeof startOffset === 'boolean') {
-        range.collapse(startOffset);
-      }
-    } else {
-      range.setStart(startNode, getOffset(startNode, startOffset));
-    }
-
-    if (domUtil_is(endNode, Node) && connected(startNode, endNode)) {
-      range.setEnd(endNode, getOffset(endNode, endOffset));
-    }
-  } else if (domUtil_is(startNode, Range)) {
-    range = startNode.cloneRange();
-
-    if (!range.collapsed && typeof startOffset === 'boolean') {
-      range.collapse(startOffset);
-    }
-  }
-
-  if (domUtil_is(startOffset, Range) && connected(range, startOffset)) {
-    var inverse = range.collapsed && startOffset.collapsed ? -1 : 1;
-
-    if (compareBoundaryPointsImpl.call(range, 0, startOffset) * inverse < 0) {
-      range.setStart(startOffset.startContainer, startOffset.startOffset);
-    }
-
-    if (compareBoundaryPointsImpl.call(range, 2, startOffset) * inverse > 0) {
-      range.setEnd(startOffset.endContainer, startOffset.endOffset);
-    }
-  }
-
-  return range;
-}
-
-function rangeIntersects(a, b) {
-  a = domUtil_is(a, Range) || createRange(a);
-  b = domUtil_is(b, Range) || createRange(b);
-  return connected(a, b) && compareBoundaryPointsImpl.call(a, 3, b) <= 0 && compareBoundaryPointsImpl.call(a, 1, b) >= 0;
-}
-
-function rangeCovers(a, b) {
-  a = domUtil_is(a, Range) || createRange(a);
-  b = domUtil_is(b, Range) || createRange(b);
-  return connected(a, b) && compareBoundaryPointsImpl.call(a, 0, b) <= 0 && compareBoundaryPointsImpl.call(a, 2, b) >= 0;
-}
-
-function rangeEquals(a, b) {
-  a = domUtil_is(a, Range) || createRange(a);
-  b = domUtil_is(b, Range) || createRange(b);
-  return connected(a, b) && compareBoundaryPointsImpl.call(a, 0, b) === 0 && compareBoundaryPointsImpl.call(a, 2, b) === 0;
-}
-
-function compareRangePosition(a, b, strict) {
-  a = domUtil_is(a, Range) || createRange(a);
-  b = domUtil_is(b, Range) || createRange(b);
-  var value = !connected(a, b) ? NaN : compareBoundaryPointsImpl.call(a, 0, b) + compareBoundaryPointsImpl.call(a, 2, b);
-  return strict && (value !== 0 && rangeIntersects(a, b) || value === 0 && !rangeEquals(a, b)) ? NaN : value && value / Math.abs(value);
-}
-
 function makeSelection(b, e) {
   var selection = getSelection();
 
   if (!selection) {
     return;
-  } // for newer browsers that supports setBaseAndExtent
+  }
+
+  e = e || b; // for newer browsers that supports setBaseAndExtent
   // avoid undesirable effects when direction of editor's selection direction does not match native one
 
-
-  if (selection.setBaseAndExtent && domUtil_is(e, Range)) {
-    selection.setBaseAndExtent(b.startContainer, b.startOffset, e.startContainer, e.startOffset);
+  if (selection.setBaseAndExtent) {
+    selection.setBaseAndExtent(b.startContainer, b.startOffset, e.endContainer, e.endOffset);
     return;
   }
 
-  var range = createRange(b, e);
+  var range = env_document.createRange();
+  range.setStart(b.startContainer, b.startOffset);
+  range.setEnd(e.endContainer, e.endOffset);
 
   try {
     selection.removeAllRanges();
@@ -3502,7 +3474,9 @@ function makeSelection(b, e) {
     // IE may throws unspecified error even though the selection is successfully moved to the given range
     // if the range is not successfully selected retry after selecting other range
     if (!selection.rangeCount) {
-      selection.addRange(createRange(env_document.body));
+      var r1 = env_document.createRange();
+      r1.selectNode(env_document.body);
+      selection.addRange(r1);
       selection.removeAllRanges();
       selection.addRange(range);
     }
@@ -3551,13 +3525,14 @@ function getRect(elm, includeMargin) {
   return rect;
 }
 
-function getOffset(node, offset) {
-  var len = node.length || node.childNodes.length;
-  return 1 / offset < 0 ? Math.max(0, len + offset) : Math.min(len, offset);
-}
-
 function getRects(range) {
-  return map((domUtil_is(range, Range) || createRange(range, 'contents')).getClientRects(), toPlainRect);
+  if (!is(range, Range)) {
+    var r1 = env_document.createRange();
+    r1.selectNodeContents(range);
+    range = r1;
+  }
+
+  return map(range.getClientRects(), toPlainRect);
 }
 
 function toPlainRect(l, t, r, b) {
@@ -3616,6 +3591,7 @@ function elementFromPoint(x, y, container) {
 
 
 
+
 var getAnimationsImpl = root.getAnimations;
 
 function parseCSS(value) {
@@ -3658,7 +3634,7 @@ function removeVendorPrefix(name) {
 
 function runCSSTransition(element, className, callback) {
   if (getClass(element, className)) {
-    return reject();
+    return reject(errorWithCode(invalidOperation));
   }
 
   callback = callback || noop;
@@ -3672,7 +3648,7 @@ function runCSSTransition(element, className, callback) {
       callback();
       return resolve(element);
     } else {
-      return reject(element);
+      return reject(errorWithCode(errorCode_cancelled));
     }
   }
 
@@ -4584,6 +4560,7 @@ definePrototype(TreeWalker, {
 
 
 
+
 var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 
 /* harmony default export */ const src = ({
@@ -4595,6 +4572,7 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
   util: util,
   dom: dom,
   css: cssUtil_namespaceObject,
+  ErrorCode: errorCode_namespaceObject,
   EventContainer: ZetaEventContainer,
   InheritedNode: InheritedNode,
   InheritedNodeTree: InheritedNodeTree,
@@ -4680,7 +4658,7 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__804__;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(411);
+/******/ 	return __webpack_require__(510);
 /******/ })()
 ;
 });
