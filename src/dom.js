@@ -51,6 +51,18 @@ function isMouseDown(e) {
     return (e.buttons || e.which) === 1;
 }
 
+function createIterator(callback) {
+    return {
+        next: function () {
+            var value = callback();
+            return {
+                value: value,
+                done: !value
+            };
+        }
+    };
+}
+
 /* --------------------------------------
  * Focus management
  * -------------------------------------- */
@@ -210,6 +222,41 @@ function retainFocus(a, b) {
 
 function releaseFocus(b) {
     focusFriends.delete(b);
+}
+
+function iterateFocusPath(element) {
+    var returnedOnce;
+    if (element === root || !focused(element)) {
+        return createIterator(function () {
+            if (!returnedOnce || !element) {
+                returnedOnce = true;
+            } else {
+                var friend = focusFriends.get(element);
+                // make sure the next iterated element in connected in DOM and
+                // not being the descendants of current element
+                element = friend && containsOrEquals(root, friend) && !containsOrEquals(element, friend) ? friend : element.parentNode;
+            }
+            return element;
+        });
+    }
+    var elements = focusPath.slice(0);
+    var next = function () {
+        var cur = elements.shift();
+        var modalPath = modalElements.get(cur);
+        if (modalPath) {
+            elements.unshift.apply(elements, modalPath);
+        }
+        return cur;
+    };
+    return createIterator(function () {
+        var cur = next();
+        if (!returnedOnce) {
+            for (; cur !== element; cur = next());
+            returnedOnce = true;
+        }
+        element = cur;
+        return element;
+    });
 }
 
 
@@ -786,6 +833,7 @@ export default {
     releaseModal,
     retainFocus,
     releaseFocus,
+    iterateFocusPath,
     focus,
     beginDrag,
     beginPinchZoom,
@@ -820,5 +868,6 @@ export {
     releaseModal,
     retainFocus,
     releaseFocus,
+    iterateFocusPath,
     focus
 }

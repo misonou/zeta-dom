@@ -12,6 +12,7 @@ declare const methods = {
     releaseModal,
     retainFocus,
     releaseFocus,
+    iterateFocusPath,
     focus,
     beginDrag,
     beginPinchZoom,
@@ -106,6 +107,8 @@ export function releaseModal(element: Element): void;
 export function retainFocus(a: Element, b: Element): void;
 
 export function releaseFocus(b: Element): void;
+
+export function iterateFocusPath(element: Element): Iterator<Element>;
 
 export function getShortcut(key: string): string[];
 
