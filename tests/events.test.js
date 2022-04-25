@@ -1,6 +1,7 @@
-import { after, body, initBody, mockFn, objectContaining, verifyCalls, _ } from "./testUtil";
+import { after, body, combineFn, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
 import { emitDOMEvent, getEventContext, listenDOMEvent, ZetaEventContainer } from "../src/events";
 import { domReady } from "../src/env";
+import dom from "../src/dom";
 
 describe('ZetaEventContainer.event', () => {
     it('should return current event emitted from this container', () => {
@@ -528,5 +529,60 @@ describe('getEventContext', () => {
         });
         container1.destroy();
         container2.destroy();
+    });
+});
+
+describe('emitDOMEvent', () => {
+    it('should dispatch custom event to modally locked element', async () => {
+        await domReady;
+        const cb = mockFn();
+        const { modal, child } = initBody(`
+            <div id="modal">
+                <div id="child"></div>
+            </div>
+        `);
+        dom.setModal(modal);
+        const unregister = combineFn(
+            dom.on(root, 'custom', cb),
+            dom.on(body, 'custom', cb),
+            dom.on(modal, 'custom', cb),
+            dom.on(child, 'custom', cb),
+        );
+        dom.emit('custom', child, null, true);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'custom' }), child],
+            [objectContaining({ type: 'custom' }), modal],
+            [objectContaining({ type: 'custom' }), body],
+            [objectContaining({ type: 'custom' }), root],
+        ]);
+        unregister();
+    });
+
+    it('should dispatch custom event to element from which focus can be delegated', async () => {
+        await domReady;
+        const cb = mockFn();
+        const { modal, child1, child2 } = initBody(`
+            <div id="modal">
+                <div id="child1"></div>
+                <div id="child2"></div>
+            </div>
+        `);
+        dom.retainFocus(child1, child2);
+        const unregister = combineFn(
+            dom.on(root, 'custom', cb),
+            dom.on(body, 'custom', cb),
+            dom.on(modal, 'custom', cb),
+            dom.on(child1, 'custom', cb),
+            dom.on(child2, 'custom', cb),
+        );
+        dom.emit('custom', child2, null, true);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'custom' }), child2],
+            [objectContaining({ type: 'custom' }), child1],
+            [objectContaining({ type: 'custom' }), modal],
+            [objectContaining({ type: 'custom' }), body],
+            [objectContaining({ type: 'custom' }), root],
+        ]);
+        unregister();
     });
 });

@@ -1,10 +1,10 @@
 import Promise from "./include/promise-polyfill.js";
 import $ from "./include/jquery.js";
 import { window, root } from "./env.js";
-import { arrRemove, createPrivateStore, definePrototype, each, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { arrRemove, createPrivateStore, definePrototype, each, extend, grep, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, makeArray, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { afterDetached } from "./observe.js";
-import dom, { textInputAllowed, getShortcut } from "./dom.js";
+import dom, { textInputAllowed, getShortcut, iterateFocusPath } from "./dom.js";
 
 const _ = createPrivateStore();
 const containers = new WeakMap();
@@ -134,7 +134,7 @@ function emitDOMEvent(eventName, target, data, options) {
     }
     var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
     var visited = new Set();
-    return single(emitter.elements, function (v) {
+    return single(parentsAndSelf(target), function (v) {
         var container = getContainerForElement(v);
         if (container && setAdd(visited, container)) {
             return emitter.emit(domEventTrap, 'tap', container, false);
@@ -227,20 +227,14 @@ function ZetaEventEmitter(eventName, container, target, data, options, async) {
         properties: properties,
         current: [],
     });
-    var elements = emitterGetElements(self, target);
-    var targets = containerGetComponents(container, elements, options.bubbles);
-    if (async) {
-        targets = map(targets, function (v) {
-            return {
-                container: v.container,
-                target: v.target,
-                contexts: extend({}, v.contexts),
-                handlers: kv(eventName, extend({}, v.handlers[eventName]))
-            };
-        });
-    }
-    self.elements = elements;
-    self.targets = targets;
+    self.targets = async && map(emitterIterateTargets(self), function (v) {
+        return {
+            container: v.container,
+            target: v.target,
+            contexts: extend({}, v.contexts),
+            handlers: kv(eventName, extend({}, v.handlers[eventName]))
+        };
+    });
 }
 
 definePrototype(ZetaEventEmitter, {
@@ -249,8 +243,9 @@ definePrototype(ZetaEventEmitter, {
         var targets = self.targets;
         if ((container && container !== self.container) || (target && target !== self.target)) {
             var elements = parentsAndSelf(target || self.target);
-            // @ts-ignore: type inference issue
-            targets = containerGetComponents(container || self.container, elements, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
+            targets = emitterIterateTargets(self, container, elements, bubbles);
+        } else if (!targets) {
+            targets = emitterIterateTargets(self);
         }
         var emitting = self.current[0] || self;
         single(targets, function (v) {
@@ -260,11 +255,19 @@ definePrototype(ZetaEventEmitter, {
     }
 });
 
-function emitterGetElements(emitter, target) {
+function emitterGetElements(emitter, bubbles) {
+    var target = emitter.target;
+    if (!is(target, Node)) {
+        return bubbles ? parentsAndSelf(target) : [target];
+    }
+    var originalEvent = emitter.originalEvent;
+    if (!originalEvent || originalEvent !== dom.event) {
+        return bubbles ? iterateFocusPath(target) : [target];
+    }
     var focusedElements = emitter.source.path;
     var index = focusedElements.indexOf(target);
     if (index < 0) {
-        return parentsAndSelf(target);
+        return [];
     }
     var targets = focusedElements.slice(index);
     if (emitter.clientX === undefined || !document.elementFromPoint) {
@@ -274,6 +277,29 @@ function emitterGetElements(emitter, target) {
     return grep(targets, function (v) {
         return containsOrEquals(v, element);
     });
+}
+
+function emitterIterateTargets(emitter, container, elements, bubbles) {
+    var components = _(container || emitter.container).components;
+    if (isUndefinedOrNull(bubbles)) {
+        bubbles = emitter.bubbles;
+    }
+    elements = elements || emitterGetElements(emitter, bubbles);
+    if (!bubbles) {
+        return makeArray(components.get(elements[0]));
+    }
+    if (isArray(elements)) {
+        // convert plain array to iterator so that subsequent call to nextNode will
+        // resume at the correct index
+        elements = elements.values();
+    }
+    return {
+        nextNode: function () {
+            return single(elements, function (v) {
+                return components.get(v);
+            });
+        }
+    };
 }
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
@@ -487,13 +513,6 @@ function containerRemoveHandler(container, target, key) {
     if (!keys(handlers)[0]) {
         container.delete(target);
     }
-}
-
-function containerGetComponents(container, elements, bubbles) {
-    var components = _(container).components;
-    return map(bubbles ? elements : elements.slice(0, 1), function (v) {
-        return components.get(v);
-    });
 }
 
 export {
