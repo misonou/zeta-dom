@@ -691,7 +691,6 @@ domReady.then(function () {
             }
         },
         mouseup: function () {
-            mouseInitialPoint = null;
             if (mousedownFocus && document.activeElement !== mousedownFocus) {
                 mousedownFocus.focus();
             }
@@ -703,7 +702,7 @@ domReady.then(function () {
             }
         },
         click: function (e) {
-            if (!IS_TOUCH && mouseInitialPoint) {
+            if (mouseInitialPoint) {
                 triggerMouseEvent(getEventName(e, 'click'));
             }
         },
