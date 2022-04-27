@@ -1492,11 +1492,9 @@ definePrototype(DOMLock, {
 
     promise.catch(function (error) {
       if (error && !handledErrors.has(error)) {
-        any(parentsAndSelf(self.element), function (v) {
-          return emitDOMEvent('error', v, {
-            error: error
-          });
-        }); // avoid firing error event for the same error for multiple target
+        emitDOMEvent('error', self.element, {
+          error: error
+        }, true); // avoid firing error event for the same error for multiple target
         // while propagating through the promise chain
 
         if (domLock_typeof(error) === 'object') {
@@ -1572,6 +1570,18 @@ function textInputAllowed(v) {
 
 function isMouseDown(e) {
   return (e.buttons || e.which) === 1;
+}
+
+function createIterator(callback) {
+  return {
+    next: function next() {
+      var value = callback();
+      return {
+        value: value,
+        done: !value
+      };
+    }
+  };
 }
 /* --------------------------------------
  * Focus management
@@ -1755,6 +1765,53 @@ function retainFocus(a, b) {
 
 function releaseFocus(b) {
   focusFriends.delete(b);
+}
+
+function iterateFocusPath(element) {
+  var returnedOnce;
+
+  if (element === root || !focused(element)) {
+    return createIterator(function () {
+      if (!returnedOnce || !element) {
+        returnedOnce = true;
+      } else {
+        var friend = focusFriends.get(element); // make sure the next iterated element in connected in DOM and
+        // not being the descendants of current element
+
+        element = friend && containsOrEquals(root, friend) && !containsOrEquals(element, friend) ? friend : element.parentNode;
+      }
+
+      return element;
+    });
+  }
+
+  var elements = focusPath.slice(0);
+
+  var next = function next() {
+    var cur = elements.shift();
+    var modalPath = modalElements.get(cur);
+
+    if (modalPath) {
+      elements.unshift.apply(elements, modalPath);
+    }
+
+    return cur;
+  };
+
+  return createIterator(function () {
+    var cur = next();
+
+    if (!returnedOnce) {
+      for (; cur !== element; cur = next()) {
+        ;
+      }
+
+      returnedOnce = true;
+    }
+
+    element = cur;
+    return element;
+  });
 }
 /* --------------------------------------
  * DOM event handling
@@ -2233,8 +2290,6 @@ domReady.then(function () {
       }
     },
     mouseup: function mouseup() {
-      mouseInitialPoint = null;
-
       if (mousedownFocus && env_document.activeElement !== mousedownFocus) {
         mousedownFocus.focus();
       }
@@ -2247,7 +2302,7 @@ domReady.then(function () {
       }
     },
     click: function click(e) {
-      if (!IS_TOUCH && mouseInitialPoint) {
+      if (mouseInitialPoint) {
         triggerMouseEvent(getEventName(e, 'click'));
       }
     },
@@ -2379,6 +2434,7 @@ function dom_focus(element) {
   releaseModal: releaseModal,
   retainFocus: retainFocus,
   releaseFocus: releaseFocus,
+  iterateFocusPath: iterateFocusPath,
   focus: dom_focus,
   beginDrag: beginDrag,
   beginPinchZoom: beginPinchZoom,
@@ -2549,7 +2605,7 @@ function emitDOMEvent(eventName, target, data, options) {
 
   var emitter = new ZetaEventEmitter(eventName, domContainer, target, data, normalizeEventOptions(options));
   var visited = new Set();
-  return single(emitter.elements, function (v) {
+  return single(parentsAndSelf(target), function (v) {
     var container = getContainerForElement(v);
 
     if (container && setAdd(visited, container)) {
@@ -2654,22 +2710,14 @@ function ZetaEventEmitter(eventName, container, target, data, options, async) {
     properties: properties,
     current: []
   });
-  var elements = emitterGetElements(self, target);
-  var targets = containerGetComponents(container, elements, options.bubbles);
-
-  if (async) {
-    targets = map(targets, function (v) {
-      return {
-        container: v.container,
-        target: v.target,
-        contexts: extend({}, v.contexts),
-        handlers: kv(eventName, extend({}, v.handlers[eventName]))
-      };
-    });
-  }
-
-  self.elements = elements;
-  self.targets = targets;
+  self.targets = async && map(emitterIterateTargets(self), function (v) {
+    return {
+      container: v.container,
+      target: v.target,
+      contexts: extend({}, v.contexts),
+      handlers: kv(eventName, extend({}, v.handlers[eventName]))
+    };
+  });
 }
 
 definePrototype(ZetaEventEmitter, {
@@ -2678,9 +2726,10 @@ definePrototype(ZetaEventEmitter, {
     var targets = self.targets;
 
     if (container && container !== self.container || target && target !== self.target) {
-      var elements = parentsAndSelf(target || self.target); // @ts-ignore: type inference issue
-
-      targets = containerGetComponents(container || self.container, elements, isUndefinedOrNull(bubbles) ? self.bubbles : bubbles);
+      var elements = parentsAndSelf(target || self.target);
+      targets = emitterIterateTargets(self, container, elements, bubbles);
+    } else if (!targets) {
+      targets = emitterIterateTargets(self);
     }
 
     var emitting = self.current[0] || self;
@@ -2691,12 +2740,24 @@ definePrototype(ZetaEventEmitter, {
   }
 });
 
-function emitterGetElements(emitter, target) {
+function emitterGetElements(emitter, bubbles) {
+  var target = emitter.target;
+
+  if (!is(target, Node)) {
+    return bubbles ? parentsAndSelf(target) : [target];
+  }
+
+  var originalEvent = emitter.originalEvent;
+
+  if (!originalEvent || originalEvent !== dom.event) {
+    return bubbles ? iterateFocusPath(target) : [target];
+  }
+
   var focusedElements = emitter.source.path;
   var index = focusedElements.indexOf(target);
 
   if (index < 0) {
-    return parentsAndSelf(target);
+    return [];
   }
 
   var targets = focusedElements.slice(index);
@@ -2709,6 +2770,34 @@ function emitterGetElements(emitter, target) {
   return grep(targets, function (v) {
     return containsOrEquals(v, element);
   });
+}
+
+function emitterIterateTargets(emitter, container, elements, bubbles) {
+  var components = events_(container || emitter.container).components;
+
+  if (isUndefinedOrNull(bubbles)) {
+    bubbles = emitter.bubbles;
+  }
+
+  elements = elements || emitterGetElements(emitter, bubbles);
+
+  if (!bubbles) {
+    return makeArray(components.get(elements[0]));
+  }
+
+  if (isArray(elements)) {
+    // convert plain array to iterator so that subsequent call to nextNode will
+    // resume at the correct index
+    elements = elements.values();
+  }
+
+  return {
+    nextNode: function nextNode() {
+      return single(elements, function (v) {
+        return components.get(v);
+      });
+    }
+  };
 }
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
@@ -2955,14 +3044,6 @@ function containerRemoveHandler(container, target, key) {
   if (!keys(handlers)[0]) {
     container.delete(target);
   }
-}
-
-function containerGetComponents(container, elements, bubbles) {
-  var components = events_(container).components;
-
-  return map(bubbles ? elements : elements.slice(0, 1), function (v) {
-    return components.get(v);
-  });
 }
 
 
