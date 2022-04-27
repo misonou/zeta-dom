@@ -217,11 +217,11 @@ declare namespace Zeta {
         getRect(): Rect;
     }
 
-    interface HasElement {
+    interface HasElement<T = HTMLElement> {
         /**
          * The element represented by or associated with the object.
          */
-        readonly element: HTMLElement;
+        readonly element: T;
     }
 
     interface HasParent {
@@ -298,6 +298,11 @@ declare namespace Zeta {
          */
         readonly context: T;
 
+        /**
+         * Gets the HTML element represented by the context object, or the context object itself.
+         */
+        readonly currentTarget: T extends HasElement<infer V> ? V : T;
+
         readonly θ__dummy__: any;
     }
 
@@ -344,11 +349,6 @@ declare namespace Zeta {
          * Gets the DOM element that triggered this event.
          */
         readonly target: HTMLElement;
-
-        /**
-         * Gets the DOM element which current event handler is bound to.
-         */
-        readonly currentTarget: HTMLElement;
 
         /**
          * Gets the user action which triggers this event.
@@ -600,6 +600,15 @@ declare namespace Zeta {
         add<E extends keyof M>(target: T, event: E, handlers: ZetaEventHandler<E, M, T>): UnregisterCallback;
 
         /**
+         * Registers event handlers to a DOM element or a custom event target.
+         * @param target An event target.
+         * @param event Name of the event.
+         * @param handler A callback function to be fired when the specified event is triggered.
+         * @returns A function that will unregister the handlers when called.
+         */
+        add(target: T, event: string, handlers: ZetaEventHandler<string, M, T>): UnregisterCallback;
+
+        /**
          * Removes the DOM element or custom event target from the container.
          * All event handlers are also removed.
          * @param target An event target.
@@ -632,6 +641,16 @@ declare namespace Zeta {
         emit<E extends keyof M>(eventName: E, target?: T, data?: any, options?: boolean | EventEmitOptions): any;
 
         /**
+         * Emits an event to components synchronously.
+         * If the event is handled by component, a promise object is returned.
+         * @param eventName Event name.
+         * @param target A DOM element which the event should be dispatched on.
+         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
+         */
+        emit(eventName: string, target?: T, data?: any, options?: boolean | EventEmitOptions): any;
+
+        /**
          * Emits an event to components asynchronously.
          * @param eventName Event name.
          * @param target A DOM element which the event should be dispatched on.
@@ -640,6 +659,16 @@ declare namespace Zeta {
          * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
          */
         emitAsync<E extends keyof M, V = any>(eventName: E, target?: T, data?: V, options?: boolean | EventEmitOptions, mergeData?: (v: V, a: V) => V): void;
+
+        /**
+         * Emits an event to components asynchronously.
+         * @param eventName Event name.
+         * @param target A DOM element which the event should be dispatched on.
+         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
+         * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
+         */
+        emitAsync<V = any>(eventName: string, target?: T, data?: V, options?: boolean | EventEmitOptions, mergeData?: (v: V, a: V) => V): void;
 
         /**
          * Adds a handler to intercept event being fired within this container.
