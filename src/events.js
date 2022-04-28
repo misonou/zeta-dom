@@ -221,7 +221,8 @@ function ZetaEventEmitter(eventName, container, target, data, options, async) {
     extend(self, options, properties, {
         container: container,
         eventName: eventName,
-        target: target.element || target,
+        target: target,
+        element: is(target.element, Node) || target,
         source: source,
         data: data,
         properties: properties,
@@ -341,7 +342,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         eventSource = prevEventSource;
     }
     if (!handled && !emitter.current[0] && eventName === 'keystroke') {
-        if (data.char && textInputAllowed(emitter.target)) {
+        if (data.char && textInputAllowed(emitter.element)) {
             return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char);
         }
         return single(getShortcut(data.data), function (v) {
@@ -361,7 +362,7 @@ function ZetaEvent(event, eventName, component, context, data) {
     self.type = eventName;
     self.context = context;
     self.currentTarget = component.target;
-    self.target = event.target;
+    self.target = event.element;
     self.data = null;
     if (isPlainObject(data)) {
         extend(self, data);
