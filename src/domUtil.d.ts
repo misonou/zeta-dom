@@ -115,7 +115,7 @@ export function getCommonAncestor(a: Node, b: Node): Element;
 
 export function parentsAndSelf(node: Node | Window): Element[];
 
-export function parentsAndSelf<T extends Zeta.HasParent | Zeta.HasParentNode>(node: T): T[];
+export function parentsAndSelf<T extends Zeta.HasParent | Zeta.HasParentNode>(node: T | null): T[];
 
 export function selectIncludeSelf(sel: string, node?: Node | NodeList | Node[] | ArrayLike<Node>): Element[];
 

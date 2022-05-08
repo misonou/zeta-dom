@@ -113,4 +113,4 @@ export declare function listenDOMEvent<T extends Element>(element: T, event: str
  * @param handlers An object which each entry represent the handler to be registered on the event.
  * @returns A function that will unregister the handler when called.
  */
-export declare function listenDOMEvent<T extends Element>(element: T, handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventName, Zeta.ZetaDOMEventMap, T>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<T extends Element>(element: T, handlers: Zeta.ZetaEventHandlers<string, Zeta.ZetaDOMEventMap, T>): Zeta.UnregisterCallback;
