@@ -1,5 +1,5 @@
 import { after, body, combineFn, delay, ErrorCode, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
-import { cancelLock, lock, locked } from "../src/domLock";
+import { cancelLock, lock, locked, notifyAsync, preventLeave } from "../src/domLock";
 import { noop } from "../src/util";
 import { removeNode } from "../src/domUtil";
 import dom from "../src/dom";
@@ -36,8 +36,8 @@ describe('lock', () => {
         );
         await Promise.all([lock(div, delay()), lock(div, delay())]);
         verifyCalls(cb, [
+            [objectContaining({ currentTarget: div }), _],
             [objectContaining({ currentTarget: root }), _],
-            [objectContaining({ currentTarget: div }), _]
         ]);
         unregister();
     });
@@ -91,6 +91,112 @@ describe('lock', () => {
     });
 });
 
+describe('notifyAsync', () => {
+    it('should not lock element', async () => {
+        const promise = delay();
+        notifyAsync(body, promise);
+        expect(locked(body)).toBe(false);
+        await promise;
+        expect(locked(body)).toBe(false);
+    });
+
+    it('should emit asyncStart event when element is first locked', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = combineFn(
+            dom.on(div, 'asyncStart', cb),
+            dom.on(root, 'asyncStart', cb)
+        );
+        const promise1 = delay();
+        const promise2 = delay();
+        notifyAsync(div, promise1);
+        notifyAsync(div, promise2);
+        await promise1;
+        await promise2;
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: div }), _],
+            [objectContaining({ currentTarget: root }), _],
+        ]);
+        unregister();
+    });
+
+    it('should emit asyncEnd event when all promises are resolved', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = combineFn(
+            dom.on(div, 'asyncEnd', cb),
+            dom.on(root, 'asyncEnd', cb)
+        );
+        var resolve1, resolve2;
+        var promise1 = new Promise(resolve => resolve1 = resolve);
+        var promise2 = new Promise(resolve => resolve2 = resolve);
+        notifyAsync(div, promise1);
+        notifyAsync(div, promise2);
+
+        await after(resolve1 || noop);
+        expect(cb).not.toBeCalled();
+
+        await after(resolve2 || noop);
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: div }), _],
+            [objectContaining({ currentTarget: root }), _]
+        ]);
+        unregister();
+    });
+});
+
+describe('preventLeave', () => {
+    it('should lock element until promise is settle', async () => {
+        const promise = delay();
+        preventLeave(body, promise);
+        expect(locked(body)).toBe(true);
+        await promise;
+        expect(locked(body)).toBe(false);
+    });
+
+    it('should not emit asyncStart event when element is first locked', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = combineFn(
+            dom.on(div, 'asyncStart', cb),
+            dom.on(root, 'asyncStart', cb)
+        );
+        const promise1 = delay();
+        const promise2 = delay();
+        preventLeave(div, promise1);
+        preventLeave(div, promise2);
+        await promise1;
+        await promise2;
+        expect(cb).not.toBeCalled();
+        unregister();
+    });
+
+    it('should not emit asyncEnd event when all promises are resolved', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = combineFn(
+            dom.on(div, 'asyncEnd', cb),
+            dom.on(root, 'asyncEnd', cb)
+        );
+        const promise1 = delay();
+        const promise2 = delay();
+        preventLeave(div, promise1);
+        preventLeave(div, promise2);
+        await promise1;
+        await promise2;
+        expect(cb).not.toBeCalled();
+        unregister();
+    });
+});
+
 describe('locked', () => {
     it('should return if element is locked', async () => {
         const { div } = initBody(`
@@ -114,7 +220,7 @@ describe('locked', () => {
         expect(locked(root)).toBe(false);
     });
 
-    it('should return false if locked child element has just be detached',  async () => {
+    it('should return false if locked child element has just be detached', async () => {
         const { div } = initBody(`
             <div id="div"></div>
         `);

@@ -1,14 +1,23 @@
 import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
-import { any, catchAsync, createPrivateStore, definePrototype, each, errorWithCode, extend, is, makeArray, mapRemove, reject, resolve, setImmediate } from "./util.js";
+import { any, catchAsync, definePrototype, each, errorWithCode, executeOnce, makeArray, noop, reject, resolve, setImmediate } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
-import { registerCleanup } from "./observe.js";
+import { TraversableNode, TraversableNodeTree } from "./tree.js";
 
-const lockedElements = new WeakMap();
 const handledErrors = new WeakMap();
-const _ = createPrivateStore();
+const getTree = executeOnce(function () {
+    const tree = new TraversableNodeTree(root, DOMLock);
+    tree.on('update', function (e) {
+        each(e.records, function (i, v) {
+            if (!containsOrEquals(root, v.node)) {
+                v.node.cancel(true);
+            }
+        });
+    });
+    return tree;
+});
 
 function retryable(fn, done) {
     var promise;
@@ -22,112 +31,123 @@ function retryable(fn, done) {
     };
 }
 
-function lock(element, promise, oncancel) {
-    var lock = lockedElements.get(element) || new DOMLock(element);
-    return promise ? lock.wait(promise, oncancel) : resolve();
+function lock(element, promise, oncancel, flag) {
+    var lock = getTree().setNode(element);
+    return promise ? lock.wait(promise, oncancel, flag) : resolve();
+}
+
+function notifyAsync(element, promise) {
+    catchAsync(lock(element, promise, true, true));
+}
+
+function preventLeave(element, promise, oncancel) {
+    catchAsync(lock(element, promise, oncancel, false));
 }
 
 function locked(element, parents) {
-    return !!any(parents ? parentsAndSelf(element) : [element], function (v) {
-        return (lockedElements.get(v) || '').locked;
+    var lock = getTree().getNode(element);
+    return !!any(parents ? parentsAndSelf(lock) : makeArray(lock), function (v) {
+        return v.locked;
     });
 }
 
 function cancelLock(element, force) {
-    var lock = lockedElements.get(element);
+    var lock = getTree().getNode(element);
     return lock ? lock.cancel(force) : resolve();
 }
 
-function removeLock(element) {
-    var lock = mapRemove(lockedElements, element);
-    if (lock) {
-        lock.cancel(true);
-    }
-}
-
-function DOMLock(element) {
-    var self = this;
-    _(self, {
-        promises: new Map()
+function createDependantPromise(parent, oncancel, notifyAsync) {
+    var resolve;
+    var promise = new Promise(function (resolve_) {
+        resolve = resolve_;
     });
-    self.element = element;
-    lockedElements.set(element, self);
-    if (element !== root) {
-        registerCleanup(element, removeLock.bind(0, element));
-    }
+    catchAsync(parent.wait(promise, oncancel, notifyAsync));
+    return function (force) {
+        var item = force && parent.promises.get(promise);
+        resolve();
+        if (item) {
+            item.finish();
+        }
+    };
 }
 
-definePrototype(DOMLock, {
+function DOMLock() {
+    var self = this;
+    TraversableNode.apply(self, arguments);
+    self.async = 0;
+    self.locks = 0;
+    self.promises = new Map();
+    self.unlock = noop;
+    self.asyncEnd = noop;
+}
+
+definePrototype(DOMLock, TraversableNode, {
     get locked() {
-        var self = this;
-        var promises = _(self).promises;
-        each(promises, function (i, v) {
-            if (is(i.lock, DOMLock) && !containsOrEquals(self.element, i.lock.element)) {
-                promises.delete(i);
-            }
-        });
-        if (!promises.size) {
-            self.cancel(true);
-        }
-        return promises.size > 0;
+        return this.locks > 0;
     },
     cancel: function (force) {
         var self = this;
-        var state = _(self);
-        var promises = state.promises;
+        var promises = self.promises;
         if (force || !promises.size) {
             if (promises.size) {
                 setImmediate(function () {
                     emitDOMEvent('cancelled', self.element);
                 });
             }
+            if (self.async) {
+                self.async = 0;
+                emitDOMEvent('asyncEnd', self.element);
+            }
             // remove all promises from the dictionary so that
             // filtered promise from lock.wait() will be rejected by cancellation
             promises.clear();
-            state.handler = null;
-            if (self.element !== root) {
-                lockedElements.delete(self.element);
-            }
-            if (state.deferred) {
-                state.deferred.resolve();
-            }
+            self.locks = 0;
+            self.handler = null;
+            self.unlock(true);
+            self.asyncEnd(true);
             return resolve();
         }
-        return (state.handler || (state.handler = retryable(function () {
+        return (self.handler || (self.handler = retryable(function () {
             // request user cancellation for each async task in sequence
             return makeArray(promises).reduce(function (a, v) {
-                return a.then(v);
+                return a.then(v.cancel);
             }, resolve()).then(function () {
                 // @ts-ignore: unable to reflect on interface member
                 self.cancel(true);
             });
         })))();
     },
-    wait: function (promise, oncancel) {
+    wait: function (promise, oncancel, flag) {
         var self = this;
-        var state = _(self);
-        var promises = state.promises;
+        var parent = self.parentNode;
+        var promises = self.promises;
+        var notifyLock = flag !== true;
+        var notifyAsync = flag !== false;
         var finish = function () {
-            if (promises.delete(promise) && !promises.size) {
-                emitDOMEvent('asyncEnd', self.element);
-                self.cancel(true);
+            if (promises.delete(promise)) {
+                if (!promises.size) {
+                    self.cancel(true);
+                }
+                if (notifyLock && self.locks && !--self.locks) {
+                    self.unlock();
+                }
+                if (notifyAsync && self.async && !--self.async) {
+                    emitDOMEvent('asyncEnd', self.element);
+                    self.asyncEnd();
+                }
             }
         };
-        promises.set(promise, retryable(oncancel === true ? resolve : oncancel || reject, finish));
-        if (promises.size === 1) {
-            var callback = {
-                lock: this
-            };
-            var deferred = new Promise(function (resolve, reject) {
-                callback.resolve = resolve;
-                callback.reject = reject;
-            });
-            state.deferred = extend(deferred, callback);
-            for (var parent = self.element.parentNode; parent && !lockedElements.has(parent); parent = parent.parentNode);
-            if (parent) {
-                catchAsync(lockedElements.get(parent).wait(deferred, self.cancel.bind(self)));
+        promises.set(promise, {
+            cancel: oncancel === true ? resolve : retryable(oncancel || reject, finish),
+            finish: finish
+        });
+        if (notifyLock && !self.locks++ && parent) {
+            self.unlock = createDependantPromise(parent, self.cancel.bind(self), false);
+        }
+        if (notifyAsync && !self.async++) {
+            if (!emitDOMEvent('asyncStart', self.element) && parent) {
+                self.asyncEnd = createDependantPromise(parent, true, true);
             }
-            emitDOMEvent('asyncStart', self.element);
         }
         promise.catch(function (error) {
             if (error && !handledErrors.has(error)) {
@@ -152,7 +172,6 @@ definePrototype(DOMLock, {
     }
 });
 
-lock(root);
 window.onbeforeunload = function (e) {
     if (locked(root)) {
         e.returnValue = '';
@@ -163,5 +182,7 @@ window.onbeforeunload = function (e) {
 export {
     lock,
     locked,
-    cancelLock
+    cancelLock,
+    notifyAsync,
+    preventLeave
 };
