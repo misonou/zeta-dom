@@ -1,6 +1,6 @@
 import Promise from "./include/promise-polyfill.js";
 import { root, domReady } from "./env.js";
-import { each, extend, grep, is, isFunction, makeArray, map, mapGet, mapRemove, throwNotFunction } from "./util.js";
+import { combineFn, each, extend, grep, is, isFunction, makeArray, map, mapGet, mapRemove, noop, throwNotFunction } from "./util.js";
 import { containsOrEquals, selectIncludeSelf } from "./domUtil.js";
 
 const detachHandlers = new WeakMap();
@@ -8,6 +8,8 @@ const optionsForChildList = {
     subtree: true,
     childList: true
 };
+
+let globalCleanups;
 
 function DetachHandlerState() {
     this.handlers = []
@@ -36,9 +38,29 @@ function observe(element, options, callback) {
     };
 }
 
-function registerCleanup(callback) {
-    var state = initDetachWatcher(root);
-    state.handlers.push(throwNotFunction(callback));
+function registerCleanup(element, callback) {
+    if (isFunction(element)) {
+        var state = initDetachWatcher(root);
+        state.handlers.push(element);
+    } else {
+        var map = globalCleanups || (globalCleanups = createAutoCleanupMap(function (element, arr) {
+            combineFn(arr)();
+        }));
+        mapGet(map, element, Set).add(callback);
+    }
+}
+
+function createAutoCleanupMap(callback) {
+    var map = new Map();
+    callback = isFunction(callback) || noop;
+    observe(root, function () {
+        each(map, function (i) {
+            if (!root.contains(i)) {
+                callback(i, mapRemove(map, i));
+            }
+        });
+    });
+    return map;
 }
 
 function afterDetached(element, from, callback) {
@@ -143,6 +165,7 @@ function initDetachWatcher(element) {
 export {
     observe,
     registerCleanup,
+    createAutoCleanupMap,
     afterDetached,
     watchElements,
     watchAttributes

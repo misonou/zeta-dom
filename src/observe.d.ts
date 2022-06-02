@@ -40,8 +40,27 @@ export function watchAttributes(element: Element, attributes: string | string[],
 /**
  * Registers a callback to be fired whenever there are elements detached from document.
  * @param callback A callback to be fired when mutation occurs.
+ * @deprecated Use overload with element instead.
  */
 export function registerCleanup(callback: () => any): void;
+
+/**
+ * Registers a callback to be fired when the given element is detached from document.
+ */
+export function registerCleanup(element: Element, callback: Zeta.UnregisterCallback): void;
+
+/**
+ * Creates a map with DOM element as keys.
+ * When an element is detached from the document, the element will be removed from the map.
+ */
+export function createAutoCleanupMap<T, E extends Element = Element>(): Map<E, T>;
+
+/**
+ * Creates a map with DOM element as keys.
+ * When an element is detached from the document, the element will be removed from the map, and the given handler is called with the element and its associated value in the map.
+ * @param callback A callback to be invoked when an element is detached.
+ */
+export function createAutoCleanupMap<T, E extends Element = Element>(callback: (element: E, value: T) => void): Map<E, T>;
 
 /**
  * Get a promise that will be resolved when the element is removed from the specified parent.

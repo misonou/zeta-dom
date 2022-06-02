@@ -1,5 +1,5 @@
 import { after, body, initBody, mockFn, verifyCalls } from "./testUtil";
-import { afterDetached, registerCleanup, watchAttributes, watchElements } from "../src/observe";
+import { afterDetached, createAutoCleanupMap, registerCleanup, watchAttributes, watchElements } from "../src/observe";
 
 describe('registerCleanup', () => {
     it('should fire callback when element is removed from root', async () => {
@@ -15,6 +15,62 @@ describe('registerCleanup', () => {
         });
         expect(cb).toBeCalledTimes(1);
         expect(cb).toBeCalledWith([node1]);
+    });
+
+    it('should fire callback once when specified element is removed from root', async () => {
+        const { node1 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        const cb = mockFn();
+        registerCleanup(node1, cb);
+        registerCleanup(node1, cb);
+        await after(() => {
+            body.removeChild(node1);
+        });
+        expect(cb).toBeCalledTimes(1);
+
+        cb.mockClear();
+        body.appendChild(node1);
+        await after(() => {
+            body.removeChild(node1);
+        });
+        expect(cb).toBeCalledTimes(0);
+    });
+});
+
+describe('createAutoCleanupMap', () => {
+    it('should remove entry when element is removed from root', async () => {
+        const { node1 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        const obj = {};
+        const map = createAutoCleanupMap();
+        map.set(node1, obj);
+        await after(() => {
+            body.removeChild(node1);
+        });
+        expect(map.size).toBe(0);
+    });
+
+    it('should fire callback with value when element is removed from root', async () => {
+        const { node1 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        const obj = {};
+        const cb = mockFn();
+        const map = createAutoCleanupMap(cb);
+        map.set(node1, obj);
+        await after(() => {
+            body.removeChild(node1);
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb).toBeCalledWith(node1, obj);
     });
 });
 
