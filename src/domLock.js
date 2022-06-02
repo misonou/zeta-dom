@@ -4,7 +4,7 @@ import { window, root } from "./env.js";
 import { any, catchAsync, createPrivateStore, definePrototype, each, errorWithCode, extend, is, makeArray, mapRemove, reject, resolve, setImmediate } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
-import { afterDetached } from "./observe.js";
+import { registerCleanup } from "./observe.js";
 
 const lockedElements = new WeakMap();
 const handledErrors = new WeakMap();
@@ -53,7 +53,7 @@ function DOMLock(element) {
     self.element = element;
     lockedElements.set(element, self);
     if (element !== root) {
-        afterDetached(element, removeLock);
+        registerCleanup(element, removeLock.bind(0, element));
     }
 }
 

@@ -73,6 +73,7 @@ export function afterDetached<T extends Element>(element: T, container?: Element
  * Registers a callback to be fired when when the element is removed from the document.
  * @param element A DOM element to observe.
  * @param callback A callback to be fired when mutation occurs.
+ * @deprecated Use {@link registerCleanup} instead.
  */
 export function afterDetached<T extends Element>(element: T, callback: (element: T) => any): void;
 

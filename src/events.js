@@ -3,7 +3,7 @@ import $ from "./include/jquery.js";
 import { window, root } from "./env.js";
 import { arrRemove, createPrivateStore, definePrototype, each, extend, grep, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, makeArray, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
-import { afterDetached } from "./observe.js";
+import { registerCleanup } from "./observe.js";
 import dom, { textInputAllowed, getShortcut, iterateFocusPath } from "./dom.js";
 
 const _ = createPrivateStore();
@@ -418,7 +418,7 @@ function ZetaEventContainer(element, context, options) {
         containers.set(element, self);
     }
     if (self.autoDestroy) {
-        afterDetached(element, function () {
+        registerCleanup(element, function () {
             self.destroy();
         });
     }
