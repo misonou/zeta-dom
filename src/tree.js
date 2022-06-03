@@ -1,5 +1,5 @@
-import dom from "./dom.js";
 import { comparePosition, containsOrEquals, createTreeWalker, iterateNode, parentsAndSelf } from "./domUtil.js";
+import { root } from "./env.js";
 import { ZetaEventContainer } from "./events.js";
 import { observe, watchElements } from "./observe.js";
 import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, is, isFunction, isPlainObject, kv, map, mapGet, mapRemove, noop, pick } from "./util.js";
@@ -9,7 +9,7 @@ const SNAPSHOT_PROPS = 'parentNode previousSibling nextSibling'.split(' ');
 const _ = createPrivateStore();
 const previous = new WeakMap();
 const setPrototypeOf = Object.setPrototypeOf;
-const collectMutations = observe(dom.root, handleMutations);
+const collectMutations = observe(root, handleMutations);
 
 /** @type {WeakMap<Element, VersionState>} */
 var versionMap = new WeakMap();
