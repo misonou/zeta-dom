@@ -121,6 +121,7 @@ __webpack_require__.d(util_namespaceObject, {
   "matchWord": function() { return matchWord; },
   "noop": function() { return noop; },
   "pick": function() { return pick; },
+  "pipe": function() { return pipe; },
   "randomId": function() { return randomId; },
   "reject": function() { return reject; },
   "repeat": function() { return repeat; },
@@ -179,7 +180,7 @@ __webpack_require__.d(domUtil_namespaceObject, {
   "rectCovers": function() { return rectCovers; },
   "rectEquals": function() { return rectEquals; },
   "rectIntersects": function() { return rectIntersects; },
-  "removeNode": function() { return removeNode; },
+  "removeNode": function() { return domUtil_removeNode; },
   "scrollBy": function() { return scrollBy; },
   "scrollIntoView": function() { return scrollIntoView; },
   "selectClosestRelative": function() { return selectClosestRelative; },
@@ -261,6 +262,10 @@ var watchStore;
  * -------------------------------------- */
 
 function noop() {}
+
+function pipe(v) {
+  return v;
+}
 
 function either(x, y) {
   return x ^ y;
@@ -1074,6 +1079,7 @@ var optionsForChildList = {
   subtree: true,
   childList: true
 };
+var globalCleanups;
 
 function DetachHandlerState() {
   this.handlers = [];
@@ -1087,17 +1093,21 @@ function observe(element, options, callback) {
     options = optionsForChildList;
   }
 
-  var processRecords = function processRecords(records) {
-    records = records.filter(function (v) {
-      // filter out changes due to sizzle engine
-      // to prevent excessive invocation due to querying elements through jQuery
-      return v.attributeName !== 'id' || (v.oldValue || '').slice(0, 6) !== 'sizzle' && v.target.id !== (v.oldValue || '');
-    });
+  var processRecords = callback;
 
-    if (records[0]) {
-      callback(records);
-    }
-  };
+  if (options.attributes) {
+    processRecords = function processRecords(records) {
+      records = records.filter(function (v) {
+        // filter out changes due to sizzle engine
+        // to prevent excessive invocation due to querying elements through jQuery
+        return v.attributeName !== 'id' || (v.oldValue || '').slice(0, 6) !== 'sizzle' && v.target.id !== (v.oldValue || '');
+      });
+
+      if (records[0]) {
+        callback(records);
+      }
+    };
+  }
 
   var observer = new MutationObserver(processRecords);
   observer.observe(element, options);
@@ -1106,9 +1116,29 @@ function observe(element, options, callback) {
   };
 }
 
-function registerCleanup(callback) {
-  var state = initDetachWatcher(root);
-  state.handlers.push(throwNotFunction(callback));
+function registerCleanup(element, callback) {
+  if (isFunction(element)) {
+    var state = initDetachWatcher(root);
+    state.handlers.push(element);
+  } else {
+    var map = globalCleanups || (globalCleanups = createAutoCleanupMap(function (element, arr) {
+      combineFn(arr)();
+    }));
+    mapGet(map, element, Set).add(callback);
+  }
+}
+
+function createAutoCleanupMap(callback) {
+  var map = new Map();
+  callback = isFunction(callback) || noop;
+  observe(root, function () {
+    each(map, function (i) {
+      if (!root.contains(i)) {
+        callback(i, mapRemove(map, i));
+      }
+    });
+  });
+  return map;
 }
 
 function afterDetached(element, from, callback) {
@@ -1328,6 +1358,782 @@ var KEYNAMES = {
   221: 'closeBracket',
   222: 'singleQuote'
 };
+// CONCATENATED MODULE: ./src/tree.js
+
+
+
+
+
+var SNAPSHOT_PROPS = 'parentNode previousSibling nextSibling'.split(' ');
+
+var _ = createPrivateStore();
+
+var previous = new WeakMap();
+var setPrototypeOf = Object.setPrototypeOf;
+var collectMutations = observe(root, handleMutations);
+/** @type {WeakMap<Element, VersionState>} */
+
+var versionMap = new WeakMap();
+var version = 0;
+/* --------------------------------------
+ * Helper functions
+ * -------------------------------------- */
+
+function throwOrReturn(result, throwError, message) {
+  if (!result && throwError) {
+    throw new Error(message);
+  }
+
+  return result;
+}
+
+function assertSameTree(tree, node, throwError) {
+  var assert = _(node).tree === tree;
+  return throwOrReturn(assert, throwError, 'Node does not belongs to this tree');
+}
+
+function assertDescendantOfTree(tree, element, throwError) {
+  var assert = containsOrEquals(tree, element);
+  return throwOrReturn(assert, throwError, 'Element must be a descendant of the root node');
+}
+/**
+ * @class
+ * @property {number} version
+ */
+
+
+function VersionState() {
+  this.version = version;
+}
+
+function initNode(tree, node, element) {
+  var map = containsOrEquals(tree.element, element) ? _(tree).nodes : _(tree).detached;
+
+  if (map.has(element)) {
+    throw new Error('Another node instance already exist');
+  }
+
+  var sNode = _(node, {
+    version: version,
+    tree: tree,
+    node: node,
+    traversable: is(node, TraversableNode),
+    state: mapGet(versionMap, element, VersionState),
+    parentNode: null,
+    previousSibling: null,
+    nextSibling: null,
+    childNodes: []
+  });
+
+  map.set(element, sNode);
+  defineHiddenProperty(node, 'element', element, true);
+
+  if (tree.rootNode) {
+    insertNode(sNode);
+  }
+
+  return sNode;
+}
+
+function findNode(tree, element, returnParent) {
+  var sTree = _(tree);
+
+  var sNode = sTree.nodes.get(element) || sTree.detached.get(element) || returnParent && findParent(tree, element);
+  return sNode && checkNodeState(sNode);
+}
+
+function findParent(tree, element) {
+  if (!element) {
+    element = tree.node.element;
+    tree = tree.tree;
+  }
+
+  if (element !== tree.element) {
+    var sTree = _(tree);
+
+    element = element.parentNode;
+
+    for (; element && element !== tree.element; element = element.parentNode) {
+      var result = sTree.nodes.get(element) || sTree.detached.get(element);
+
+      if (result) {
+        return result;
+      }
+    }
+  }
+
+  return containsOrEquals(tree, element) && _(tree.rootNode);
+}
+
+function checkNodeState(sNode) {
+  collectMutations();
+
+  if (sNode.version !== sNode.state.version || _(sNode.tree).collectNewNodes()) {
+    updateTree(sNode.tree);
+  }
+
+  return sNode;
+}
+
+function insertNode(sNode) {
+  return (sNode.traversable ? insertTraversableNode : insertInheritedNode)(sNode);
+}
+
+function removeNode(sNode, hardRemove) {
+  return (sNode.traversable ? removeTraversableNode : removeInheritedNode)(sNode, hardRemove);
+}
+
+function removeNodeFromMap(sNode) {
+  var sTree = _(sNode.tree);
+
+  var element = sNode.node.element;
+
+  if (!mapRemove(sTree.nodes, element)) {
+    // the node is already removed from the tree
+    // therefore nothing to do
+    return false;
+  }
+
+  return removeNode(sNode, true);
+}
+
+function insertChildNode(sParent, sChild) {
+  if (!sParent || sParent === sChild || sChild.parentNode === sParent.node) {
+    return false;
+  }
+
+  if (sChild.parentNode) {
+    removeNode(sChild);
+  }
+
+  var childNodes = sChild.childNodes;
+  var parentChildNodes = sParent.childNodes;
+  var pos = parentChildNodes.length;
+
+  for (var i = pos - 1; i >= 0; i--) {
+    var v = comparePosition(parentChildNodes[i], sChild.node, true);
+
+    if (v < 0) {
+      break;
+    }
+
+    pos = i;
+
+    if (v !== v) {
+      _(parentChildNodes[i]).parentNode = sChild.node;
+      childNodes.unshift(parentChildNodes.splice(i, 1)[0]);
+    }
+  }
+
+  sChild.parentNode = sParent.node;
+  parentChildNodes.splice(pos, 0, sChild.node);
+  return [pos, childNodes, parentChildNodes];
+}
+
+function insertTraversableNode(sNode) {
+  var sParent = findParent(sNode);
+  var result = insertChildNode(sParent, sNode);
+
+  if (result) {
+    var empty = {};
+    var childNodes = result[1];
+
+    if (childNodes[0]) {
+      var s1 = _(childNodes[0]);
+
+      var s2 = _(childNodes[childNodes.length - 1]);
+
+      var previousSibling = s1.previousSibling;
+      var nextSibling = s2.nextSibling;
+      (_(previousSibling) || empty).nextSibling = nextSibling;
+      (_(nextSibling) || empty).previousSibling = previousSibling;
+      (s1 || empty).previousSibling = null;
+      (s2 || empty).nextSibling = null;
+    }
+
+    var parentChildNodes = result[2];
+
+    if (parentChildNodes[1]) {
+      var pos = result[0];
+      var p1 = parentChildNodes[pos - 1] || null;
+      var p2 = parentChildNodes[pos + 1] || null;
+      sNode.nextSibling = p2;
+      sNode.previousSibling = p1;
+      (_(p1) || empty).nextSibling = sNode.node;
+      (_(p2) || empty).previousSibling = sNode.node;
+    }
+  }
+
+  return !!result;
+}
+
+function insertInheritedNode(sNode) {
+  var sParent = findParent(sNode);
+  var result = insertChildNode(sParent, sNode);
+
+  if (result) {
+    setPrototypeOf(sNode.node, sParent.node);
+    each(result[1], function (i, v) {
+      setPrototypeOf(v, sNode.node);
+    });
+  }
+
+  return !!result;
+}
+
+function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
+  var parent = sNode.parentNode;
+
+  if (!parent) {
+    return false;
+  }
+
+  var newParent = (findParent(sNode) || '').node;
+
+  if (!hardRemove && newParent === parent) {
+    return false;
+  }
+
+  var childNodes = [];
+
+  var parentChildNodes = _(parent).childNodes;
+
+  var pos = parentChildNodes.indexOf(sNode.node);
+
+  if (hardRemove) {
+    newParent = null;
+    childNodes = sNode.childNodes.splice(0);
+
+    if (!ignoreSibling && childNodes[0]) {
+      var states = map(childNodes, function (v) {
+        return _(v);
+      });
+      states[0].previousSibling = parentChildNodes[pos - 1] || null;
+      states[states.length - 1].nextSibling = parentChildNodes[pos + 1] || null;
+      each(states, function (i, v) {
+        v.parentNode = parent;
+      });
+    }
+  }
+
+  if (!ignoreSibling && parentChildNodes[1]) {
+    var empty = {};
+
+    var s1 = _(parentChildNodes[pos - 1]);
+
+    var s2 = _(parentChildNodes[pos + 1]);
+
+    (s1 || empty).nextSibling = childNodes[0] || (s2 || empty).node || null;
+    (s2 || empty).previousSibling = childNodes[childNodes.length - 1] || (s1 || empty).node || null;
+  }
+
+  if (!previous.has(sNode.node)) {
+    previous.set(sNode.node, pick(sNode, SNAPSHOT_PROPS));
+  }
+
+  sNode.parentNode = newParent || null;
+  sNode.previousSibling = null;
+  sNode.nextSibling = null;
+  parentChildNodes.splice.apply(parentChildNodes, [pos, 1].concat(childNodes));
+  return true;
+}
+
+function removeInheritedNode(sNode, hardRemove) {
+  var updated = removeTraversableNode(sNode, hardRemove, true);
+
+  if (updated) {
+    setPrototypeOf(sNode.node, InheritedNode.prototype);
+
+    if (hardRemove) {
+      each(sNode.childNodes, function (i, v) {
+        setPrototypeOf(v, sNode.parentNode);
+      });
+    }
+  }
+
+  return updated;
+}
+
+function reorderTraversableChildNodes(sNode) {
+  var childNodes = sNode.childNodes;
+  var copy = childNodes.slice();
+  var updated = [];
+
+  for (var i = copy.length - 1; i >= 0; i--) {
+    if (!containsOrEquals(sNode.tree, copy[i]) && removeTraversableNode(_(copy[i]))) {
+      updated[updated.length] = copy[i];
+    }
+  }
+
+  if (childNodes.length > 1) {
+    copy = childNodes.slice(0);
+    childNodes.sort(comparePosition);
+
+    if (!equal(childNodes, copy)) {
+      each(childNodes, function (i, v) {
+        var sChildNode = _(v);
+
+        var oldValues = pick(sChildNode, SNAPSHOT_PROPS);
+        var newValues = {
+          parentNode: sNode.node,
+          previousSibling: childNodes[i - 1] || null,
+          nextSibling: childNodes[i + 1] || null
+        };
+
+        if (!equal(oldValues, newValues)) {
+          extend(sChildNode, newValues);
+          updated[updated.length] = v;
+
+          if (!previous.has(v)) {
+            previous.set(v, oldValues);
+          }
+        }
+      });
+    }
+  }
+
+  return updated;
+}
+
+function updateTree(tree) {
+  var sTree = _(tree);
+
+  var traversable = is(tree, TraversableNodeTree);
+  var updatedNodes = [];
+  each(sTree.nodes, function (element, sNode) {
+    var newVersion = sNode.state.version;
+    var connected = containsOrEquals(tree, element);
+
+    if (!connected) {
+      sTree.detached.set(element, mapRemove(sTree.nodes, element));
+    }
+
+    if (sNode.version !== newVersion) {
+      var updated = false;
+
+      if (traversable) {
+        // @ts-ignore: boolean arithmetics
+        updated |= updatedNodes.length !== updatedNodes.push.apply(updatedNodes, reorderTraversableChildNodes(sNode));
+      } // @ts-ignore: boolean arithmetics
+
+
+      updated |= (connected ? insertNode : removeNode)(sNode);
+      sNode.version = newVersion;
+
+      if (updated) {
+        updatedNodes[updatedNodes.length] = sNode.node;
+      }
+
+      if (connected) {
+        var iterator = createTreeWalker(element, 1, function (v) {
+          return v !== element && sTree.nodes.has(v) ? 2 : 1;
+        });
+        iterateNode(iterator, function (element) {
+          var recovered = mapRemove(sTree.detached, element);
+
+          if (recovered) {
+            sTree.nodes.set(element, recovered);
+            insertNode(recovered);
+            updatedNodes[updatedNodes.length] = recovered.node;
+          }
+        });
+      }
+    }
+  });
+  sTree.collectNewNodes();
+  sTree.version = version;
+
+  if (updatedNodes[0]) {
+    var records = map(updatedNodes, function (v) {
+      return extend({
+        node: v
+      }, mapRemove(previous, v) || pick(v, SNAPSHOT_PROPS));
+    });
+    sTree.container.emit('update', tree, {
+      updatedNodes: updatedNodes,
+      records: records
+    }, false);
+  }
+}
+
+function handleMutations(mutations) {
+  var empty = {};
+  each(mutations, function (i, v) {
+    var addedElm = grep(v.addedNodes, function (v) {
+      return is(v, Element);
+    });
+    var removedElm = grep(v.removedNodes, function (v) {
+      return is(v, Element);
+    });
+
+    if (addedElm[0] || removedElm[0]) {
+      version++;
+      each(parentsAndSelf(v.target).concat(addedElm, removedElm), function (i, v) {
+        (mapGet(versionMap, v) || empty).version = version;
+      });
+    }
+  });
+}
+/* --------------------------------------
+ * Classes
+ * -------------------------------------- */
+
+
+function createNodeClass(baseClass, constructor) {
+  constructor = constructor || function () {};
+
+  if (is(constructor.prototype, baseClass)) {
+    return constructor;
+  }
+
+  function Node(tree, element) {
+    baseClass.call(this, tree, element);
+    constructor.call(this, tree, element);
+  }
+
+  definePrototype(constructor, baseClass, constructor.prototype);
+  return extend(Node, {
+    prototype: constructor.prototype
+  });
+}
+
+function VirtualNode() {}
+
+function TraversableNode(tree, element) {
+  initNode(tree, this, element);
+}
+
+definePrototype(TraversableNode, VirtualNode, {
+  get parentNode() {
+    return checkNodeState(_(this)).parentNode;
+  },
+
+  get childNodes() {
+    return checkNodeState(_(this)).childNodes.slice(0);
+  },
+
+  get firstChild() {
+    return checkNodeState(_(this)).childNodes[0] || null;
+  },
+
+  get lastChild() {
+    var arr = checkNodeState(_(this)).childNodes;
+    return arr[arr.length - 1] || null;
+  },
+
+  get previousSibling() {
+    return checkNodeState(_(this)).previousSibling;
+  },
+
+  get nextSibling() {
+    return checkNodeState(_(this)).nextSibling;
+  }
+
+});
+
+function InheritedNode(tree, element) {
+  initNode(tree, this, element);
+}
+
+definePrototype(InheritedNode, VirtualNode);
+
+function NodeTree(baseClass, root, constructor, options) {
+  var self = this;
+
+  var state = _(self, extend({}, options, {
+    collectNewNodes: noop,
+    nodeClass: createNodeClass(baseClass, constructor),
+    nodes: new Map(),
+    detached: new WeakMap(),
+    container: new ZetaEventContainer()
+  }));
+
+  defineOwnProperty(self, 'element', root, true);
+  defineOwnProperty(self, 'rootNode', self.setNode(root), true);
+  observe(root, function () {
+    updateTree(self);
+  });
+
+  if (state.selector) {
+    state.collectNewNodes = watchElements(root, state.selector, function (addedNodes) {
+      each(addedNodes, function (i, v) {
+        self.setNode(v);
+      });
+    });
+  }
+}
+
+definePrototype(NodeTree, {
+  on: function on(event, handler) {
+    return _(this).container.add(this, isPlainObject(event) || kv(event, handler));
+  },
+  getNode: function getNode(element) {
+    if (!assertDescendantOfTree(this, element)) {
+      return null;
+    }
+
+    var self = this;
+    var result = findNode(self, element, true);
+
+    if (!result) {
+      _(self).collectNewNodes();
+
+      result = findNode(self, element, true);
+    }
+
+    return result && result.node;
+  },
+  setNode: function setNode(element) {
+    var self = this;
+    var result = findNode(self, element);
+    return result ? result.node : new (_(self).nodeClass)(self, element);
+  },
+  removeNode: function removeNode(node) {
+    assertSameTree(this, node, true);
+    removeNodeFromMap(_(node));
+  },
+  update: function update() {
+    collectMutations();
+    updateTree(this);
+  }
+});
+
+function TraversableNodeTree(root, constructor, options) {
+  NodeTree.call(this, TraversableNode, root, constructor, options);
+}
+
+definePrototype(TraversableNodeTree, NodeTree, {
+  isNodeVisible: function isNodeVisible() {
+    return true;
+  },
+  acceptNode: function acceptNode() {
+    return 1;
+  }
+});
+
+function InheritedNodeTree(root, constructor, options) {
+  NodeTree.call(this, InheritedNode, root, constructor, options);
+}
+
+definePrototype(InheritedNodeTree, NodeTree, {
+  descendants: function descendants(node) {
+    if (is(node, Node)) {
+      node = this.setNode(node);
+    } else {
+      assertSameTree(this, node, true);
+    }
+
+    var arr = [node];
+
+    var next = function next() {
+      var cur = arr.shift();
+
+      if (cur) {
+        arr.unshift.apply(arr, checkNodeState(_(cur)).childNodes);
+      }
+
+      return {
+        done: !cur,
+        value: cur
+      };
+    };
+
+    return {
+      next: next
+    };
+  }
+});
+
+function TreeWalker(root, whatToShow, filter) {
+  var self = this;
+  self.whatToShow = whatToShow || -1;
+  self.filter = filter;
+  self.currentNode = root;
+  self.root = root;
+}
+
+function treeWalkerIsNodeVisible(inst, node) {
+  return node && _(node).tree.isNodeVisible(node, inst) && node;
+}
+
+function treeWalkerAcceptNode(inst, node, checkVisibility) {
+  if (checkVisibility && node !== inst.root && !treeWalkerIsNodeVisible(inst, node)) {
+    return 2;
+  }
+
+  var rv = _(node).tree.acceptNode(node, inst);
+
+  if (rv !== 1) {
+    return rv;
+  }
+
+  var filter = isFunction(inst.filter);
+  return filter ? filter(node) : 1;
+}
+
+treeWalkerAcceptNode.$1 = 0;
+
+function treeWalkerNodeAccepted(inst, node, checkVisibility) {
+  treeWalkerAcceptNode.$1 = treeWalkerAcceptNode(inst, node, checkVisibility);
+
+  if (treeWalkerAcceptNode.$1 === 1) {
+    inst.currentNode = node;
+    return true;
+  }
+}
+
+function treeWalkerTraverseChildren(inst, pChild, pSib) {
+  var node = inst.currentNode[pChild];
+
+  while (node) {
+    if (treeWalkerNodeAccepted(inst, node, true)) {
+      return node;
+    }
+
+    if (treeWalkerAcceptNode.$1 === 3 && node[pChild]) {
+      node = node[pChild];
+      continue;
+    }
+
+    while (!node[pSib]) {
+      node = treeWalkerIsNodeVisible(inst, node.parentNode);
+
+      if (!node || node === inst.root || node === inst.currentNode) {
+        return null;
+      }
+    }
+
+    node = node[pSib];
+  }
+
+  return null;
+}
+
+function treeWalkerTraverseSibling(inst, pChild, pSib) {
+  var node = inst.currentNode;
+
+  while (node && node !== inst.root) {
+    var sibling = node[pSib];
+
+    while (sibling) {
+      if (treeWalkerNodeAccepted(inst, sibling)) {
+        return sibling;
+      }
+
+      sibling = treeWalkerAcceptNode.$1 === 2 || !sibling[pChild] ? sibling[pSib] : sibling[pChild];
+    }
+
+    node = treeWalkerIsNodeVisible(inst, node.parentNode);
+
+    if (!node || node === inst.root || treeWalkerAcceptNode(inst, node, true) === 1) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+definePrototype(TreeWalker, {
+  previousSibling: function previousSibling() {
+    return treeWalkerTraverseSibling(this, 'lastChild', 'previousSibling');
+  },
+  nextSibling: function nextSibling() {
+    return treeWalkerTraverseSibling(this, 'firstChild', 'nextSibling');
+  },
+  firstChild: function firstChild() {
+    return treeWalkerTraverseChildren(this, 'firstChild', 'nextSibling');
+  },
+  lastChild: function lastChild() {
+    return treeWalkerTraverseChildren(this, 'lastChild', 'previousSibling');
+  },
+  parentNode: function parentNode() {
+    // @ts-ignore: type inference issue
+    for (var node = this.currentNode; node && node !== this.root; node = node.parentNode) {
+      // @ts-ignore: type inference issue
+      var parentNode = node.parentNode;
+
+      if (treeWalkerNodeAccepted(this, parentNode, true)) {
+        return parentNode;
+      }
+    }
+
+    return null;
+  },
+  previousNode: function previousNode() {
+    var self = this;
+
+    for (var node = self.currentNode; node && node !== self.root;) {
+      // @ts-ignore: type inference issue
+      for (var sibling = node.previousSibling; sibling; sibling = node.previousSibling) {
+        node = sibling;
+        var rv = treeWalkerAcceptNode(self, sibling); // @ts-ignore: type inference issue
+
+        while (rv !== 2 && treeWalkerIsNodeVisible(self, node.firstChild)) {
+          // @ts-ignore: type inference issue
+          node = node.lastChild;
+          rv = treeWalkerAcceptNode(self, node, true);
+        }
+
+        if (rv === 1) {
+          // @ts-ignore: type inference issue
+          self.currentNode = node;
+          return node;
+        }
+      } // @ts-ignore: type inference issue
+
+
+      node = treeWalkerIsNodeVisible(self, node.parentNode);
+
+      if (!node || node === self.root) {
+        return null;
+      }
+
+      if (treeWalkerNodeAccepted(self, node, true)) {
+        return node;
+      }
+    }
+
+    return null;
+  },
+  nextNode: function nextNode() {
+    var self = this;
+    var rv = 1;
+
+    for (var node = self.currentNode; node;) {
+      // @ts-ignore: type inference issue
+      while (rv !== 2 && node.firstChild) {
+        // @ts-ignore: type inference issue
+        node = node.firstChild;
+
+        if (treeWalkerNodeAccepted(self, node, true)) {
+          return node;
+        }
+
+        rv = treeWalkerAcceptNode.$1;
+      } // @ts-ignore: type inference issue
+
+
+      while (node && node !== self.root && !node.nextSibling) {
+        // @ts-ignore: type inference issue
+        node = treeWalkerIsNodeVisible(self, node.parentNode);
+      }
+
+      if (!node || node === self.root) {
+        return null;
+      } // @ts-ignore: type inference issue
+
+
+      node = node.nextSibling;
+
+      if (treeWalkerNodeAccepted(self, node, true)) {
+        return node;
+      }
+
+      rv = treeWalkerAcceptNode.$1;
+    }
+  }
+});
+
 // CONCATENATED MODULE: ./src/domLock.js
 function domLock_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { domLock_typeof = function _typeof(obj) { return typeof obj; }; } else { domLock_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return domLock_typeof(obj); }
 
@@ -1338,10 +2144,18 @@ function domLock_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === 
 
 
 
-var lockedElements = new WeakMap();
 var handledErrors = new WeakMap();
-
-var _ = createPrivateStore();
+var getTree = executeOnce(function () {
+  var tree = new TraversableNodeTree(root, DOMLock);
+  tree.on('update', function (e) {
+    each(e.records, function (i, v) {
+      if (!containsOrEquals(root, v.node)) {
+        v.node.cancel(true);
+      }
+    });
+  });
+  return tree;
+});
 
 function retryable(fn, done) {
   var promise;
@@ -1355,139 +2169,135 @@ function retryable(fn, done) {
   };
 }
 
-function lock(element, promise, oncancel) {
-  var lock = lockedElements.get(element) || new DOMLock(element);
-  return promise ? lock.wait(promise, oncancel) : resolve();
+function lock(element, promise, oncancel, flag) {
+  var lock = getTree().setNode(element);
+  return promise ? lock.wait(promise, oncancel, flag) : resolve();
+}
+
+function notifyAsync(element, promise) {
+  catchAsync(lock(element, promise, true, true));
+}
+
+function preventLeave(element, promise, oncancel) {
+  catchAsync(lock(element, promise, oncancel, false));
 }
 
 function locked(element, parents) {
-  return !!any(parents ? parentsAndSelf(element) : [element], function (v) {
-    return (lockedElements.get(v) || '').locked;
+  var lock = getTree().getNode(element);
+  return !!any(parents ? parentsAndSelf(lock) : makeArray(lock), function (v) {
+    return v.locked;
   });
 }
 
 function cancelLock(element, force) {
-  var lock = lockedElements.get(element);
+  var lock = getTree().getNode(element);
   return lock ? lock.cancel(force) : resolve();
 }
 
-function removeLock(element) {
-  var lock = mapRemove(lockedElements, element);
-
-  if (lock) {
-    lock.cancel(true);
-  }
-}
-
-function DOMLock(element) {
-  var self = this;
-
-  _(self, {
-    promises: new Map()
+function createDependantPromise(parent, oncancel, notifyAsync) {
+  var resolve;
+  var promise = new promise_polyfill(function (resolve_) {
+    resolve = resolve_;
   });
+  catchAsync(parent.wait(promise, oncancel, notifyAsync));
+  return function (force) {
+    var item = force && parent.promises.get(promise);
+    resolve();
 
-  self.element = element;
-  lockedElements.set(element, self);
-
-  if (element !== root) {
-    afterDetached(element, removeLock);
-  }
+    if (item) {
+      item.finish();
+    }
+  };
 }
 
-definePrototype(DOMLock, {
+function DOMLock() {
+  var self = this;
+  TraversableNode.apply(self, arguments);
+  self.async = 0;
+  self.locks = 0;
+  self.promises = new Map();
+  self.unlock = noop;
+  self.asyncEnd = noop;
+}
+
+definePrototype(DOMLock, TraversableNode, {
   get locked() {
-    var self = this;
-
-    var promises = _(self).promises;
-
-    each(promises, function (i, v) {
-      if (is(i.lock, DOMLock) && !containsOrEquals(self.element, i.lock.element)) {
-        promises.delete(i);
-      }
-    });
-
-    if (!promises.size) {
-      self.cancel(true);
-    }
-
-    return promises.size > 0;
+    return this.locks > 0;
   },
 
   cancel: function cancel(force) {
     var self = this;
-
-    var state = _(self);
-
-    var promises = state.promises;
+    var promises = self.promises;
 
     if (force || !promises.size) {
       if (promises.size) {
         setImmediate(function () {
           emitDOMEvent('cancelled', self.element);
         });
+      }
+
+      if (self.async) {
+        self.async = 0;
+        emitDOMEvent('asyncEnd', self.element);
       } // remove all promises from the dictionary so that
       // filtered promise from lock.wait() will be rejected by cancellation
 
 
       promises.clear();
-      state.handler = null;
-
-      if (self.element !== root) {
-        lockedElements.delete(self.element);
-      }
-
-      if (state.deferred) {
-        state.deferred.resolve();
-      }
-
+      self.locks = 0;
+      self.handler = null;
+      self.unlock(true);
+      self.asyncEnd(true);
       return resolve();
     }
 
-    return (state.handler || (state.handler = retryable(function () {
+    return (self.handler || (self.handler = retryable(function () {
       // request user cancellation for each async task in sequence
       return makeArray(promises).reduce(function (a, v) {
-        return a.then(v);
+        return a.then(v.cancel);
       }, resolve()).then(function () {
         // @ts-ignore: unable to reflect on interface member
         self.cancel(true);
       });
     })))();
   },
-  wait: function wait(promise, oncancel) {
+  wait: function wait(promise, oncancel, flag) {
     var self = this;
-
-    var state = _(self);
-
-    var promises = state.promises;
+    var parent = self.parentNode;
+    var promises = self.promises;
+    var notifyLock = flag !== true;
+    var notifyAsync = flag !== false;
 
     var finish = function finish() {
-      if (promises.delete(promise) && !promises.size) {
-        emitDOMEvent('asyncEnd', self.element);
-        self.cancel(true);
+      if (promises.delete(promise)) {
+        if (!promises.size) {
+          self.cancel(true);
+        }
+
+        if (notifyLock && self.locks && ! --self.locks) {
+          self.unlock();
+        }
+
+        if (notifyAsync && self.async && ! --self.async) {
+          emitDOMEvent('asyncEnd', self.element);
+          self.asyncEnd();
+        }
       }
     };
 
-    promises.set(promise, retryable(oncancel === true ? resolve : oncancel || reject, finish));
+    promises.set(promise, {
+      cancel: oncancel === true ? resolve : retryable(oncancel || reject, finish),
+      finish: finish
+    });
 
-    if (promises.size === 1) {
-      var callback = {
-        lock: this
-      };
-      var deferred = new promise_polyfill(function (resolve, reject) {
-        callback.resolve = resolve;
-        callback.reject = reject;
-      });
-      state.deferred = extend(deferred, callback);
+    if (notifyLock && !self.locks++ && parent) {
+      self.unlock = createDependantPromise(parent, self.cancel.bind(self), false);
+    }
 
-      for (var parent = self.element.parentNode; parent && !lockedElements.has(parent); parent = parent.parentNode) {
-        ;
+    if (notifyAsync && !self.async++) {
+      if (!emitDOMEvent('asyncStart', self.element) && parent) {
+        self.asyncEnd = createDependantPromise(parent, true, true);
       }
-
-      if (parent) {
-        catchAsync(lockedElements.get(parent).wait(deferred, self.cancel.bind(self)));
-      }
-
-      emitDOMEvent('asyncStart', self.element);
     }
 
     promise.catch(function (error) {
@@ -1513,7 +2323,6 @@ definePrototype(DOMLock, {
     });
   }
 });
-lock(root);
 
 env_window.onbeforeunload = function (e) {
   if (locked(root)) {
@@ -2385,6 +3194,7 @@ domReady.then(function () {
     setFocus(env_document.body);
   });
   setFocus(env_document.activeElement);
+  lock(root);
 });
 setShortcut({
   undo: 'ctrlZ',
@@ -2447,8 +3257,11 @@ function dom_focus(element) {
   lock: lock,
   locked: locked,
   cancelLock: cancelLock,
+  notifyAsync: notifyAsync,
+  preventLeave: preventLeave,
   observe: observe,
   registerCleanup: registerCleanup,
+  createAutoCleanupMap: createAutoCleanupMap,
   afterDetached: afterDetached,
   watchElements: watchElements,
   watchAttributes: watchAttributes
@@ -2936,7 +3749,7 @@ function ZetaEventContainer(element, context, options) {
   }
 
   if (self.autoDestroy) {
-    afterDetached(element, function () {
+    registerCleanup(element, function () {
       self.destroy();
     });
   }
@@ -3370,7 +4183,7 @@ function dispatchDOMMouseEvent(eventName, point, e) {
  * -------------------------------------- */
 
 
-function removeNode(node) {
+function domUtil_removeNode(node) {
   if (node.parentNode) {
     node.parentNode.removeChild(node);
   }
@@ -3462,7 +4275,7 @@ function getContentRect(element) {
     // height being picked because scrollbar may not be shown if container is too short
     var dummy = jquery('<div style="overflow:scroll;height:80px"><div style="height:100px"></div></div>').appendTo(env_document.body)[0];
     scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
-    removeNode(dummy);
+    domUtil_removeNode(dummy);
   }
 
   var style = getComputedStyle(element);
@@ -3856,782 +4669,6 @@ function runCSSTransition(element, className, callback) {
   });
 }
 
-
-// CONCATENATED MODULE: ./src/tree.js
-
-
-
-
-
-var SNAPSHOT_PROPS = 'parentNode previousSibling nextSibling'.split(' ');
-
-var tree_ = createPrivateStore();
-
-var previous = new WeakMap();
-var setPrototypeOf = Object.setPrototypeOf;
-var collectMutations = observe(dom.root, handleMutations);
-/** @type {WeakMap<Element, VersionState>} */
-
-var versionMap = new WeakMap();
-var version = 0;
-/* --------------------------------------
- * Helper functions
- * -------------------------------------- */
-
-function throwOrReturn(result, throwError, message) {
-  if (!result && throwError) {
-    throw new Error(message);
-  }
-
-  return result;
-}
-
-function assertSameTree(tree, node, throwError) {
-  var assert = tree_(node).tree === tree;
-  return throwOrReturn(assert, throwError, 'Node does not belongs to this tree');
-}
-
-function assertDescendantOfTree(tree, element, throwError) {
-  var assert = containsOrEquals(tree, element);
-  return throwOrReturn(assert, throwError, 'Element must be a descendant of the root node');
-}
-/**
- * @class
- * @property {number} version
- */
-
-
-function VersionState() {
-  this.version = version;
-}
-
-function initNode(tree, node, element) {
-  var map = containsOrEquals(tree.element, element) ? tree_(tree).nodes : tree_(tree).detached;
-
-  if (map.has(element)) {
-    throw new Error('Another node instance already exist');
-  }
-
-  var sNode = tree_(node, {
-    version: version,
-    tree: tree,
-    node: node,
-    traversable: is(node, TraversableNode),
-    state: mapGet(versionMap, element, VersionState),
-    parentNode: null,
-    previousSibling: null,
-    nextSibling: null,
-    childNodes: []
-  });
-
-  map.set(element, sNode);
-  defineHiddenProperty(node, 'element', element, true);
-
-  if (tree.rootNode) {
-    insertNode(sNode);
-  }
-
-  return sNode;
-}
-
-function findNode(tree, element, returnParent) {
-  var sTree = tree_(tree);
-
-  var sNode = sTree.nodes.get(element) || sTree.detached.get(element) || returnParent && findParent(tree, element);
-  return sNode && checkNodeState(sNode);
-}
-
-function findParent(tree, element) {
-  if (!element) {
-    element = tree.node.element;
-    tree = tree.tree;
-  }
-
-  if (element !== tree.element) {
-    var sTree = tree_(tree);
-
-    element = element.parentNode;
-
-    for (; element && element !== tree.element; element = element.parentNode) {
-      var result = sTree.nodes.get(element) || sTree.detached.get(element);
-
-      if (result) {
-        return result;
-      }
-    }
-  }
-
-  return containsOrEquals(tree, element) && tree_(tree.rootNode);
-}
-
-function checkNodeState(sNode) {
-  collectMutations();
-
-  if (sNode.version !== sNode.state.version || tree_(sNode.tree).collectNewNodes()) {
-    updateTree(sNode.tree);
-  }
-
-  return sNode;
-}
-
-function insertNode(sNode) {
-  return (sNode.traversable ? insertTraversableNode : insertInheritedNode)(sNode);
-}
-
-function tree_removeNode(sNode, hardRemove) {
-  return (sNode.traversable ? removeTraversableNode : removeInheritedNode)(sNode, hardRemove);
-}
-
-function removeNodeFromMap(sNode) {
-  var sTree = tree_(sNode.tree);
-
-  var element = sNode.node.element;
-
-  if (!mapRemove(sTree.nodes, element)) {
-    // the node is already removed from the tree
-    // therefore nothing to do
-    return false;
-  }
-
-  return tree_removeNode(sNode, true);
-}
-
-function insertChildNode(sParent, sChild) {
-  if (!sParent || sParent === sChild || sChild.parentNode === sParent.node) {
-    return false;
-  }
-
-  if (sChild.parentNode) {
-    tree_removeNode(sChild);
-  }
-
-  var childNodes = sChild.childNodes;
-  var parentChildNodes = sParent.childNodes;
-  var pos = parentChildNodes.length;
-
-  for (var i = pos - 1; i >= 0; i--) {
-    var v = comparePosition(parentChildNodes[i], sChild.node, true);
-
-    if (v < 0) {
-      break;
-    }
-
-    pos = i;
-
-    if (v !== v) {
-      tree_(parentChildNodes[i]).parentNode = sChild.node;
-      childNodes.unshift(parentChildNodes.splice(i, 1)[0]);
-    }
-  }
-
-  sChild.parentNode = sParent.node;
-  parentChildNodes.splice(pos, 0, sChild.node);
-  return [pos, childNodes, parentChildNodes];
-}
-
-function insertTraversableNode(sNode) {
-  var sParent = findParent(sNode);
-  var result = insertChildNode(sParent, sNode);
-
-  if (result) {
-    var empty = {};
-    var childNodes = result[1];
-
-    if (childNodes[0]) {
-      var s1 = tree_(childNodes[0]);
-
-      var s2 = tree_(childNodes[childNodes.length - 1]);
-
-      var previousSibling = s1.previousSibling;
-      var nextSibling = s2.nextSibling;
-      (tree_(previousSibling) || empty).nextSibling = nextSibling;
-      (tree_(nextSibling) || empty).previousSibling = previousSibling;
-      (s1 || empty).previousSibling = null;
-      (s2 || empty).nextSibling = null;
-    }
-
-    var parentChildNodes = result[2];
-
-    if (parentChildNodes[1]) {
-      var pos = result[0];
-      var p1 = parentChildNodes[pos - 1] || null;
-      var p2 = parentChildNodes[pos + 1] || null;
-      sNode.nextSibling = p2;
-      sNode.previousSibling = p1;
-      (tree_(p1) || empty).nextSibling = sNode.node;
-      (tree_(p2) || empty).previousSibling = sNode.node;
-    }
-  }
-
-  return !!result;
-}
-
-function insertInheritedNode(sNode) {
-  var sParent = findParent(sNode);
-  var result = insertChildNode(sParent, sNode);
-
-  if (result) {
-    setPrototypeOf(sNode.node, sParent.node);
-    each(result[1], function (i, v) {
-      setPrototypeOf(v, sNode.node);
-    });
-  }
-
-  return !!result;
-}
-
-function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
-  var parent = sNode.parentNode;
-
-  if (!parent) {
-    return false;
-  }
-
-  var newParent = (findParent(sNode) || '').node;
-
-  if (!hardRemove && newParent === parent) {
-    return false;
-  }
-
-  var childNodes = [];
-
-  var parentChildNodes = tree_(parent).childNodes;
-
-  var pos = parentChildNodes.indexOf(sNode.node);
-
-  if (hardRemove) {
-    newParent = null;
-    childNodes = sNode.childNodes.splice(0);
-
-    if (!ignoreSibling && childNodes[0]) {
-      var states = map(childNodes, function (v) {
-        return tree_(v);
-      });
-      states[0].previousSibling = parentChildNodes[pos - 1] || null;
-      states[states.length - 1].nextSibling = parentChildNodes[pos + 1] || null;
-      each(states, function (i, v) {
-        v.parentNode = parent;
-      });
-    }
-  }
-
-  if (!ignoreSibling && parentChildNodes[1]) {
-    var empty = {};
-
-    var s1 = tree_(parentChildNodes[pos - 1]);
-
-    var s2 = tree_(parentChildNodes[pos + 1]);
-
-    (s1 || empty).nextSibling = childNodes[0] || (s2 || empty).node || null;
-    (s2 || empty).previousSibling = childNodes[childNodes.length - 1] || (s1 || empty).node || null;
-  }
-
-  if (!previous.has(sNode.node)) {
-    previous.set(sNode.node, pick(sNode, SNAPSHOT_PROPS));
-  }
-
-  sNode.parentNode = newParent || null;
-  sNode.previousSibling = null;
-  sNode.nextSibling = null;
-  parentChildNodes.splice.apply(parentChildNodes, [pos, 1].concat(childNodes));
-  return true;
-}
-
-function removeInheritedNode(sNode, hardRemove) {
-  var updated = removeTraversableNode(sNode, hardRemove, true);
-
-  if (updated) {
-    setPrototypeOf(sNode.node, InheritedNode.prototype);
-
-    if (hardRemove) {
-      each(sNode.childNodes, function (i, v) {
-        setPrototypeOf(v, sNode.parentNode);
-      });
-    }
-  }
-
-  return updated;
-}
-
-function reorderTraversableChildNodes(sNode) {
-  var childNodes = sNode.childNodes;
-  var copy = childNodes.slice();
-  var updated = [];
-
-  for (var i = copy.length - 1; i >= 0; i--) {
-    if (!containsOrEquals(sNode.tree, copy[i]) && removeTraversableNode(tree_(copy[i]))) {
-      updated[updated.length] = copy[i];
-    }
-  }
-
-  if (childNodes.length > 1) {
-    copy = childNodes.slice(0);
-    childNodes.sort(comparePosition);
-
-    if (!equal(childNodes, copy)) {
-      each(childNodes, function (i, v) {
-        var sChildNode = tree_(v);
-
-        var oldValues = pick(sChildNode, SNAPSHOT_PROPS);
-        var newValues = {
-          parentNode: sNode.node,
-          previousSibling: childNodes[i - 1] || null,
-          nextSibling: childNodes[i + 1] || null
-        };
-
-        if (!equal(oldValues, newValues)) {
-          extend(sChildNode, newValues);
-          updated[updated.length] = v;
-
-          if (!previous.has(v)) {
-            previous.set(v, oldValues);
-          }
-        }
-      });
-    }
-  }
-
-  return updated;
-}
-
-function updateTree(tree) {
-  var sTree = tree_(tree);
-
-  var traversable = is(tree, TraversableNodeTree);
-  var updatedNodes = [];
-  each(sTree.nodes, function (element, sNode) {
-    var newVersion = sNode.state.version;
-    var connected = containsOrEquals(tree, element);
-
-    if (!connected) {
-      sTree.detached.set(element, mapRemove(sTree.nodes, element));
-    }
-
-    if (sNode.version !== newVersion) {
-      var updated = false;
-
-      if (traversable) {
-        // @ts-ignore: boolean arithmetics
-        updated |= updatedNodes.length !== updatedNodes.push.apply(updatedNodes, reorderTraversableChildNodes(sNode));
-      } // @ts-ignore: boolean arithmetics
-
-
-      updated |= (connected ? insertNode : tree_removeNode)(sNode);
-      sNode.version = newVersion;
-
-      if (updated) {
-        updatedNodes[updatedNodes.length] = sNode.node;
-      }
-
-      if (connected) {
-        var iterator = createTreeWalker(element, 1, function (v) {
-          return v !== element && sTree.nodes.has(v) ? 2 : 1;
-        });
-        iterateNode(iterator, function (element) {
-          var recovered = mapRemove(sTree.detached, element);
-
-          if (recovered) {
-            sTree.nodes.set(element, recovered);
-            insertNode(recovered);
-            updatedNodes[updatedNodes.length] = recovered.node;
-          }
-        });
-      }
-    }
-  });
-  sTree.collectNewNodes();
-  sTree.version = version;
-
-  if (updatedNodes[0]) {
-    var records = map(updatedNodes, function (v) {
-      return extend({
-        node: v
-      }, mapRemove(previous, v) || pick(v, SNAPSHOT_PROPS));
-    });
-    sTree.container.emit('update', tree, {
-      updatedNodes: updatedNodes,
-      records: records
-    }, false);
-  }
-}
-
-function handleMutations(mutations) {
-  var empty = {};
-  each(mutations, function (i, v) {
-    var addedElm = grep(v.addedNodes, function (v) {
-      return is(v, Element);
-    });
-    var removedElm = grep(v.removedNodes, function (v) {
-      return is(v, Element);
-    });
-
-    if (addedElm[0] || removedElm[0]) {
-      version++;
-      each(parentsAndSelf(v.target).concat(addedElm, removedElm), function (i, v) {
-        (mapGet(versionMap, v) || empty).version = version;
-      });
-    }
-  });
-}
-/* --------------------------------------
- * Classes
- * -------------------------------------- */
-
-
-function createNodeClass(baseClass, constructor) {
-  constructor = constructor || function () {};
-
-  if (is(constructor.prototype, baseClass)) {
-    return constructor;
-  }
-
-  function Node(tree, element) {
-    baseClass.call(this, tree, element);
-    constructor.call(this, tree, element);
-  }
-
-  definePrototype(constructor, baseClass, constructor.prototype);
-  return extend(Node, {
-    prototype: constructor.prototype
-  });
-}
-
-function VirtualNode() {}
-
-function TraversableNode(tree, element) {
-  initNode(tree, this, element);
-}
-
-definePrototype(TraversableNode, VirtualNode, {
-  get parentNode() {
-    return checkNodeState(tree_(this)).parentNode;
-  },
-
-  get childNodes() {
-    return checkNodeState(tree_(this)).childNodes.slice(0);
-  },
-
-  get firstChild() {
-    return checkNodeState(tree_(this)).childNodes[0] || null;
-  },
-
-  get lastChild() {
-    var arr = checkNodeState(tree_(this)).childNodes;
-    return arr[arr.length - 1] || null;
-  },
-
-  get previousSibling() {
-    return checkNodeState(tree_(this)).previousSibling;
-  },
-
-  get nextSibling() {
-    return checkNodeState(tree_(this)).nextSibling;
-  }
-
-});
-
-function InheritedNode(tree, element) {
-  initNode(tree, this, element);
-}
-
-definePrototype(InheritedNode, VirtualNode);
-
-function NodeTree(baseClass, root, constructor, options) {
-  var self = this;
-
-  var state = tree_(self, extend({}, options, {
-    collectNewNodes: noop,
-    nodeClass: createNodeClass(baseClass, constructor),
-    nodes: new Map(),
-    detached: new WeakMap(),
-    container: new ZetaEventContainer()
-  }));
-
-  defineOwnProperty(self, 'element', root, true);
-  defineOwnProperty(self, 'rootNode', self.setNode(root), true);
-  observe(root, function () {
-    updateTree(self);
-  });
-
-  if (state.selector) {
-    state.collectNewNodes = watchElements(root, state.selector, function (addedNodes) {
-      each(addedNodes, function (i, v) {
-        self.setNode(v);
-      });
-    });
-  }
-}
-
-definePrototype(NodeTree, {
-  on: function on(event, handler) {
-    return tree_(this).container.add(this, isPlainObject(event) || kv(event, handler));
-  },
-  getNode: function getNode(element) {
-    if (!assertDescendantOfTree(this, element)) {
-      return null;
-    }
-
-    var self = this;
-    var result = findNode(self, element, true);
-
-    if (!result) {
-      tree_(self).collectNewNodes();
-
-      result = findNode(self, element, true);
-    }
-
-    return result && result.node;
-  },
-  setNode: function setNode(element) {
-    var self = this;
-    var result = findNode(self, element);
-    return result ? result.node : new (tree_(self).nodeClass)(self, element);
-  },
-  removeNode: function removeNode(node) {
-    assertSameTree(this, node, true);
-    removeNodeFromMap(tree_(node));
-  },
-  update: function update() {
-    collectMutations();
-    updateTree(this);
-  }
-});
-
-function TraversableNodeTree(root, constructor, options) {
-  NodeTree.call(this, TraversableNode, root, constructor, options);
-}
-
-definePrototype(TraversableNodeTree, NodeTree, {
-  isNodeVisible: function isNodeVisible() {
-    return true;
-  },
-  acceptNode: function acceptNode() {
-    return 1;
-  }
-});
-
-function InheritedNodeTree(root, constructor, options) {
-  NodeTree.call(this, InheritedNode, root, constructor, options);
-}
-
-definePrototype(InheritedNodeTree, NodeTree, {
-  descendants: function descendants(node) {
-    if (is(node, Node)) {
-      node = this.setNode(node);
-    } else {
-      assertSameTree(this, node, true);
-    }
-
-    var arr = [node];
-
-    var next = function next() {
-      var cur = arr.shift();
-
-      if (cur) {
-        arr.unshift.apply(arr, checkNodeState(tree_(cur)).childNodes);
-      }
-
-      return {
-        done: !cur,
-        value: cur
-      };
-    };
-
-    return {
-      next: next
-    };
-  }
-});
-
-function TreeWalker(root, whatToShow, filter) {
-  var self = this;
-  self.whatToShow = whatToShow || -1;
-  self.filter = filter;
-  self.currentNode = root;
-  self.root = root;
-}
-
-function treeWalkerIsNodeVisible(inst, node) {
-  return node && tree_(node).tree.isNodeVisible(node, inst) && node;
-}
-
-function treeWalkerAcceptNode(inst, node, checkVisibility) {
-  if (checkVisibility && node !== inst.root && !treeWalkerIsNodeVisible(inst, node)) {
-    return 2;
-  }
-
-  var rv = tree_(node).tree.acceptNode(node, inst);
-
-  if (rv !== 1) {
-    return rv;
-  }
-
-  var filter = isFunction(inst.filter);
-  return filter ? filter(node) : 1;
-}
-
-treeWalkerAcceptNode.$1 = 0;
-
-function treeWalkerNodeAccepted(inst, node, checkVisibility) {
-  treeWalkerAcceptNode.$1 = treeWalkerAcceptNode(inst, node, checkVisibility);
-
-  if (treeWalkerAcceptNode.$1 === 1) {
-    inst.currentNode = node;
-    return true;
-  }
-}
-
-function treeWalkerTraverseChildren(inst, pChild, pSib) {
-  var node = inst.currentNode[pChild];
-
-  while (node) {
-    if (treeWalkerNodeAccepted(inst, node, true)) {
-      return node;
-    }
-
-    if (treeWalkerAcceptNode.$1 === 3 && node[pChild]) {
-      node = node[pChild];
-      continue;
-    }
-
-    while (!node[pSib]) {
-      node = treeWalkerIsNodeVisible(inst, node.parentNode);
-
-      if (!node || node === inst.root || node === inst.currentNode) {
-        return null;
-      }
-    }
-
-    node = node[pSib];
-  }
-
-  return null;
-}
-
-function treeWalkerTraverseSibling(inst, pChild, pSib) {
-  var node = inst.currentNode;
-
-  while (node && node !== inst.root) {
-    var sibling = node[pSib];
-
-    while (sibling) {
-      if (treeWalkerNodeAccepted(inst, sibling)) {
-        return sibling;
-      }
-
-      sibling = treeWalkerAcceptNode.$1 === 2 || !sibling[pChild] ? sibling[pSib] : sibling[pChild];
-    }
-
-    node = treeWalkerIsNodeVisible(inst, node.parentNode);
-
-    if (!node || node === inst.root || treeWalkerAcceptNode(inst, node, true) === 1) {
-      return null;
-    }
-  }
-
-  return null;
-}
-
-definePrototype(TreeWalker, {
-  previousSibling: function previousSibling() {
-    return treeWalkerTraverseSibling(this, 'lastChild', 'previousSibling');
-  },
-  nextSibling: function nextSibling() {
-    return treeWalkerTraverseSibling(this, 'firstChild', 'nextSibling');
-  },
-  firstChild: function firstChild() {
-    return treeWalkerTraverseChildren(this, 'firstChild', 'nextSibling');
-  },
-  lastChild: function lastChild() {
-    return treeWalkerTraverseChildren(this, 'lastChild', 'previousSibling');
-  },
-  parentNode: function parentNode() {
-    // @ts-ignore: type inference issue
-    for (var node = this.currentNode; node && node !== this.root; node = node.parentNode) {
-      // @ts-ignore: type inference issue
-      var parentNode = node.parentNode;
-
-      if (treeWalkerNodeAccepted(this, parentNode, true)) {
-        return parentNode;
-      }
-    }
-
-    return null;
-  },
-  previousNode: function previousNode() {
-    var self = this;
-
-    for (var node = self.currentNode; node && node !== self.root;) {
-      // @ts-ignore: type inference issue
-      for (var sibling = node.previousSibling; sibling; sibling = node.previousSibling) {
-        node = sibling;
-        var rv = treeWalkerAcceptNode(self, sibling); // @ts-ignore: type inference issue
-
-        while (rv !== 2 && treeWalkerIsNodeVisible(self, node.firstChild)) {
-          // @ts-ignore: type inference issue
-          node = node.lastChild;
-          rv = treeWalkerAcceptNode(self, node, true);
-        }
-
-        if (rv === 1) {
-          // @ts-ignore: type inference issue
-          self.currentNode = node;
-          return node;
-        }
-      } // @ts-ignore: type inference issue
-
-
-      node = treeWalkerIsNodeVisible(self, node.parentNode);
-
-      if (!node || node === self.root) {
-        return null;
-      }
-
-      if (treeWalkerNodeAccepted(self, node, true)) {
-        return node;
-      }
-    }
-
-    return null;
-  },
-  nextNode: function nextNode() {
-    var self = this;
-    var rv = 1;
-
-    for (var node = self.currentNode; node;) {
-      // @ts-ignore: type inference issue
-      while (rv !== 2 && node.firstChild) {
-        // @ts-ignore: type inference issue
-        node = node.firstChild;
-
-        if (treeWalkerNodeAccepted(self, node, true)) {
-          return node;
-        }
-
-        rv = treeWalkerAcceptNode.$1;
-      } // @ts-ignore: type inference issue
-
-
-      while (node && node !== self.root && !node.nextSibling) {
-        // @ts-ignore: type inference issue
-        node = treeWalkerIsNodeVisible(self, node.parentNode);
-      }
-
-      if (!node || node === self.root) {
-        return null;
-      } // @ts-ignore: type inference issue
-
-
-      node = node.nextSibling;
-
-      if (treeWalkerNodeAccepted(self, node, true)) {
-        return node;
-      }
-
-      rv = treeWalkerAcceptNode.$1;
-    }
-  }
-});
 
 // CONCATENATED MODULE: ./src/index.js
 
