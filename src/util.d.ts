@@ -6,6 +6,8 @@
 
 export function noop(...args): void;
 
+export function pipe<T>(value: T): T;
+
 export function either(x: any, b: any): boolean;
 
 /**

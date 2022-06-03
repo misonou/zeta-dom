@@ -34,6 +34,10 @@ var watchStore;
 
 function noop() { }
 
+function pipe(v) {
+    return v;
+}
+
 function either(x, y) {
     return x ^ y;
 }
@@ -772,6 +776,7 @@ function watchable(obj) {
 export {
     // miscellanous
     noop,
+    pipe,
     either,
     is,
     isUndefinedOrNull,
