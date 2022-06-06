@@ -209,6 +209,28 @@ describe('locked', () => {
         expect(locked(div)).toBe(false);
     });
 
+    it('should return false if parent element is locked when last argument is false', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        expect(locked(div)).toBe(false);
+        lock(body, delay());
+        expect(locked(div)).toBe(false);
+        await delay();
+        expect(locked(div)).toBe(false);
+    });
+
+    it('should return true if parent element is locked when last argument is true', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        expect(locked(div, true)).toBe(false);
+        lock(body, delay());
+        expect(locked(div, true)).toBe(true);
+        await delay();
+        expect(locked(div, true)).toBe(false);
+    });
+
     it('should return true for root element if there is element locked', async () => {
         const { div } = initBody(`
             <div id="div"></div>
