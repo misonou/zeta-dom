@@ -2184,6 +2184,11 @@ function preventLeave(element, promise, oncancel) {
 
 function locked(element, parents) {
   var lock = getTree().getNode(element);
+
+  if (!parents) {
+    return lock && lock.element === element && lock.locked;
+  }
+
   return !!any(parents ? parentsAndSelf(lock) : makeArray(lock), function (v) {
     return v.locked;
   });
