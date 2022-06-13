@@ -723,6 +723,7 @@ domReady.then(function () {
             windowFocusedOut = false;
             if (focusable(e.target)) {
                 setFocus(e.target, false, lastEventSource);
+                scrollIntoView(e.target, 10);
             } else {
                 // @ts-ignore: e.target is Element
                 e.target.blur();
