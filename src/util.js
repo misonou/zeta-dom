@@ -831,6 +831,7 @@ export {
     watchOnce,
     watchable,
     inherit,
+    freeze,
     deepFreeze,
 
     // string related

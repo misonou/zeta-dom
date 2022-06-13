@@ -540,6 +540,9 @@ export function keys(obj: object): string[];
 /** @alias `Object.values` */
 export function values(obj: object): any[];
 
+/** @alias `Object.freeze` */
+export function freeze<T extends object>(obj: T): Readonly<T>;
+
 export function hasOwnProperty(obj: object, prop: string): boolean;
 
 /** @alias `Object.getOwnPropertyDescriptors` */
