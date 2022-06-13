@@ -14,7 +14,7 @@ const META_KEYS = [16, 17, 18, 91, 93, 224];
 const focusPath = [];
 const focusFriends = new WeakMap();
 const focusElements = new Set();
-const modalElements = new Map();
+const modalElements = createAutoCleanupMap(releaseModal);
 const shortcuts = {};
 
 var windowFocusedOut;
@@ -200,8 +200,8 @@ function setModal(element, within) {
     return true;
 }
 
-function releaseModal(element) {
-    var modalPath = mapRemove(modalElements, element);
+function releaseModal(element, modalPath) {
+    modalPath = mapRemove(modalElements, element) || modalPath;
     var index = focusPath.indexOf(element);
     if (modalPath && index >= 0) {
         var index2 = modalPath.findIndex(function (v) {
@@ -776,14 +776,6 @@ domReady.then(function () {
                 windowFocusedOut = true;
             }
         }
-    });
-
-    registerCleanup(function () {
-        each(modalElements, function (element) {
-            if (!containsOrEquals(root, element)) {
-                releaseModal(element);
-            }
-        });
     });
 
     listenDOMEvent('escape', function () {
