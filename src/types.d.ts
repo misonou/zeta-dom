@@ -261,11 +261,12 @@ declare namespace Zeta {
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaDOMEventName = keyof ZetaDOMEventMap | KeyNameSpecial | ClickName | GestureName | 'focuschange' | 'focusreturn' | 'modalchange' | 'asyncStart' | 'asyncEnd' | 'cancelled';
+    type ZetaDOMEventName = keyof ZetaDOMEventMap | KeyNameSpecial | ClickName | GestureName | 'focuschange' | 'focusreturn' | 'asyncStart' | 'asyncEnd' | 'cancelled';
 
     type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & ZetaCustomEventMap & {
         focusin: ZetaFocusEvent;
         focusout: ZetaFocusEvent;
+        modalchange: ZetaModalChangeEvent;
         drag: ZetaMouseEvent;
         longPress: ZetaMouseEvent;
         mousedown: ZetaMouseEvent;
@@ -425,6 +426,10 @@ declare namespace Zeta {
 
     interface ZetaFocusEvent extends ZetaEventBase {
         readonly relatedTarget: HTMLElement;
+    }
+
+    interface ZetaModalChangeEvent extends ZetaEventBase {
+        readonly modalElement: Element;
     }
 
     interface ZetaMouseEvent extends ZetaNativeUIEvent {

@@ -114,6 +114,7 @@ describe('setModal', () => {
         `);
         expect(dom.setModal(modal)).toBe(true);
         expect(dom.activeElement).toBe(modal);
+        expect(dom.modalElement).toBe(modal);
     });
 
     it('should keep modal element and its descendant as focused', async () => {
@@ -126,6 +127,7 @@ describe('setModal', () => {
         dom.focus(child);
         dom.setModal(modal);
         expect(dom.focusedElements).toEqual([child, modal, root]);
+        expect(dom.modalElement).toBe(modal);
     });
 
     it('should keep focus inside modal element', async () => {
@@ -215,7 +217,7 @@ describe('setModal', () => {
             dom.setModal(modal);
         });
         verifyCalls(cb, [
-            [objectContaining({ type: 'modalchange' }), _]
+            [objectContaining({ type: 'modalchange', modalElement: modal }), _]
         ]);
         unregister();
     });
@@ -235,10 +237,12 @@ describe('releaseModal', () => {
         dom.setModal(modal);
         expect(dom.focusable(button)).toBe(false);
         expect(dom.focusedElements).toEqual([modal, root]);
+        expect(dom.modalElement).toBe(modal);
 
         dom.releaseModal(modal);
         expect(dom.focusable(button)).toBeTruthy();
         expect(dom.focusedElements).toEqual([modal, body, root]);
+        expect(dom.modalElement).toBe(null);
     });
 
     it('should fire focusout event on previously focused element', async () => {

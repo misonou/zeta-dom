@@ -50,6 +50,11 @@ declare const dom: typeof lock & typeof observe & typeof events & typeof methods
     readonly activeElement: HTMLElement;
 
     /**
+     * Gets the current modal element.
+     */
+    readonly modalElement: HTMLElement | null;
+
+    /**
      * Gets the element, and also any ancestors, which are in focus.
      */
     readonly focusedElements: HTMLElement[];

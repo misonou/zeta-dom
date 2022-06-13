@@ -83,6 +83,18 @@ function getActiveElement() {
     return focusPath[0];
 }
 
+function getModalElement() {
+    var element = focusPath.slice(-2)[0];
+    if (element === document.body) {
+        return null;
+    }
+    if (!containsOrEquals(root, element)) {
+        cleanupFocusPath();
+        return getModalElement();
+    }
+    return element;
+}
+
 function focused(element, strict) {
     // @ts-ignore: activeElement is not null
     return element === window ? !windowFocusedOut : focusElements.has(element) && (!strict || containsOrEquals(element, document.activeElement));
@@ -119,7 +131,9 @@ function triggerFocusEvent(eventName, elements, relatedTarget, source) {
 }
 
 function triggerModalChangeEvent() {
-    emitDOMEvent('modalchange', root);
+    emitDOMEvent('modalchange', root, {
+        modalElement: getModalElement()
+    });
 }
 
 function setFocus(element, source, path, suppressFocusChange) {
@@ -817,6 +831,9 @@ export default {
     },
     get activeElement() {
         return getActiveElement();
+    },
+    get modalElement() {
+        return getModalElement();
     },
     get focusedElements() {
         cleanupFocusPath();
