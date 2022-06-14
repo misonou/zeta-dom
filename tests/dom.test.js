@@ -68,7 +68,7 @@ describe('focusedElements', () => {
             </div>
         `);
         dom.setModal(modal);
-        expect(dom.focusedElements).toEqual([modal]);
+        expect(dom.focusedElements).toEqual([modal, root]);
     });
 });
 
@@ -125,7 +125,7 @@ describe('setModal', () => {
         `);
         dom.focus(child);
         dom.setModal(modal);
-        expect(dom.focusedElements).toEqual([child, modal]);
+        expect(dom.focusedElements).toEqual([child, modal, root]);
     });
 
     it('should keep focus inside modal element', async () => {
@@ -171,7 +171,7 @@ describe('setModal', () => {
         expect(dom.focusedElements).toEqual([button, other, body, root]);
         dom.setModal(modal);
         expect(dom.focusable(button)).toBe(false);
-        expect(dom.focusedElements).toEqual([modal]);
+        expect(dom.focusedElements).toEqual([modal, root]);
 
         await after(() => {
             body.removeChild(modal);
@@ -186,10 +186,10 @@ describe('setModal', () => {
             <div id="modal"></div>
         `);
         dom.setModal(modal);
-        expect(dom.focusedElements).toEqual([modal]);
+        expect(dom.focusedElements).toEqual([modal, root]);
 
         expect(dom.setModal(modal)).toBe(true);
-        expect(dom.focusedElements).toEqual([modal]);
+        expect(dom.focusedElements).toEqual([modal, root]);
     });
 
     it('should do no-op and return false when element is not focusable', async () => {
@@ -198,10 +198,10 @@ describe('setModal', () => {
             <div id="modal"></div>
         `);
         dom.setModal(modal);
-        expect(dom.focusedElements).toEqual([modal]);
+        expect(dom.focusedElements).toEqual([modal, root]);
 
         expect(dom.setModal(body)).toBe(false);
-        expect(dom.focusedElements).toEqual([modal]);
+        expect(dom.focusedElements).toEqual([modal, root]);
     });
 
     it('should emit modalchange event', async () => {
@@ -234,7 +234,7 @@ describe('releaseModal', () => {
         expect(dom.focusedElements).toEqual([button, other, body, root]);
         dom.setModal(modal);
         expect(dom.focusable(button)).toBe(false);
-        expect(dom.focusedElements).toEqual([modal]);
+        expect(dom.focusedElements).toEqual([modal, root]);
 
         dom.releaseModal(modal);
         expect(dom.focusable(button)).toBeTruthy();

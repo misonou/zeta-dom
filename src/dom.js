@@ -11,9 +11,9 @@ import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAtt
 const SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
 const META_KEYS = [16, 17, 18, 91, 93, 224];
 
-const focusPath = [];
+const focusPath = [root];
 const focusFriends = new WeakMap();
-const focusElements = new Set();
+const focusElements = new Set([root]);
 const modalElements = createAutoCleanupMap(releaseModal);
 const shortcuts = {};
 
@@ -89,11 +89,14 @@ function focused(element, strict) {
 }
 
 function focusable(element) {
+    if (element === root) {
+        return root;
+    }
     var friends = map(parentsAndSelf(element), function (v) {
         return focusFriends.get(v);
     });
     return any(focusPath, function (v) {
-        return containsOrEquals(v, element) || friends.indexOf(v) >= 0;
+        return v !== root && (containsOrEquals(v, element) || friends.indexOf(v) >= 0);
     });
 }
 
@@ -122,7 +125,7 @@ function triggerModalChangeEvent() {
 function setFocus(element, source, path, suppressFocusChange) {
     var removed = [];
     path = path || focusPath;
-    if (path[0]) {
+    if (path[1]) {
         var within = path !== focusPath ? element : focusable(element);
         if (!within) {
             var lockParent = focusLockedWithin(element);
@@ -156,17 +159,17 @@ function setFocus(element, source, path, suppressFocusChange) {
             if (added[0]) {
                 path.unshift.apply(path, added);
                 each(added, function (i, v) {
-                focusElements.add(v);
-            });
-            triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
-        }
-        var activeElement = document.activeElement;
-        if (path[0] !== activeElement) {
-            path[0].focus();
-            // ensure previously focused element is properly blurred
-            // in case the new element is not focusable
-            if (activeElement && activeElement !== document.body && activeElement !== root && document.activeElement === activeElement) {
-                // @ts-ignore: activeElement is HTMLElement
+                    focusElements.add(v);
+                });
+                triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
+            }
+            var activeElement = document.activeElement;
+            if (path[0] !== activeElement) {
+                path[0].focus();
+                // ensure previously focused element is properly blurred
+                // in case the new element is not focusable
+                if (activeElement && activeElement !== document.body && activeElement !== root && document.activeElement === activeElement) {
+                    // @ts-ignore: activeElement is HTMLElement
                     activeElement.blur();
                 }
             }
@@ -191,9 +194,9 @@ function setModal(element, within) {
         setFocus(focusWithin);
     }
     var from = focusPath.indexOf(element) + 1;
-    var until = focusWithin === root || document.body ? focusPath.length : focusPath.indexOf(focusWithin);
+    var until = focusWithin === root || document.body ? focusPath.length - 1 : focusPath.indexOf(focusWithin);
     modalElements.set(element, focusPath.splice(from, until - from));
-    if (!focusPath[0]) {
+    if (!focusPath[1]) {
         setFocus(element);
     }
     setImmediateOnce(triggerModalChangeEvent);
@@ -500,7 +503,7 @@ domReady.then(function () {
                     e.stopImmediatePropagation();
                     e.preventDefault();
                     if (matchWord(type, 'touchstart mousedown keydown')) {
-                        emitDOMEvent('focusreturn', focusPath.slice(-1)[0]);
+                        emitDOMEvent('focusreturn', focusPath.slice(-2)[0]);
                     }
                 }
                 setLastEventSource(e.target);
