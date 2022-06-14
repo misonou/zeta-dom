@@ -119,10 +119,8 @@ function triggerModalChangeEvent() {
     emitDOMEvent('modalchange', root);
 }
 
-function setFocus(element, focusOnInput, source, path) {
-    if (focusOnInput && !matchSelector(element, SELECTOR_FOCUSABLE)) {
-        element = $(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
-    }
+function setFocus(element, source, path, suppressFocusChange) {
+    var removed = [];
     path = path || focusPath;
     if (path[0]) {
         var within = path !== focusPath ? element : focusable(element);
@@ -134,12 +132,14 @@ function setFocus(element, focusOnInput, source, path) {
         if (!within) {
             return false;
         }
-        var removed = path.splice(0, path.indexOf(within));
+        removed = path.splice(0, path.indexOf(within));
         each(removed, function (i, v) {
             focusElements.delete(v);
         });
         triggerFocusEvent('focusout', removed, element, source);
     }
+    var unchanged = path.slice(0);
+    var result;
     // check whether the element is still attached in ROM
     // which can be detached while dispatching focusout event above
     if (containsOrEquals(root, element)) {
@@ -150,14 +150,12 @@ function setFocus(element, focusOnInput, source, path) {
             return focusFriends.get(v);
         })[0];
         if (friend && !focused(friend)) {
-            var result = setFocus(friend);
-            if (result !== undefined) {
-                return result && setFocus(element);
-            }
+            result = setFocus(friend, null, null, true);
         }
-        if (added[0]) {
-            path.unshift.apply(path, added);
-            each(added, function (i, v) {
+        if (result === undefined) {
+            if (added[0]) {
+                path.unshift.apply(path, added);
+                each(added, function (i, v) {
                 focusElements.add(v);
             });
             triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
@@ -169,11 +167,16 @@ function setFocus(element, focusOnInput, source, path) {
             // in case the new element is not focusable
             if (activeElement && activeElement !== document.body && activeElement !== root && document.activeElement === activeElement) {
                 // @ts-ignore: activeElement is HTMLElement
-                activeElement.blur();
+                    activeElement.blur();
+                }
             }
+            result = !!added[0];
         }
-        return true;
     }
+    if (!suppressFocusChange && (removed[0] || result)) {
+        triggerFocusEvent('focuschange', unchanged, null, source);
+    }
+    return result;
 }
 
 function setModal(element, within) {
@@ -207,10 +210,10 @@ function releaseModal(element) {
         if (index2 >= 0) {
             // trigger focusout event for previously focused element
             // which focus is lost to modal element
-            setFocus(modalPath[index2], false, null, modalPath)
+            setFocus(modalPath[index2], null, modalPath)
         }
         focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
-        setFocus(focusPath[0], false);
+        setFocus(focusPath[0]);
         cleanupFocusPath();
         setImmediateOnce(triggerModalChangeEvent);
     }
@@ -722,7 +725,7 @@ domReady.then(function () {
         focusin: function (e) {
             windowFocusedOut = false;
             if (focusable(e.target)) {
-                setFocus(e.target, false, lastEventSource);
+                setFocus(e.target, lastEventSource);
                 scrollIntoView(e.target, 10);
             } else {
                 // @ts-ignore: e.target is Element
@@ -739,7 +742,7 @@ domReady.then(function () {
             if (!e.relatedTarget && !isVisible(e.target)) {
                 var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
                 if (cur) {
-                    setFocus(cur, false, lastEventSource);
+                    setFocus(cur, lastEventSource);
                 }
             }
         }
@@ -801,7 +804,10 @@ setShortcut({
  * -------------------------------------- */
 
 function focus(element) {
-    setFocus(element, true);
+    if (!matchSelector(element, SELECTOR_FOCUSABLE)) {
+        element = $(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
+    }
+    setFocus(element);
 }
 
 export default {
