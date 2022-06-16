@@ -379,7 +379,7 @@ function scrollIntoView(element, rect, within) {
         rect = getRect(element, rect);
     }
     var parent = getScrollParent(element);
-    if (!containsOrEquals(within, parent)) {
+    if (!containsOrEquals(within, parent) || !isVisible(element)) {
         return false;
     }
     var parentRect = getContentRect(parent);
