@@ -322,7 +322,12 @@ function getScrollOffset(winOrElm) {
 }
 
 function getScrollParent(element) {
-    for (var s; element !== root && (s = getComputedStyle(element)) && s.overflow === 'visible' && matchWord(s.position, 'static relative'); element = element.parentNode);
+    for (; element && element !== root; element = element.parentNode) {
+        var s = getComputedStyle(element);
+        if (s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, null, { asyncResult: false })) {
+            break;
+        }
+    }
     return element;
 }
 
