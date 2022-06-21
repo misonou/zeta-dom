@@ -97,6 +97,7 @@ __webpack_require__.d(util_namespaceObject, {
   "exclude": function() { return exclude; },
   "executeOnce": function() { return executeOnce; },
   "extend": function() { return extend; },
+  "freeze": function() { return freeze; },
   "getOwnPropertyDescriptors": function() { return getOwnPropertyDescriptors; },
   "grep": function() { return grep; },
   "hasOwnProperty": function() { return util_hasOwnProperty; },
@@ -2349,10 +2350,10 @@ env_window.onbeforeunload = function (e) {
 
 var SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
 var META_KEYS = [16, 17, 18, 91, 93, 224];
-var focusPath = [];
+var focusPath = [root];
 var focusFriends = new WeakMap();
-var focusElements = new Set();
-var modalElements = new Map();
+var focusElements = new Set([root]);
+var modalElements = createAutoCleanupMap(releaseModal);
 var shortcuts = {};
 var windowFocusedOut;
 var currentEvent;
@@ -2419,17 +2420,36 @@ function getActiveElement() {
   return focusPath[0];
 }
 
+function getModalElement() {
+  var element = focusPath.slice(-2)[0];
+
+  if (element === env_document.body) {
+    return null;
+  }
+
+  if (!containsOrEquals(root, element)) {
+    cleanupFocusPath();
+    return getModalElement();
+  }
+
+  return element;
+}
+
 function focused(element, strict) {
   // @ts-ignore: activeElement is not null
   return element === env_window ? !windowFocusedOut : focusElements.has(element) && (!strict || containsOrEquals(element, env_document.activeElement));
 }
 
 function focusable(element) {
+  if (element === root) {
+    return root;
+  }
+
   var friends = map(parentsAndSelf(element), function (v) {
     return focusFriends.get(v);
   });
   return any(focusPath, function (v) {
-    return containsOrEquals(v, element) || friends.indexOf(v) >= 0;
+    return v !== root && (containsOrEquals(v, element) || friends.indexOf(v) >= 0);
   });
 }
 
@@ -2452,17 +2472,16 @@ function triggerFocusEvent(eventName, elements, relatedTarget, source) {
 }
 
 function triggerModalChangeEvent() {
-  emitDOMEvent('modalchange', root);
+  emitDOMEvent('modalchange', root, {
+    modalElement: getModalElement()
+  });
 }
 
-function setFocus(element, focusOnInput, source, path) {
-  if (focusOnInput && !matchSelector(element, SELECTOR_FOCUSABLE)) {
-    element = jquery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
-  }
-
+function setFocus(element, source, path, suppressFocusChange) {
+  var removed = [];
   path = path || focusPath;
 
-  if (path[0]) {
+  if (path[1]) {
     var within = path !== focusPath ? element : focusable(element);
 
     if (!within) {
@@ -2475,14 +2494,16 @@ function setFocus(element, focusOnInput, source, path) {
       return false;
     }
 
-    var removed = path.splice(0, path.indexOf(within));
+    removed = path.splice(0, path.indexOf(within));
     each(removed, function (i, v) {
       focusElements.delete(v);
     });
     triggerFocusEvent('focusout', removed, element, source);
-  } // check whether the element is still attached in ROM
-  // which can be detached while dispatching focusout event above
+  }
 
+  var unchanged = path.slice(0);
+  var result; // check whether the element is still attached in ROM
+  // which can be detached while dispatching focusout event above
 
   if (containsOrEquals(root, element)) {
     var added = parentsAndSelf(element).filter(function (v) {
@@ -2493,35 +2514,39 @@ function setFocus(element, focusOnInput, source, path) {
     })[0];
 
     if (friend && !focused(friend)) {
-      var result = setFocus(friend);
+      result = setFocus(friend, null, null, true);
+    }
 
-      if (result !== undefined) {
-        return result && setFocus(element);
+    if (result === undefined) {
+      if (added[0]) {
+        path.unshift.apply(path, added);
+        each(added, function (i, v) {
+          focusElements.add(v);
+        });
+        triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
       }
-    }
 
-    if (added[0]) {
-      path.unshift.apply(path, added);
-      each(added, function (i, v) {
-        focusElements.add(v);
-      });
-      triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
-    }
+      var activeElement = env_document.activeElement;
 
-    var activeElement = env_document.activeElement;
+      if (path[0] !== activeElement) {
+        path[0].focus(); // ensure previously focused element is properly blurred
+        // in case the new element is not focusable
 
-    if (path[0] !== activeElement) {
-      path[0].focus(); // ensure previously focused element is properly blurred
-      // in case the new element is not focusable
-
-      if (activeElement && activeElement !== env_document.body && activeElement !== root && env_document.activeElement === activeElement) {
-        // @ts-ignore: activeElement is HTMLElement
-        activeElement.blur();
+        if (activeElement && activeElement !== env_document.body && activeElement !== root && env_document.activeElement === activeElement) {
+          // @ts-ignore: activeElement is HTMLElement
+          activeElement.blur();
+        }
       }
-    }
 
-    return true;
+      result = !!added[0];
+    }
   }
+
+  if (!suppressFocusChange && (removed[0] || result)) {
+    triggerFocusEvent('focuschange', unchanged, null, source);
+  }
+
+  return result;
 }
 
 function setModal(element, within) {
@@ -2540,10 +2565,10 @@ function setModal(element, within) {
   }
 
   var from = focusPath.indexOf(element) + 1;
-  var until = focusWithin === root || env_document.body ? focusPath.length : focusPath.indexOf(focusWithin);
+  var until = focusWithin === root || env_document.body ? focusPath.length - 1 : focusPath.indexOf(focusWithin);
   modalElements.set(element, focusPath.splice(from, until - from));
 
-  if (!focusPath[0]) {
+  if (!focusPath[1]) {
     setFocus(element);
   }
 
@@ -2551,8 +2576,8 @@ function setModal(element, within) {
   return true;
 }
 
-function releaseModal(element) {
-  var modalPath = mapRemove(modalElements, element);
+function releaseModal(element, modalPath) {
+  modalPath = mapRemove(modalElements, element) || modalPath;
   var index = focusPath.indexOf(element);
 
   if (modalPath && index >= 0) {
@@ -2563,11 +2588,11 @@ function releaseModal(element) {
     if (index2 >= 0) {
       // trigger focusout event for previously focused element
       // which focus is lost to modal element
-      setFocus(modalPath[index2], false, null, modalPath);
+      setFocus(modalPath[index2], null, modalPath);
     }
 
     focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
-    setFocus(focusPath[0], false);
+    setFocus(focusPath[0]);
     cleanupFocusPath();
     setImmediateOnce(triggerModalChangeEvent);
   }
@@ -2887,7 +2912,7 @@ domReady.then(function () {
           e.preventDefault();
 
           if (matchWord(type, 'touchstart mousedown keydown')) {
-            emitDOMEvent('focusreturn', focusPath.slice(-1)[0]);
+            emitDOMEvent('focusreturn', focusPath.slice(-2)[0]);
           }
         }
 
@@ -3135,7 +3160,8 @@ domReady.then(function () {
       windowFocusedOut = false;
 
       if (focusable(e.target)) {
-        setFocus(e.target, false, lastEventSource);
+        setFocus(e.target, lastEventSource);
+        scrollIntoView(e.target, 10);
       } else {
         // @ts-ignore: e.target is Element
         e.target.blur();
@@ -3152,7 +3178,7 @@ domReady.then(function () {
         var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
 
         if (cur) {
-          setFocus(cur, false, lastEventSource);
+          setFocus(cur, lastEventSource);
         }
       }
     }
@@ -3188,13 +3214,6 @@ domReady.then(function () {
       }
     }
   });
-  registerCleanup(function () {
-    each(modalElements, function (element) {
-      if (!containsOrEquals(root, element)) {
-        releaseModal(element);
-      }
-    });
-  });
   listenDOMEvent('escape', function () {
     setFocus(env_document.body);
   });
@@ -3211,7 +3230,11 @@ setShortcut({
  * -------------------------------------- */
 
 function dom_focus(element) {
-  setFocus(element, true);
+  if (!matchSelector(element, SELECTOR_FOCUSABLE)) {
+    element = jquery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
+  }
+
+  setFocus(element);
 }
 
 /* harmony default export */ const dom = ({
@@ -3229,6 +3252,10 @@ function dom_focus(element) {
 
   get activeElement() {
     return getActiveElement();
+  },
+
+  get modalElement() {
+    return getModalElement();
   },
 
   get focusedElements() {
@@ -4230,8 +4257,14 @@ function getScrollOffset(winOrElm) {
 }
 
 function getScrollParent(element) {
-  for (var s; element !== root && (s = getComputedStyle(element)) && s.overflow === 'visible' && matchWord(s.position, 'static relative'); element = element.parentNode) {
-    ;
+  for (; element && element !== root; element = element.parentNode) {
+    var s = getComputedStyle(element);
+
+    if (s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, null, {
+      asyncResult: false
+    })) {
+      break;
+    }
   }
 
   return element;
@@ -4310,13 +4343,15 @@ function scrollIntoView(element, rect, within) {
 
   var parent = getScrollParent(element);
 
-  if (!containsOrEquals(within, parent)) {
+  if (!containsOrEquals(within, parent) || !isVisible(element)) {
     return false;
   }
 
   var parentRect = getContentRect(parent);
-  var deltaX = Math.max(0, rect.right - parentRect.right) || Math.min(rect.left - parentRect.left, 0);
-  var deltaY = Math.max(0, rect.bottom - parentRect.bottom) || Math.min(rect.top - parentRect.top, 0);
+  var deltaX = rect.left - parentRect.left;
+  var deltaY = rect.top - parentRect.top;
+  deltaX = Math.min(deltaX, 0) || Math.max(0, Math.min(deltaX, rect.right - parentRect.right));
+  deltaY = Math.min(deltaY, 0) || Math.max(0, Math.min(deltaY, rect.bottom - parentRect.bottom));
   var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
 
   if (parent !== root) {
