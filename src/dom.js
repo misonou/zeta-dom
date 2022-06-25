@@ -796,7 +796,7 @@ domReady.then(function () {
     });
 
     listenDOMEvent('escape', function () {
-        setFocus(document.body);
+        setFocus(getModalElement() || document.body);
     });
     setFocus(document.activeElement);
     lock(root);
