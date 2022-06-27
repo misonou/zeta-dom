@@ -491,8 +491,9 @@ domReady.then(function () {
     }
 
     function triggerGestureEvent(gesture) {
+        var target = mouseInitialPoint.target;
         mouseInitialPoint = null;
-        return triggerUIEvent('gesture', gesture);
+        return triggerUIEvent('gesture', gesture, null, target);
     }
 
     function handleUIEventWrapper(type, callback) {
