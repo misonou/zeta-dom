@@ -288,7 +288,7 @@ export function pick<T>(obj: T, callback: (value: any, key: keyof T) => any): Pa
  * @param obj An object from which properties are copied.
  * @param keys Names of properties to be excluded.
  */
-export function exclude<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Exclude<T, Zeta.ArrayMember<K>>;
+export function exclude<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Omit<T, Zeta.ArrayMember<K>>;
 
 export function exclude<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
 

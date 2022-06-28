@@ -11,11 +11,11 @@ declare namespace Zeta {
     type KeyOf<T> = T extends (any[] | ArrayLike<any>) ? number :
         T extends Map<infer K, any> ? K :
         T extends Set<infer V> ? V :
-        T extends object ? Exclude<keyof T, symbol> : never;
+        T extends object ? Exclude<keyof T, symbol> : any;
     type ValueOf<T> = T extends (any[] | ArrayLike<any>) ? ArrayMember<T> :
         T extends Map<any, infer V> ? V :
         T extends Set<infer V> ? V :
-        T extends object ? T[Exclude<keyof T, symbol>] : never;
+        T extends object ? T[Exclude<keyof T, symbol>] : any;
     type WhitespaceDelimited<T extends string> = T extends `${infer L} ${infer R}` ? Exclude<L, ''> | WhitespaceDelimited<R> : Exclude<T, ''>;
     type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
     type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
