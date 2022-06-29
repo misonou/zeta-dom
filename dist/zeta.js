@@ -2881,8 +2881,9 @@ domReady.then(function () {
   }
 
   function triggerGestureEvent(gesture) {
+    var target = mouseInitialPoint.target;
     mouseInitialPoint = null;
-    return triggerUIEvent('gesture', gesture);
+    return triggerUIEvent('gesture', gesture, null, target);
   }
 
   function handleUIEventWrapper(type, callback) {
@@ -3215,7 +3216,7 @@ domReady.then(function () {
     }
   });
   listenDOMEvent('escape', function () {
-    setFocus(env_document.body);
+    setFocus(getModalElement() || env_document.body);
   });
   setFocus(env_document.activeElement);
   lock(root);
@@ -4257,10 +4258,12 @@ function getScrollOffset(winOrElm) {
 }
 
 function getScrollParent(element) {
-  for (; element && element !== root; element = element.parentNode) {
+  for (var target = element; element && element !== root; element = element.parentNode) {
     var s = getComputedStyle(element);
 
-    if (s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, null, {
+    if (s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, {
+      target: target
+    }, {
       asyncResult: false
     })) {
       break;
