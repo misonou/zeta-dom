@@ -686,15 +686,17 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
                 value = callback.call(this, value, oldValue);
             }
             if (value !== oldValue) {
-                if (!(prop in state.oldValues)) {
-                    state.oldValues[prop] = oldValue;
-                }
                 state.values[prop] = value;
-                state.newValues[prop] = value;
-                if (!state.sync) {
-                    setImmediateOnce(state.handleChanges);
-                } else if (!state.lock) {
-                    state.handleChanges();
+                if (state.handlers[0]) {
+                    if (!(prop in state.oldValues)) {
+                        state.oldValues[prop] = oldValue;
+                    }
+                    state.newValues[prop] = value;
+                    if (!state.sync) {
+                        setImmediateOnce(state.handleChanges);
+                    } else if (!state.lock) {
+                        state.handleChanges();
+                    }
                 }
             }
         };
