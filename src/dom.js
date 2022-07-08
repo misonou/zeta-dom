@@ -422,6 +422,8 @@ domReady.then(function () {
     var pressTimeout;
     var swipeDir;
     var hasCompositionUpdate;
+    var imeModifyOnUpdate;
+    var imeNodeText;
     var imeNode;
     var imeOffset;
     var imeText;
@@ -440,10 +442,11 @@ domReady.then(function () {
         if ('selectionEnd' in element) {
             imeNode = element;
             // @ts-ignore: guranteed having selectionEnd property
-            imeOffset = element.selectionEnd;
+            imeOffset = [element.selectionStart, element.selectionEnd];
+            imeNodeText = element.value;
         } else {
             imeNode = selection.anchorNode;
-            imeOffset = selection.anchorOffset;
+            imeOffset = [selection.focusOffset, selection.anchorOffset];
             if (imeNode && imeNode.nodeType === 1) {
                 // IE puts selection at element level
                 // however it will insert text in the previous text node
@@ -451,12 +454,13 @@ domReady.then(function () {
                 if (child && child.nodeType === 3) {
                     imeNode = child;
                     // @ts-ignore: child is Text
-                    imeOffset = child.length;
+                    imeOffset = [child.length, child.length];
                 } else {
                     imeNode = imeNode.childNodes[imeOffset];
-                    imeOffset = 0;
+                    imeOffset = [0, 0];
                 }
             }
+            imeNodeText = imeNode.data || '';
         }
     }
 
@@ -530,56 +534,81 @@ domReady.then(function () {
     var uiEvents = {
         compositionstart: function () {
             updateIMEState();
+            imeModifyOnUpdate = false;
             imeText = '';
         },
         compositionupdate: function (e) {
+            if (!hasCompositionUpdate && imeOffset[0] !== imeOffset[1]) {
+                triggerUIEvent('textInput', '');
+            }
             imeText = e.data;
             hasCompositionUpdate = true;
+            // check whether input value or node data
+            // are updated immediately after compositionupdate event
+            if (!imeModifyOnUpdate) {
+                setImmediate(function () {
+                    var prevNodeText = imeNodeText;
+                    var prevOffset = imeOffset;
+                    updateIMEState();
+                    imeModifyOnUpdate = imeNodeText !== prevNodeText;
+                    imeOffset[0] = prevOffset[0];
+                });
+            }
         },
         compositionend: function (e) {
             var isInputElm = 'selectionEnd' in imeNode;
             var prevText = imeText;
             var prevOffset = imeOffset;
+            var prevNodeText = imeNodeText;
             updateIMEState();
 
-            var curText = imeNode.value || imeNode.data || '';
             imeText = e.data;
             // some IME lacks inserted character sequence when selecting from phrase candidate list
             // also legacy Microsoft Changjie IME reports full-width spaces (U+3000) instead of actual characters
             if (!imeText || /^\u3000+$/.test(imeText)) {
-                imeText = curText.slice(prevOffset, imeOffset);
+                imeText = imeNodeText.slice(prevOffset[1], imeOffset[1]);
             }
 
-            // some old mobile browsers fire compositionend event before replacing final character sequence
-            // need to compare both to truncate the correct range of characters
-            // three cases has been observed: XXX{imeText}|, XXX{prevText}| and XXX|{imeText}
-            var o1 = imeOffset - imeText.length;
-            var o2 = imeOffset - prevText.length;
-            var startOffset = imeOffset;
-            if (curText.slice(o1, imeOffset) === imeText) {
-                startOffset = o1;
-            } else if (curText.slice(o2, imeOffset) === prevText) {
-                startOffset = o2;
-            } else if (curText.substr(imeOffset, imeText.length) === imeText) {
-                imeOffset += imeText.length;
+            var afterNodeText = imeNodeText;
+            var afterOffset = imeOffset[1];
+            var startOffset = afterOffset;
+            if (imeModifyOnUpdate) {
+                // in some case the node does not contain the final input text
+                if (prevOffset[0] + imeText.length !== afterOffset) {
+                    afterNodeText = imeNodeText.slice(0, afterOffset) + imeText + imeNodeText.slice(afterOffset);
+                    afterOffset += imeText.length;
+                }
+            } else {
+                // some old mobile browsers fire compositionend event before replacing final character sequence
+                // need to compare both to truncate the correct range of characters
+                // three cases has been observed: XXX{imeText}|, XXX{prevText}| and XXX|{imeText}
+                var o1 = afterOffset - imeText.length;
+                var o2 = afterOffset - prevText.length;
+                if (imeNodeText.slice(o1, afterOffset) === imeText) {
+                    startOffset = o1;
+                } else if (imeNodeText.slice(o2, afterOffset) === prevText) {
+                    startOffset = o2;
+                } else if (imeNodeText.substr(afterOffset, imeText.length) === imeText) {
+                    afterOffset += imeText.length;
+                }
+                prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
             }
-            var newText = curText.substr(0, startOffset) + curText.slice(imeOffset);
             var range = document.createRange();
             if (isInputElm) {
-                imeNode.value = newText;
+                imeNode.value = prevNodeText;
                 imeNode.setSelectionRange(startOffset, startOffset);
             } else {
-                imeNode.data = newText;
+                imeNode.data = prevNodeText;
                 range.setStart(imeNode, startOffset);
                 makeSelection(range);
             }
             if (!triggerUIEvent('textInput', imeText)) {
                 if (isInputElm) {
-                    imeNode.value = curText;
-                    imeNode.setSelectionRange(imeOffset, imeOffset);
+                    imeNode.value = afterNodeText;
+                    imeNode.setSelectionRange(afterOffset, afterOffset);
                 } else {
-                    imeNode.data = curText;
-                    range.setStart(imeNode, imeOffset);
+                    imeNode.data = afterNodeText;
+                    range.setStart(imeNode, afterOffset);
                     makeSelection(range);
                 }
             }
@@ -626,7 +655,9 @@ domReady.then(function () {
             }
         },
         beforeinput: function (e) {
-            hasCompositionUpdate = false;
+            if (e.inputType !== 'insertCompositionText') {
+                hasCompositionUpdate = false;
+            }
             if (!imeNode && e.cancelable) {
                 switch (e.inputType) {
                     case 'insertText':
