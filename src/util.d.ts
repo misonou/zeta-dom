@@ -160,7 +160,7 @@ export function map<K, V, R>(obj: Map<K, V>, callback: (v: V, i: K) => Zeta.MapR
  * @param callback Function called for each original item which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
  * @returns An array containing resulting items from the callback.
  */
-export function map<R>(obj: any, callback: (v: any, i: any) => Zeta.MapResultValue<R>): R[];
+export function map<T, R>(obj: T, callback: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => Zeta.MapResultValue<R>): R[];
 
 /**
  * Filters items from the given array or array-like object.
@@ -281,7 +281,7 @@ export function kv<T extends string | number | symbol, V>(key: T, value: V): Rec
  */
 export function pick<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Pick<T, Zeta.ArrayMember<K>>;
 
-export function pick<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
+export function pick<T>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => any): Partial<T>;
 
 /**
  * Returns a new object that does not contain the specified properties
@@ -290,7 +290,7 @@ export function pick<T>(obj: T, callback: (value: any, key: keyof T) => any): Pa
  */
 export function exclude<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Omit<T, Zeta.ArrayMember<K>>;
 
-export function exclude<T>(obj: T, callback: (value: any, key: keyof T) => any): Partial<T>;
+export function exclude<T>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => any): Partial<T>;
 
 /**
  * Gets item associated with the specified key in the given map.
