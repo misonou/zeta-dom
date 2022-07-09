@@ -433,6 +433,15 @@ domReady.then(function () {
         return mod ? lcfirst(mod + ucfirst(suffix)) : suffix;
     }
 
+    function inputValueImpl(element, method, value) {
+        // React defines its own getter and setter on input elements
+        var desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
+        if (desc && desc[method]) {
+            return desc[method].call(element, value);
+        }
+        return method === 'get' ? element.value : (element.value = value);
+    }
+
     function updateIMEState() {
         var element = document.activeElement || root;
         var selection = getSelection();
@@ -443,7 +452,7 @@ domReady.then(function () {
             imeNode = element;
             // @ts-ignore: guranteed having selectionEnd property
             imeOffset = [element.selectionStart, element.selectionEnd];
-            imeNodeText = element.value;
+            imeNodeText = inputValueImpl(element, 'get');
         } else {
             imeNode = selection.anchorNode;
             imeOffset = [selection.focusOffset, selection.anchorOffset];
@@ -595,7 +604,7 @@ domReady.then(function () {
             }
             var range = document.createRange();
             if (isInputElm) {
-                imeNode.value = prevNodeText;
+                inputValueImpl(imeNode, 'set', prevNodeText);
                 imeNode.setSelectionRange(startOffset, startOffset);
             } else {
                 imeNode.data = prevNodeText;
@@ -604,8 +613,11 @@ domReady.then(function () {
             }
             if (!triggerUIEvent('textInput', imeText)) {
                 if (isInputElm) {
-                    imeNode.value = afterNodeText;
+                    var event = document.createEvent('Event');
+                    event.initEvent('change', true);
+                    inputValueImpl(imeNode, 'set', afterNodeText);
                     imeNode.setSelectionRange(afterOffset, afterOffset);
+                    imeNode.dispatchEvent(event);
                 } else {
                     imeNode.data = afterNodeText;
                     range.setStart(imeNode, afterOffset);
