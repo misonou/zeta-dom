@@ -36,6 +36,11 @@ function observe(element, options, callback) {
     }
     var observer = new MutationObserver(processRecords);
     observer.observe(element, options);
+    if (element !== root) {
+        registerCleanup(element, function () {
+            observer.disconnect();
+        });
+    }
     return function () {
         processRecords(observer.takeRecords());
     };
