@@ -381,6 +381,7 @@ function trackPointer(callback) {
     always(trackPromise, function () {
         stopScroll();
         trackCallbacks = null;
+        trackPromise = null;
         if (root.releaseCapture) {
             root.releaseCapture();
         }
