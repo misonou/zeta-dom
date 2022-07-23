@@ -60,6 +60,22 @@ describe('NodeTree', () => {
         expect(vnode1.childNodes.length).toBe(2);
         expect(vnode5.parentNode).toBe(vnode3);
     });
+
+    it('should remove node from tree when detached', () => {
+        const { node1, node2, node3 } = initBody(`
+            <div id="node1">
+                <div id="node2">
+                    <div id="node3"></div>
+                </div>
+            </div>
+        `);
+        const tree = new TraversableNodeTree(node1);
+        const [vnode1, vnode3] = setNodes(tree, node1, node3);
+
+        node1.removeChild(node2);
+        expect(vnode3.parentNode).toBeNull();
+        expect(vnode1.childNodes.length).toEqual(0);
+    });
 });
 
 describe('NodeTree.setNode', () => {
