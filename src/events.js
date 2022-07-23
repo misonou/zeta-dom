@@ -1,7 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
 import $ from "./include/jquery.js";
 import { window, root } from "./env.js";
-import { arrRemove, createPrivateStore, definePrototype, each, extend, grep, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, makeArray, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { arrRemove, createPrivateStore, definePrototype, each, executeOnce, extend, grep, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, makeArray, map, mapGet, mapRemove, matchWord, noop, randomId, reject, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { registerCleanup } from "./observe.js";
 import dom, { textInputAllowed, getShortcut, iterateFocusPath } from "./dom.js";
@@ -447,12 +447,12 @@ definePrototype(ZetaEventContainer, {
                 containers.set(element, self);
             }
         }
-        return function () {
+        return executeOnce(function () {
             containerRemoveHandler(self, target, key);
             if (element) {
                 containerRemoveHandler(self, element, key);
             }
-        };
+        });
     },
     delete: function (target) {
         var self = this;
