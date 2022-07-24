@@ -275,6 +275,30 @@ export function single<R>(obj: any, callback: (v: any, i: string) => R): R | fal
 export function kv<T extends string | number | symbol, V>(key: T, value: V): Record<T, V>;
 
 /**
+ * Sets properties with the supplied value on an object.
+ * @param obj An object of which properties will be set.
+ * @param keys Names of properties to be set.
+ * @param value Value to be set.
+ */
+export function fill<T extends any[], V>(obj: T, keys: number[], value: V): (Zeta.ValueOf<T> | V)[];
+
+/**
+ * Sets properties with the supplied value on an object.
+ * @param obj An object of which properties will be set.
+ * @param keys Names of properties to be set.
+ * @param value Value to be set.
+ */
+export function fill<T extends object, K extends string | number | symbol, V>(obj: T, keys: K[], value: V): T & { [P in K]: V };
+
+/**
+ * Sets properties with the supplied value on an object.
+ * @param obj An object of which properties will be set.
+ * @param keys Names of properties to be set.
+ * @param value Value to be set.
+ */
+export function fill<T extends object, K extends string, V>(obj: T, keys: K, value: V): T & { [P in Zeta.WhitespaceDelimited<K>]: V };
+
+/**
  * Returns a new object that contains a subset of properties.
  * @param obj An object from which properties are copied.
  * @param keys Names of properties to be copied.
@@ -291,6 +315,13 @@ export function pick<T>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.Key
 export function exclude<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Omit<T, Zeta.ArrayMember<K>>;
 
 export function exclude<T>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => any): Partial<T>;
+
+/**
+ * Returns a new object having properties from original object with values returned from the callback.
+ * @param obj An object from which properties are enumerated.
+ * @param callback A callback that returns value to be set on the new object for each property.
+ */
+export function mapObject<T, V>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => V): { [P in Zeta.KeyOf<T>]: V };
 
 /**
  * Gets item associated with the specified key in the given map.
@@ -420,6 +451,8 @@ export function setIntervalSafe<T extends Zeta.AnyFunction>(callback: T, ms?: nu
 export function throwNotFunction(obj: any): Zeta.AnyFunction;
 
 export function errorWithCode(code: string, message?: string, props?: Zeta.Dictionary<any>): Error;
+
+export function isErrorWithCode(error: any, code: string): boolean;
 
 
 /* --------------------------------------

@@ -1,4 +1,4 @@
-import { any, defineAliasProperty, defineObservableProperty, definePrototype, equal, exclude, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, pick, resolveAll, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
+import { any, defineAliasProperty, defineObservableProperty, definePrototype, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapObject, pick, resolveAll, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
 import { after, delay, mockFn, objectContaining, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
@@ -205,6 +205,23 @@ describe('any', () => {
     });
 });
 
+describe('fill', () => {
+    it('should set named properties with specified value', () => {
+        const sym = Symbol();
+        expect(fill({}, ['a', 0, sym], 1)).toEqual({ a: 1, 0: 1, [sym]: 1 });
+        expect(fill([], [0, 1, 2], 1).length).toBe(3);
+    });
+
+    it('should overwrite existing properties', () => {
+        expect(fill({ a: 1 }, 'a', 2)).toEqual({ a: 2 });
+    });
+
+    it('should return the same object', () => {
+        const obj = {};
+        expect(fill(obj, 'a', 1)).toBe(obj);
+    });
+});
+
 describe('pick', () => {
     it('should return a new object with specified keys', () => {
         expect(pick({ a: 1, b: 2, c: 3 }, ['a', 'b'])).toEqual({ a: 1, b: 2 });
@@ -258,6 +275,26 @@ describe('exclude', () => {
     it('should copy properties for which callback returns falsy values', () => {
         const cb = mockFn().mockReturnValueOnce(true).mockReturnValueOnce(false);
         expect(exclude({ a: 0, b: 1 }, cb)).toEqual({ b: 1 });
+    });
+});
+
+describe('mapObject', () => {
+    it('should return a new object which value of each property is transformed', () => {
+        const obj = { a: 1, b: 2, c: 3 };
+        expect(mapObject(obj, v => v + 1)).toEqual({ a: 2, b: 3, c: 4 });
+        expect(obj).toEqual({ a: 1, b: 2, c: 3 });
+    });
+
+    it('should invoke callback with correct arguments', () => {
+        const obj = { a: 1, b: 2, c: 3 };
+        const cb = mockFn().mockImplementation(v => v);
+        mapObject(obj, cb);
+        verifyCalls(cb, [
+            [1, 'a'],
+            [2, 'b'],
+            [3, 'c']
+        ]);
+        expect(cb.mock.instances[0]).toBe(obj);
     });
 });
 

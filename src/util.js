@@ -237,6 +237,13 @@ function kv(key, value) {
     return obj;
 }
 
+function fill(obj, keys, value) {
+    each(keys, function (i, v) {
+        obj[v] = value;
+    });
+    return obj;
+}
+
 function pick(obj, keys) {
     var result = {};
     if (isFunction(keys)) {
@@ -269,6 +276,14 @@ function exclude(obj, keys) {
             delete result[v];
         });
     }
+    return result;
+}
+
+function mapObject(obj, callback) {
+    var result = {};
+    each(obj, function (i, v) {
+        result[i] = callback.call(obj, v, i);
+    });
     return result;
 }
 
@@ -414,6 +429,10 @@ function errorWithCode(code, message, props) {
     return extend(new Error(message || code), props, {
         code: code
     });
+}
+
+function isErrorWithCode(error, code) {
+    return is(error, Error) && error.code === code;
 }
 
 
@@ -796,8 +815,10 @@ export {
     any,
     single,
     kv,
+    fill,
     pick,
     exclude,
+    mapObject,
     mapGet,
     mapRemove,
     arrRemove,
@@ -816,6 +837,7 @@ export {
     // throw
     throwNotFunction,
     errorWithCode,
+    isErrorWithCode,
 
     // property and prototype related
     keys,
