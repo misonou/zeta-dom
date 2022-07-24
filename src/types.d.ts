@@ -263,11 +263,16 @@ declare namespace Zeta {
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaDOMEventName = keyof ZetaDOMEventMap | KeyNameSpecial | ClickName | GestureName | 'focuschange' | 'focusreturn' | 'asyncStart' | 'asyncEnd' | 'cancelled';
+    type ZetaDOMEventName = keyof ZetaDOMEventMap | string & {};
 
-    type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & ZetaCustomEventMap & {
+    type ZetaDOMEventMap = ZetaCustomEventMap & { [P in ClickName]: ZetaMouseEvent } & { [P in KeyNameSpecial]: ZetaEvent } & { [P in GestureName]: ZetaEvent } & {
+        asyncStart: ZetaEvent,
+        asyncEnd: ZetaEvent,
+        cancelled: ZetaEvent,
         focusin: ZetaFocusEvent;
         focusout: ZetaFocusEvent;
+        focuschange: ZetaEvent,
+        focusreturn: ZetaEvent,
         modalchange: ZetaModalChangeEvent;
         drag: ZetaMouseEvent;
         longPress: ZetaMouseEvent;
@@ -286,9 +291,9 @@ declare namespace Zeta {
 
     type ZetaEventHandlerReturnType<T> = T extends ZetaAsyncHandleableEvent<infer R> ? Promise<R> | R : T extends ZetaHandleableEvent<infer R> ? R : any
 
-    type ZetaEventHandler<E extends string, M = {}, T = Element> = (this: T, e: ZetaEventType<E, M> & ZetaEventContext<T>, self: T) => ZetaEventHandlerReturnType<ZetaEventType<E, M>> | void;
+    type ZetaEventHandler<E extends string, M, T = Element> = (this: T, e: ZetaEventType<E, M> & ZetaEventContext<T>, self: T) => ZetaEventHandlerReturnType<ZetaEventType<E, M>> | void;
 
-    type ZetaEventHandlers<E extends string, M = {}, T = Element> = { [P in E]?: ZetaEventHandler<P, M, T> };
+    type ZetaEventHandlers<M, T = Element> = { [P in (keyof M | string & {})]?: ZetaEventHandler<P, M, T> };
 
     type ZetaEventContext<T> = T extends ZetaEventContextBase<any> ? T : ZetaEventContextBase<T>;
 
@@ -311,6 +316,12 @@ declare namespace Zeta {
 
     interface ZetaEventDispatcher<M, T = Element> {
         /**
+         * Adds event handlers to multiple events.
+         * @param handlers A dictionary which the keys are event names and values are the callback for each event.
+         */
+        on(handlers: ZetaEventHandlers<M, T>);
+
+        /**
          * Adds an event handler to a specific event.
          * @param event Name of the event.
          * @param handler A callback function to be fired when the specified event is triggered.
@@ -318,23 +329,17 @@ declare namespace Zeta {
         on<E extends keyof M>(event: E, handler: ZetaEventHandler<E, M, T>);
 
         /**
+         * Adds event handlers to multiple events on the given target.
+         * @param handlers A dictionary which the keys are event names and values are the callback for each event.
+         */
+        on(target: T, handlers: ZetaEventHandlers<M, T>);
+
+        /**
          * Adds an event handler to a specific event on the given target.
          * @param event Name of the event.
          * @param handler A callback function to be fired when the specified event is triggered.
          */
         on<E extends keyof M>(target: T, event: E, handler: ZetaEventHandler<E, M, T>);
-
-        /**
-         * Adds event handlers to multiple events.
-         * @param handlers A dictionary which the keys are event names and values are the callback for each event.
-         */
-        on(handlers: ZetaEventHandlers<keyof M, M, T>);
-
-        /**
-         * Adds event handlers to multiple events on the given target.
-         * @param handlers A dictionary which the keys are event names and values are the callback for each event.
-         */
-        on(target: T, handlers: ZetaEventHandlers<keyof M, M, T>);
     }
 
     interface ZetaEventBase {
@@ -595,7 +600,7 @@ declare namespace Zeta {
          * @param handlers An object which each entry represent the handler to be registered on the event.
          * @returns A function that will unregister the handler when called.
          */
-        add(target: T, handlers: ZetaEventHandlers<keyof M, M, T>): UnregisterCallback;
+        add(target: T, handlers: ZetaEventHandlers<M, T>): UnregisterCallback;
 
         /**
          * Registers event handlers to a DOM element or a custom event target.
@@ -750,10 +755,10 @@ declare namespace Zeta {
         removeNode(node: T): void;
         update(): void;
 
-        on<E extends keyof NodeTreeEventMap<T>>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
+        on(tree: NodeTree<T>, handlers: ZetaEventHandlers<NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
         on<E extends keyof NodeTreeEventMap<T>>(tree: NodeTree<T>, event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
-        on(handler: ZetaEventHandlers<keyof NodeTreeEventMap<T>, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
-        on(tree: NodeTree<T>, handler: ZetaEventHandlers<keyof NodeTreeEventMap<T>, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
+        on(handlers: ZetaEventHandlers<NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
+        on<E extends keyof NodeTreeEventMap<T>>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
     }
 
     declare class TraversableNodeTree<T extends TraversableNode> extends NodeTree<T> {

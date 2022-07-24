@@ -50,7 +50,7 @@ export function isThenable<T>(obj: T): T extends PromiseLike<any> ? T : false;
  * @param obj An input value to be tested.
  * @returns The same instance of object if it is a simple object; otherwise false.
  */
-export function isPlainObject<T>(obj: T): T extends Record<any, any> ? T : false;
+export function isPlainObject<T>(obj: T): T | false;
 
 export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? T : false;
 
@@ -272,7 +272,7 @@ export function single<R>(obj: any, callback: (v: any, i: string) => R): R | fal
  * @param value A value associated with the property name.
  * @returns An object with the specified property.
  */
-export function kv<T extends string | number | symbol, V>(key: T, value: V): Record<T, V>;
+export function kv<T extends string | number | symbol, V>(key: T, value: V): { [P in T]: V };
 
 /**
  * Sets properties with the supplied value on an object.
