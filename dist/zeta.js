@@ -97,6 +97,7 @@ __webpack_require__.d(util_namespaceObject, {
   "exclude": function() { return exclude; },
   "executeOnce": function() { return executeOnce; },
   "extend": function() { return extend; },
+  "fill": function() { return fill; },
   "freeze": function() { return freeze; },
   "getOwnPropertyDescriptors": function() { return getOwnPropertyDescriptors; },
   "grep": function() { return grep; },
@@ -108,6 +109,7 @@ __webpack_require__.d(util_namespaceObject, {
   "is": function() { return is; },
   "isArray": function() { return isArray; },
   "isArrayLike": function() { return isArrayLike; },
+  "isErrorWithCode": function() { return isErrorWithCode; },
   "isFunction": function() { return isFunction; },
   "isPlainObject": function() { return isPlainObject; },
   "isThenable": function() { return isThenable; },
@@ -118,6 +120,7 @@ __webpack_require__.d(util_namespaceObject, {
   "makeArray": function() { return makeArray; },
   "map": function() { return map; },
   "mapGet": function() { return mapGet; },
+  "mapObject": function() { return mapObject; },
   "mapRemove": function() { return mapRemove; },
   "matchWord": function() { return matchWord; },
   "noop": function() { return noop; },
@@ -491,6 +494,13 @@ function kv(key, value) {
   return obj;
 }
 
+function fill(obj, keys, value) {
+  each(keys, function (i, v) {
+    obj[v] = value;
+  });
+  return obj;
+}
+
 function pick(obj, keys) {
   var result = {};
 
@@ -527,6 +537,14 @@ function exclude(obj, keys) {
     });
   }
 
+  return result;
+}
+
+function mapObject(obj, callback) {
+  var result = {};
+  each(obj, function (i, v) {
+    result[i] = callback.call(obj, v, i);
+  });
   return result;
 }
 
@@ -682,6 +700,10 @@ function errorWithCode(code, message, props) {
   return extend(new Error(message || code), props, {
     code: code
   });
+}
+
+function isErrorWithCode(error, code) {
+  return is(error, Error) && error.code === code;
 }
 /* --------------------------------------
  * Strings
@@ -1115,6 +1137,13 @@ function observe(element, options, callback) {
 
   var observer = new MutationObserver(processRecords);
   observer.observe(element, options);
+
+  if (element !== root) {
+    registerCleanup(element, function () {
+      observer.disconnect();
+    });
+  }
+
   return function () {
     processRecords(observer.takeRecords());
   };
@@ -1417,12 +1446,15 @@ function initNode(tree, node, element) {
     throw new Error('Another node instance already exist');
   }
 
+  var state = mapGet(versionMap, element, VersionState);
+
   var sNode = _(node, {
     version: version,
     tree: tree,
     node: node,
     traversable: is(node, TraversableNode),
-    state: mapGet(versionMap, element, VersionState),
+    state: state,
+    parentState: state,
     parentNode: null,
     previousSibling: null,
     nextSibling: null,
@@ -1469,10 +1501,15 @@ function findParent(tree, element) {
   return containsOrEquals(tree, element) && _(tree.rootNode);
 }
 
+function setParentNode(sNode, sParent) {
+  sNode.parentNode = (sParent || '').node || null;
+  sNode.parentState = (sParent || sNode).state;
+}
+
 function checkNodeState(sNode) {
   collectMutations();
 
-  if (sNode.version !== sNode.state.version || _(sNode.tree).collectNewNodes()) {
+  if (sNode.version !== sNode.parentState.version || _(sNode.tree).collectNewNodes()) {
     updateTree(sNode.tree);
   }
 
@@ -1524,12 +1561,12 @@ function insertChildNode(sParent, sChild) {
     pos = i;
 
     if (v !== v) {
-      _(parentChildNodes[i]).parentNode = sChild.node;
+      setParentNode(_(parentChildNodes[i]), sChild);
       childNodes.unshift(parentChildNodes.splice(i, 1)[0]);
     }
   }
 
-  sChild.parentNode = sParent.node;
+  setParentNode(sChild, sParent);
   parentChildNodes.splice(pos, 0, sChild.node);
   return [pos, childNodes, parentChildNodes];
 }
@@ -1600,8 +1637,9 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
 
   var childNodes = [];
 
-  var parentChildNodes = _(parent).childNodes;
+  var sParent = _(parent);
 
+  var parentChildNodes = sParent.childNodes;
   var pos = parentChildNodes.indexOf(sNode.node);
 
   if (hardRemove) {
@@ -1615,7 +1653,7 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
       states[0].previousSibling = parentChildNodes[pos - 1] || null;
       states[states.length - 1].nextSibling = parentChildNodes[pos + 1] || null;
       each(states, function (i, v) {
-        v.parentNode = parent;
+        setParentNode(v, sParent);
       });
     }
   }
@@ -1635,7 +1673,7 @@ function removeTraversableNode(sNode, hardRemove, ignoreSibling) {
     previous.set(sNode.node, pick(sNode, SNAPSHOT_PROPS));
   }
 
-  sNode.parentNode = newParent || null;
+  setParentNode(sNode, _(newParent));
   sNode.previousSibling = null;
   sNode.nextSibling = null;
   parentChildNodes.splice.apply(parentChildNodes, [pos, 1].concat(childNodes));
@@ -1712,7 +1750,7 @@ function updateTree(tree) {
       sTree.detached.set(element, mapRemove(sTree.nodes, element));
     }
 
-    if (sNode.version !== newVersion) {
+    if (!connected || sNode.version !== newVersion) {
       var updated = false;
 
       if (traversable) {
@@ -2765,6 +2803,7 @@ function trackPointer(callback) {
   always(trackPromise, function () {
     stopScroll();
     trackCallbacks = null;
+    trackPromise = null;
 
     if (root.releaseCapture) {
       root.releaseCapture();
@@ -3107,6 +3146,7 @@ domReady.then(function () {
       normalizeTouchEvents = container.normalizeTouchEvents;
       mouseInitialPoint = extend({}, e.touches[0]);
       swipeDir = '';
+      setFocus(e.target);
 
       if (!e.touches[1]) {
         // @ts-ignore: e.target is Element
@@ -3136,7 +3176,7 @@ domReady.then(function () {
           }
 
           if (swipeDir !== false && line.length > 50 && approxMultipleOf(line.deg, 90)) {
-            var dir = approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Bottom' : 'Top';
+            var dir = approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Down' : 'Up';
             swipeDir = !swipeDir || swipeDir === dir ? dir : false;
             mouseInitialPoint = extend({}, e.touches[0]);
           }
@@ -3151,8 +3191,6 @@ domReady.then(function () {
       if (swipeDir) {
         triggerGestureEvent('swipe' + swipeDir);
       } else {
-        setFocus(e.target);
-
         if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
           triggerMouseEvent('click');
           dispatchDOMMouseEvent('click', mouseInitialPoint, e);
@@ -3867,13 +3905,13 @@ definePrototype(ZetaEventContainer, {
       }
     }
 
-    return function () {
+    return executeOnce(function () {
       containerRemoveHandler(self, target, key);
 
       if (element) {
         containerRemoveHandler(self, element, key);
       }
-    };
+    });
   },
   delete: function _delete(target) {
     var self = this;
