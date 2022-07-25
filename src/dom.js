@@ -716,7 +716,7 @@ domReady.then(function () {
                         return;
                     }
                     if (swipeDir !== false && line.length > 50 && approxMultipleOf(line.deg, 90)) {
-                        var dir = approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Bottom' : 'Top');
+                        var dir = approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Down' : 'Up');
                         swipeDir = !swipeDir || swipeDir === dir ? dir : false;
                         mouseInitialPoint = extend({}, e.touches[0]);
                     }
