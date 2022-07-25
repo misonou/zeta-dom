@@ -692,6 +692,7 @@ domReady.then(function () {
             normalizeTouchEvents = container.normalizeTouchEvents;
             mouseInitialPoint = extend({}, e.touches[0]);
             swipeDir = '';
+            setFocus(e.target);
             if (!e.touches[1]) {
                 // @ts-ignore: e.target is Element
                 if (normalizeTouchEvents && focused(container.element)) {
@@ -730,7 +731,6 @@ domReady.then(function () {
             if (swipeDir) {
                 triggerGestureEvent('swipe' + swipeDir);
             } else {
-                setFocus(e.target);
                 if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
                     triggerMouseEvent('click');
                     dispatchDOMMouseEvent('click', mouseInitialPoint, e);
