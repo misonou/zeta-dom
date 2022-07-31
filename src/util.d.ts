@@ -1,5 +1,9 @@
 /// <reference path="types.d.ts" />
 
+type Object<T> = T extends object ? T : {};
+type Union<T, V> = V extends T ? V : T extends V ? T : T & V;
+type UnionAll<T> = T extends never[] ? {} : T extends [infer U, ...infer V] ? Union<Object<U>, UnionAll<V>> : Object<T>;
+
 /* --------------------------------------
  * Miscellaneous
  * -------------------------------------- */
@@ -62,10 +66,6 @@ export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? 
  */
 export function makeArray<T>(obj: T): T extends (infer U)[] | ArrayLike<infer U> | Map<any, infer U> | Set<infer U> ? U[] : Exclude<T, null | undefined>[];
 
-export function extend<T extends object, U>(obj: T, arg1: U): T & U;
-
-export function extend<T extends object, U, V>(obj: T, arg1: U, arg2: V): T & U & V;
-
 /**
  * Copys all properties that is not with undefined value to the object supplied as the first argument.
  * Object values are copied by reference.
@@ -73,11 +73,7 @@ export function extend<T extends object, U, V>(obj: T, arg1: U, arg2: V): T & U 
  * @param args One or more objects which their properties are copied.
  * @returns The same instance of object supplied as the first argument.
  */
-export function extend<T extends object>(obj: T, ...args): T & Zeta.Dictionary;
-
-export function extend<T extends object, U>(deep: true, obj: T, arg1: U): T & U;
-
-export function extend<T extends object, U, V>(deep: true, obj: T, arg1: U, arg2: V): T & U & V;
+export function extend<T extends any[]>(...args: T): UnionAll<T>;
 
 /**
  * Copys all properties that is not with undefined value to the object supplied as the second argument.
@@ -86,7 +82,7 @@ export function extend<T extends object, U, V>(deep: true, obj: T, arg1: U, arg2
  * @param args One or more objects which their properties are copied.
  * @returns The same instance of object supplied as the second argument.
  */
-export function extend<T extends object>(deep: true, obj: T, ...args): T & Zeta.Dictionary;
+export function extend<T extends any[]>(deep: true, ...args: T): UnionAll<T>;
 
 /**
  * Treats the specified string as a whitespace-deimited list of tokens and performs action on each token.
@@ -420,9 +416,9 @@ export function createPrivateStore<K extends object = object, V = any>(): Zeta.P
 
 export function setImmediate<T extends Zeta.AnyFunction>(fn: T, ...args: Parameters<T>): void;
 
-export function setImmediateOnce(fn: Zeta.AnyFunction): void;
+export function setImmediateOnce(fn: () => any): void;
 
-export function setTimeoutOnce(fn: Zeta.AnyFunction): void;
+export function setTimeoutOnce(fn: () => any): void;
 
 /**
  * Equivalent to calling `window.setTimeout` except that a callback for cancelling timeout is returned.

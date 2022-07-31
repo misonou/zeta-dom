@@ -17,7 +17,7 @@ export declare function setLastEventSource(element: Element | EventTarget | null
  * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
  * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
  */
-export declare function emitDOMEvent(eventName: string, target: Element, data?: any, options?: boolean | Zeta.EventEmitOptions): any;
+export declare function emitDOMEvent<E extends Zeta.ZetaDOMEventName>(eventName: E, target: Element, data?: Zeta.ZetaEventEmitDataType<E, Zeta.ZetaDOMEventMap>, options?: boolean | Zeta.EventEmitOptions): Zeta.ZetaEventEmitReturnType<E, Zeta.ZetaDOMEventMap>;
 
 /**
  * Emits an event to the active DOM element.
@@ -26,7 +26,7 @@ export declare function emitDOMEvent(eventName: string, target: Element, data?: 
  * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
  * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
  */
-export declare function emitDOMEvent(eventName: string, data?: any, options?: boolean | Zeta.EventEmitOptions): any;
+export declare function emitDOMEvent<E extends Zeta.ZetaDOMEventName>(eventName: E, data?: Zeta.ZetaEventEmitDataType<E, Zeta.ZetaDOMEventMap>, options?: boolean | Zeta.EventEmitOptions): Zeta.ZetaEventEmitReturnType<E, Zeta.ZetaDOMEventMap>;
 
 /**
  * Registers event handlers to the root element.

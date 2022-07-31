@@ -18,6 +18,7 @@ declare namespace Zeta {
         T extends Set<infer V> ? V :
         T extends object ? T[Exclude<keyof T, symbol>] :
         T extends undefined | null ? never : any;
+    type HintedString<T extends string> = string & {} | T;
     type WhitespaceDelimited<T extends string> = T extends `${infer L} ${infer R}` ? Exclude<L, ''> | WhitespaceDelimited<R> : Exclude<T, ''>;
     type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
     type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
@@ -263,16 +264,16 @@ declare namespace Zeta {
 
     type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
-    type ZetaDOMEventName = keyof ZetaDOMEventMap | string & {};
+    type ZetaDOMEventName = HintedString<keyof ZetaDOMEventMap>;
 
-    type ZetaDOMEventMap = ZetaCustomEventMap & { [P in ClickName]: ZetaMouseEvent } & { [P in KeyNameSpecial]: ZetaEvent } & { [P in GestureName]: ZetaEvent } & {
-        asyncStart: ZetaEvent,
-        asyncEnd: ZetaEvent,
-        cancelled: ZetaEvent,
+    type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & { [P in KeyNameSpecial]: ZetaNativeUIEvent } & { [P in GestureName]: ZetaNativeUIEvent } & {
+        asyncStart: ZetaEvent;
+        asyncEnd: ZetaEvent;
+        cancelled: ZetaEvent;
         focusin: ZetaFocusEvent;
         focusout: ZetaFocusEvent;
-        focuschange: ZetaEvent,
-        focusreturn: ZetaEvent,
+        focuschange: ZetaEvent;
+        focusreturn: ZetaEvent;
         modalchange: ZetaModalChangeEvent;
         drag: ZetaMouseEvent;
         longPress: ZetaMouseEvent;
@@ -287,18 +288,23 @@ declare namespace Zeta {
         getContentRect: ZetaGetContentRectEvent;
     };
 
-    type ZetaEventType<E extends string, M> = (M & { [s: string]: ZetaEvent })[E];
+    type ZetaEventType<E extends string, M, T = Element> = (M & { [s: string]: ZetaEvent })[E] & ZetaEventContext<T>;
 
-    type ZetaEventHandlerReturnType<T> = T extends ZetaAsyncHandleableEvent<infer R> ? Promise<R> | R : T extends ZetaHandleableEvent<infer R> ? R : any
+    type ZetaEventEmitDataType<E extends string, M> = Exclude<ZetaEventType<E, M>['data'], object>;
 
-    type ZetaEventHandler<E extends string, M, T = Element> = (this: T, e: ZetaEventType<E, M> & ZetaEventContext<T>, self: T) => ZetaEventHandlerReturnType<ZetaEventType<E, M>> | void;
+    type ZetaEventEmitReturnType<E extends string, M> =
+        ZetaEventType<E, M> extends ZetaHandleableEvent<infer R> ? R | false :
+        ZetaEventType<E, M> extends ZetaAsyncHandleableEvent<infer R> ? Promise<R> | false : any;
 
-    type ZetaEventHandlers<M, T = Element> = { [P in (keyof M | string & {})]?: ZetaEventHandler<P, M, T> };
+    type ZetaEventHandlerReturnType<E extends string, M> =
+        ZetaEventType<E, M> extends ZetaHandleableEvent<infer R> ? R | undefined | void :
+        ZetaEventType<E, M> extends ZetaAsyncHandleableEvent<infer R> ? Promise<R> | R | undefined | void : any;
+
+    type ZetaEventHandler<E extends string, M, T = Element> = (this: T, e: ZetaEventType<E, M, T>, self: T) => ZetaEventHandlerReturnType<E, M>;
+
+    type ZetaEventHandlers<M, T = Element> = { [P in HintedString<keyof M>]?: ZetaEventHandler<P, M, T> };
 
     type ZetaEventContext<T> = T extends ZetaEventContextBase<any> ? T : ZetaEventContextBase<T>;
-
-    interface ZetaCustomEventMap {
-    }
 
     interface ZetaEventContextBase<T> {
         /**
@@ -319,27 +325,27 @@ declare namespace Zeta {
          * Adds event handlers to multiple events.
          * @param handlers A dictionary which the keys are event names and values are the callback for each event.
          */
-        on(handlers: ZetaEventHandlers<M, T>);
+        on(handlers: ZetaEventHandlers<M, T>): UnregisterCallback;
 
         /**
          * Adds an event handler to a specific event.
          * @param event Name of the event.
          * @param handler A callback function to be fired when the specified event is triggered.
          */
-        on<E extends keyof M>(event: E, handler: ZetaEventHandler<E, M, T>);
+        on<E extends HintedString<keyof M>>(event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
 
         /**
          * Adds event handlers to multiple events on the given target.
          * @param handlers A dictionary which the keys are event names and values are the callback for each event.
          */
-        on(target: T, handlers: ZetaEventHandlers<M, T>);
+        on(target: T, handlers: ZetaEventHandlers<M, T>): UnregisterCallback;
 
         /**
          * Adds an event handler to a specific event on the given target.
          * @param event Name of the event.
          * @param handler A callback function to be fired when the specified event is triggered.
          */
-        on<E extends keyof M>(target: T, event: E, handler: ZetaEventHandler<E, M, T>);
+        on<E extends HintedString<keyof M>>(target: T, event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
     }
 
     interface ZetaEventBase {
@@ -409,6 +415,8 @@ declare namespace Zeta {
          * @returns true if handled.
          */
         isHandled(): boolean;
+
+        readonly θ__dummy__handlable: any;
     }
 
     interface ZetaAsyncHandleableEvent<T = any> extends ZetaEventBase {
@@ -423,6 +431,8 @@ declare namespace Zeta {
          * @returns true if handled.
          */
         isHandled(): boolean;
+
+        readonly θ__dummy__async_handlable: any;
     }
 
     interface ZetaEvent extends ZetaAsyncHandleableEvent {
@@ -609,16 +619,7 @@ declare namespace Zeta {
          * @param handler A callback function to be fired when the specified event is triggered.
          * @returns A function that will unregister the handlers when called.
          */
-        add<E extends keyof M>(target: T, event: E, handlers: ZetaEventHandler<E, M, T>): UnregisterCallback;
-
-        /**
-         * Registers event handlers to a DOM element or a custom event target.
-         * @param target An event target.
-         * @param event Name of the event.
-         * @param handler A callback function to be fired when the specified event is triggered.
-         * @returns A function that will unregister the handlers when called.
-         */
-        add(target: T, event: string, handlers: ZetaEventHandler<string, M, T>): UnregisterCallback;
+        add<E extends HintedString<keyof M>>(target: T, event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
 
         /**
          * Removes the DOM element or custom event target from the container.
@@ -636,7 +637,7 @@ declare namespace Zeta {
          * Re-emits an event to components.
          * If the event is handled by component, a promise object is returned.
          * @param event An instance of ZetaEvent representing the event to be re-emitted.
-         * @param target A DOM element which the event should be dispatched on.
+         * @param target Event target.
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
@@ -646,26 +647,26 @@ declare namespace Zeta {
          * Emits an event to components synchronously.
          * If the event is handled by component, a promise object is returned.
          * @param eventName Event name.
-         * @param target A DOM element which the event should be dispatched on.
-         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param target Event target.
+         * @param data Any data to be set on ZetaEvent#data property.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit<E extends keyof M>(eventName: E, target?: T, data?: any, options?: boolean | EventEmitOptions): any;
+        emit<E extends HintedString<keyof M>>(eventName: E, target?: T, data?: Zeta.ZetaEventEmitDataType<E, M>, options?: boolean | EventEmitOptions): ZetaEventEmitReturnType<E, M>;
 
         /**
          * Emits an event to components synchronously.
          * If the event is handled by component, a promise object is returned.
          * @param eventName Event name.
-         * @param target A DOM element which the event should be dispatched on.
-         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param target Event target.
+         * @param props Properties that will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(eventName: string, target?: T, data?: any, options?: boolean | EventEmitOptions): any;
+        emit<E extends HintedString<keyof M>>(eventName: E, target?: T, props?: Partial<ZetaEventType<E, M>>, options?: boolean | EventEmitOptions): ZetaEventEmitReturnType<E, M>;
 
         /**
          * Emits an event to components asynchronously.
          * @param eventName Event name.
-         * @param target A DOM element which the event should be dispatched on.
+         * @param target Event target.
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
@@ -675,7 +676,7 @@ declare namespace Zeta {
         /**
          * Emits an event to components asynchronously.
          * @param eventName Event name.
-         * @param target A DOM element which the event should be dispatched on.
+         * @param target Event target.
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
