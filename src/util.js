@@ -373,9 +373,9 @@ function setImmediateOnce(fn) {
     });
 }
 
-function setTimeoutOnce(fn) {
+function setTimeoutOnce(fn, ms) {
     mapGet(setImmediateStore, fn, function () {
-        return setTimeout(setImmediateOnceCallback.bind(0, fn)), fn;
+        return setTimeout(setImmediateOnceCallback.bind(0, fn), ms || 0), fn;
     });
 }
 

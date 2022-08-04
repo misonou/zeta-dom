@@ -418,7 +418,7 @@ export function setImmediate<T extends Zeta.AnyFunction>(fn: T, ...args: Paramet
 
 export function setImmediateOnce(fn: () => any): void;
 
-export function setTimeoutOnce(fn: () => any): void;
+export function setTimeoutOnce(fn: () => any, ms?: number): void;
 
 /**
  * Equivalent to calling `window.setTimeout` except that a callback for cancelling timeout is returned.
