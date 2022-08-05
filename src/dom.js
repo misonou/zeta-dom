@@ -421,7 +421,6 @@ domReady.then(function () {
     var mousedownFocus;
     var normalizeTouchEvents;
     var pressTimeout;
-    var swipeDir;
     var hasCompositionUpdate;
     var imeModifyOnUpdate;
     var imeNodeText;
@@ -691,7 +690,6 @@ domReady.then(function () {
             var container = getEventContext(e.target);
             normalizeTouchEvents = container.normalizeTouchEvents;
             mouseInitialPoint = extend({}, e.touches[0]);
-            swipeDir = '';
             setFocus(e.target);
             if (!e.touches[1]) {
                 // @ts-ignore: e.target is Element
@@ -712,14 +710,13 @@ domReady.then(function () {
             if (mouseInitialPoint) {
                 if (!e.touches[1]) {
                     var line = measureLine(e.touches[0], mouseInitialPoint);
-                    if (line.length > 5 && triggerMouseEvent('drag', mouseInitialPoint)) {
+                    if (line.length > 5) {
+                        var swipeDir = approxMultipleOf(line.deg, 90) && (approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Down' : 'Up'));
+                        if (!swipeDir || !triggerGestureEvent('swipe' + swipeDir)) {
+                            triggerMouseEvent('drag', mouseInitialPoint);
+                        }
                         mouseInitialPoint = null;
                         return;
-                    }
-                    if (swipeDir !== false && line.length > 50 && approxMultipleOf(line.deg, 90)) {
-                        var dir = approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Down' : 'Up');
-                        swipeDir = !swipeDir || swipeDir === dir ? dir : false;
-                        mouseInitialPoint = extend({}, e.touches[0]);
                     }
                 } else if (!e.touches[2]) {
                     triggerGestureEvent('pinchZoom');
@@ -728,14 +725,10 @@ domReady.then(function () {
         },
         touchend: function (e) {
             clearTimeout(pressTimeout);
-            if (swipeDir) {
-                triggerGestureEvent('swipe' + swipeDir);
-            } else {
-                if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
-                    triggerMouseEvent('click');
-                    dispatchDOMMouseEvent('click', mouseInitialPoint, e);
-                    e.preventDefault();
-                }
+            if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
+                triggerMouseEvent('click');
+                dispatchDOMMouseEvent('click', mouseInitialPoint, e);
+                e.preventDefault();
             }
         },
         mousedown: function (e) {
