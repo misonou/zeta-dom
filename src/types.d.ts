@@ -277,6 +277,7 @@ declare namespace Zeta {
         modalchange: ZetaModalChangeEvent;
         drag: ZetaMouseEvent;
         longPress: ZetaMouseEvent;
+        touchstart: ZetaMouseEvent;
         mousedown: ZetaMouseEvent;
         mousewheel: ZetaWheelEvent;
         metakeychange: ZetaKeystrokeEvent;

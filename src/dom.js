@@ -691,6 +691,7 @@ domReady.then(function () {
             normalizeTouchEvents = container.normalizeTouchEvents;
             mouseInitialPoint = extend({}, e.touches[0]);
             setFocus(e.target);
+            triggerMouseEvent('touchstart');
             if (!e.touches[1]) {
                 // @ts-ignore: e.target is Element
                 if (normalizeTouchEvents && focused(container.element)) {
