@@ -542,6 +542,22 @@ function setPromiseTimeout(promise, ms, resolveWhenTimeout) {
     });
 }
 
+function delay(ms) {
+    return new Promise(function (resolve) {
+        setTimeout(resolve, ms);
+    });
+}
+
+function makeAsync(callback) {
+    return function () {
+        try {
+            return resolve(callback.apply(this, arguments));
+        } catch (e) {
+            return reject(e);
+        }
+    };
+}
+
 
 /* --------------------------------------
  * Property and prototype
@@ -876,5 +892,7 @@ export {
     always,
     resolveAll,
     catchAsync,
-    setPromiseTimeout
+    setPromiseTimeout,
+    delay,
+    makeAsync
 };

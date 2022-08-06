@@ -556,7 +556,14 @@ export function resolveAll<T, R>(promises: T, callback: (result: Zeta.PromiseRes
 
 export function catchAsync<T>(promise: T): Promise<Zeta.PromiseResult<T>>;
 
+/**
+ * @deprecated Use {@link delay} instead.
+ */
 export function setPromiseTimeout<T>(promise: PromiseLike<T>, milliseconds: number, resolveWhenTimeout?: boolean): Promise<T>;
+
+export function delay(ms: number): Promise<void>;
+
+export function makeAsync<T extends Zeta.AnyFunction>(callback: T): (...args: Parameters<T>) => Promise<ReturnType<T>>;
 
 
 /* --------------------------------------
