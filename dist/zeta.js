@@ -90,6 +90,7 @@ __webpack_require__.d(util_namespaceObject, {
   "defineObservableProperty": function() { return defineObservableProperty; },
   "defineOwnProperty": function() { return defineOwnProperty; },
   "definePrototype": function() { return definePrototype; },
+  "delay": function() { return delay; },
   "each": function() { return each; },
   "either": function() { return either; },
   "equal": function() { return equal; },
@@ -118,6 +119,7 @@ __webpack_require__.d(util_namespaceObject, {
   "kv": function() { return kv; },
   "lcfirst": function() { return lcfirst; },
   "makeArray": function() { return makeArray; },
+  "makeAsync": function() { return makeAsync; },
   "map": function() { return map; },
   "mapGet": function() { return mapGet; },
   "mapObject": function() { return mapObject; },
@@ -641,9 +643,9 @@ function setImmediateOnce(fn) {
   });
 }
 
-function setTimeoutOnce(fn) {
+function setTimeoutOnce(fn, ms) {
   mapGet(setImmediateStore, fn, function () {
-    return util_setTimeout(setImmediateOnceCallback.bind(0, fn)), fn;
+    return util_setTimeout(setImmediateOnceCallback.bind(0, fn), ms || 0), fn;
   });
 }
 
@@ -811,6 +813,22 @@ function setPromiseTimeout(promise, ms, resolveWhenTimeout) {
       (resolveWhenTimeout ? resolve : reject)('timeout');
     }, ms);
   });
+}
+
+function delay(ms) {
+  return new promise_polyfill(function (resolve) {
+    util_setTimeout(resolve, ms);
+  });
+}
+
+function makeAsync(callback) {
+  return function () {
+    try {
+      return resolve(callback.apply(this, arguments));
+    } catch (e) {
+      return reject(e);
+    }
+  };
 }
 /* --------------------------------------
  * Property and prototype
@@ -2847,7 +2865,6 @@ domReady.then(function () {
   var mousedownFocus;
   var normalizeTouchEvents;
   var pressTimeout;
-  var swipeDir;
   var hasCompositionUpdate;
   var imeModifyOnUpdate;
   var imeNodeText;
@@ -3145,8 +3162,8 @@ domReady.then(function () {
       var container = getEventContext(e.target);
       normalizeTouchEvents = container.normalizeTouchEvents;
       mouseInitialPoint = extend({}, e.touches[0]);
-      swipeDir = '';
       setFocus(e.target);
+      triggerMouseEvent('touchstart');
 
       if (!e.touches[1]) {
         // @ts-ignore: e.target is Element
@@ -3170,15 +3187,15 @@ domReady.then(function () {
         if (!e.touches[1]) {
           var line = measureLine(e.touches[0], mouseInitialPoint);
 
-          if (line.length > 5 && triggerMouseEvent('drag', mouseInitialPoint)) {
+          if (line.length > 5) {
+            var swipeDir = approxMultipleOf(line.deg, 90) && (approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Down' : 'Up');
+
+            if (!swipeDir || !triggerGestureEvent('swipe' + swipeDir)) {
+              triggerMouseEvent('drag', mouseInitialPoint);
+            }
+
             mouseInitialPoint = null;
             return;
-          }
-
-          if (swipeDir !== false && line.length > 50 && approxMultipleOf(line.deg, 90)) {
-            var dir = approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Down' : 'Up';
-            swipeDir = !swipeDir || swipeDir === dir ? dir : false;
-            mouseInitialPoint = extend({}, e.touches[0]);
           }
         } else if (!e.touches[2]) {
           triggerGestureEvent('pinchZoom');
@@ -3188,14 +3205,10 @@ domReady.then(function () {
     touchend: function touchend(e) {
       clearTimeout(pressTimeout);
 
-      if (swipeDir) {
-        triggerGestureEvent('swipe' + swipeDir);
-      } else {
-        if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
-          triggerMouseEvent('click');
-          dispatchDOMMouseEvent('click', mouseInitialPoint, e);
-          e.preventDefault();
-        }
+      if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
+        triggerMouseEvent('click');
+        dispatchDOMMouseEvent('click', mouseInitialPoint, e);
+        e.preventDefault();
       }
     },
     mousedown: function mousedown(e) {
