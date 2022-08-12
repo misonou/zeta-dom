@@ -16,7 +16,9 @@
   "homepage": "http://hackmd.io/@misonou/zeta-dom",
   "repository": "github:misonou/zeta-dom",
   "dependencies": {
-    "jquery": "^3.0.0",
+    "jquery": "^3.0.0"
+  },
+  "optionalDependencies": {
     "promise-polyfill": "^8.2.0"
   },
   "devDependencies": {
