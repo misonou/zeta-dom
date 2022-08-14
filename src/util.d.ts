@@ -1,8 +1,10 @@
 /// <reference path="types.d.ts" />
 
-type Object<T> = T extends object ? T : {};
-type Union<T, V> = V extends T ? V : T extends V ? T : T & V;
-type UnionAll<T> = T extends never[] ? {} : T extends [infer U, ...infer V] ? Union<Object<U>, UnionAll<V>> : Object<T>;
+type Union<T, V> =
+    (1 | 2) extends (T extends object ? 1 : 2) ? any :
+    T extends object ? (V extends T ? V : T extends V ? T : V extends object ? T & V : T) :
+    V extends object ? V : any;
+type UnionAll<T> = T extends never[] ? {} : T extends [infer U, ...infer V] ? Union<U, UnionAll<V>> : {};
 
 /* --------------------------------------
  * Miscellaneous
@@ -54,7 +56,7 @@ export function isThenable<T>(obj: T): T extends PromiseLike<any> ? T : false;
  * @param obj An input value to be tested.
  * @returns The same instance of object if it is a simple object; otherwise false.
  */
-export function isPlainObject<T>(obj: T): T | false;
+export function isPlainObject<T>(obj: T): T extends object ? T : false;
 
 export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? T : false;
 

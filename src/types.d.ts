@@ -303,7 +303,7 @@ declare namespace Zeta {
 
     type ZetaEventHandler<E extends string, M, T = Element> = (this: T, e: ZetaEventType<E, M, T>, self: T) => ZetaEventHandlerReturnType<E, M>;
 
-    type ZetaEventHandlers<M, T = Element> = { [P in HintedString<keyof M>]?: ZetaEventHandler<P, M, T> };
+    type ZetaEventHandlers<M, T = Element> = { [P in HintedString<keyof M>]?: P extends keyof M ? ZetaEventHandler<P, M, T> : Zeta.AnyFunction };
 
     type ZetaEventContext<T> = T extends ZetaEventContextBase<any> ? T : ZetaEventContextBase<T>;
 
