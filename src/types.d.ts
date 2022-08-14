@@ -155,6 +155,16 @@ declare namespace Zeta {
         watchOnce<P extends K>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void): Promise<T[P]>;
     }
 
+    interface Deferrable {
+        /**
+         * Defers the fulfillment until the supplied promises are all fulfilled or rejected.
+         * It has no effects if the parent promise has already been fulfilled.
+         * @param args One or more promises.
+         * @returns Whether the supplied promises will be awaited.
+         */
+        waitFor(...args: Promise<any>[]): boolean;
+    }
+
     interface PrivateStore<K extends object, V> {
         (obj: K): V;
         (obj: K, value: V): V;

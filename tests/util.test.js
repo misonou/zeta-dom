@@ -1,4 +1,4 @@
-import { any, defineAliasProperty, defineObservableProperty, definePrototype, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapObject, pick, resolveAll, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
+import { any, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapObject, pick, resolveAll, retryable, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
 import { after, delay, mockFn, objectContaining, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
@@ -391,6 +391,61 @@ describe('resolveAll', () => {
             b: 2,
             c: innerObj
         });
+    });
+});
+
+describe('retryable', () => {
+    it('should invoke callback once at a time', async () => {
+        const cb = mockFn();
+        const r = retryable(cb);
+        await Promise.all([r(), r()]);
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should cache result on success', async () => {
+        const cb = mockFn().mockResolvedValue(1);
+        const r = retryable(cb);
+        await expect(r()).resolves.toBe(1);
+        await expect(r()).resolves.toBe(1);
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should invoke callback again if previous run has failed', async () => {
+        const error = new Error();
+        const cb = mockFn().mockRejectedValueOnce(error);
+        const r = retryable(cb);
+        await expect(r()).rejects.toBe(error);
+        await expect(r()).resolves.toBeUndefined();
+        expect(cb).toBeCalledTimes(2);
+    });
+});
+
+describe('deferrable', () => {
+    it('should resolve for no promises', async () => {
+        await expect(deferrable()).resolves.toBeUndefined();
+    });
+
+    it('should resolve after all promises has either resolved or rejected', async () => {
+        const cb = mockFn();
+        const p1 = delay(50).then(() => cb(1));
+        const p2 = new Promise((_, reject) => reject(new Error));
+        const p3 = new Promise((_, reject) => reject(new Error));
+        await expect(deferrable([p1, p2, p3])).resolves.toBeUndefined();
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should postpone fufillment by waiting promises supplied to waitFor', async () => {
+        const cb = mockFn();
+        const d = deferrable();
+        expect(d.waitFor(delay(50).then(() => cb(1)))).toBe(true);
+        await d;
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should return false from waitFor if it has already been resolved', async () => {
+        var d = deferrable();
+        await d;
+        expect(d.waitFor(new Promise(() => { }))).toBe(false);
     });
 });
 

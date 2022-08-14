@@ -556,6 +556,22 @@ export function resolveAll<T>(promises: T): Promise<T>;
 
 export function resolveAll<T, R>(promises: T, callback: (result: Zeta.PromiseResult<T>) => R): Promise<Zeta.PromiseResult<R>>;
 
+/**
+ * Wraps an asynchronous operation such that it can be retried again if the previous try has failed.
+ * Only a single run is triggered at a time; and upon success, the result is cached and subsequent calls will have no effects.
+ * @param fn A callback which performs asynchronous operation.
+ */
+export function retryable<T>(fn: () => PromiseLike<T>): () => Promise<Zeta.PromiseResult<T>>;
+
+export function retryable<T>(fn: () => PromiseLike<T>, callback: (result: Zeta.PromiseResult<T>) => R): () => Promise<Zeta.PromiseResult<R>>;
+
+/**
+ * Creates a promise of which fulfilment can be deferred awaiting additional promises after it is created.
+ * Errors from rejected promises are ignored.
+ * @param promises Optional promise objects to be initially awaited.
+ */
+export function deferrable(promises?: Promise<any> | Promise<any>[]): Promise<void> & Zeta.Deferrable;
+
 export function catchAsync<T>(promise: T): Promise<Zeta.PromiseResult<T>>;
 
 /**

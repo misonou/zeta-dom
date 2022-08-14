@@ -528,6 +528,30 @@ function resolveAll(obj, callback) {
     });
 }
 
+function retryable(fn, done) {
+    var promise;
+    return function () {
+        return promise || (promise = makeAsync(fn).apply(this, arguments).then(done, function (e) {
+            promise = null;
+            throw e;
+        }));
+    };
+}
+
+function deferrable(arr) {
+    arr = makeArray(arr);
+    var resolved;
+    var promise = resolve().then(function next() {
+        resolved = !arr.length;
+        return resolved ? undefined : always(Promise.allSettled(arr.splice(0)), next);
+    });
+    return extend(promise, {
+        waitFor: function () {
+            return !resolved && !!arr.push.apply(arr, arguments);
+        }
+    });
+}
+
 function catchAsync(promise) {
     promise = isThenable(promise) || resolve(promise);
     return promise.catch(noop);
@@ -891,6 +915,8 @@ export {
     reject,
     always,
     resolveAll,
+    retryable,
+    deferrable,
     catchAsync,
     setPromiseTimeout,
     delay,

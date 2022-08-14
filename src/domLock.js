@@ -1,7 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
-import { any, catchAsync, definePrototype, each, errorWithCode, executeOnce, makeArray, noop, reject, resolve, setImmediate } from "./util.js";
+import { any, catchAsync, definePrototype, each, errorWithCode, executeOnce, makeArray, noop, reject, resolve, retryable, setImmediate } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
 import { TraversableNode, TraversableNodeTree } from "./tree.js";
@@ -18,18 +18,6 @@ const getTree = executeOnce(function () {
     });
     return tree;
 });
-
-function retryable(fn, done) {
-    var promise;
-    return function () {
-        return promise || (promise = resolve(fn()).then(done, function () {
-            // user has rejected the cancellation
-            // remove the promise object so that user will be prompted again
-            promise = null;
-            return reject(errorWithCode(ErrorCode.cancellationRejected));
-        }));
-    };
-}
 
 function lock(element, promise, oncancel, flag) {
     var lock = getTree().setNode(element);
@@ -117,6 +105,8 @@ definePrototype(DOMLock, TraversableNode, {
             }, resolve()).then(function () {
                 // @ts-ignore: unable to reflect on interface member
                 self.cancel(true);
+            }, function () {
+                throw errorWithCode(ErrorCode.cancellationRejected);
             });
         })))();
     },
