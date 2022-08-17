@@ -83,6 +83,7 @@ __webpack_require__.d(util_namespaceObject, {
   "combineFn": function() { return combineFn; },
   "createPrivateStore": function() { return createPrivateStore; },
   "deepFreeze": function() { return deepFreeze; },
+  "deferrable": function() { return deferrable; },
   "define": function() { return define; },
   "defineAliasProperty": function() { return defineAliasProperty; },
   "defineGetterProperty": function() { return defineGetterProperty; },
@@ -133,6 +134,7 @@ __webpack_require__.d(util_namespaceObject, {
   "repeat": function() { return repeat; },
   "resolve": function() { return resolve; },
   "resolveAll": function() { return resolveAll; },
+  "retryable": function() { return retryable; },
   "setAdd": function() { return setAdd; },
   "setImmediate": function() { return util_setImmediate; },
   "setImmediateOnce": function() { return setImmediateOnce; },
@@ -798,6 +800,30 @@ function resolveAll(obj, callback) {
   });
   return resolveAll(arr, function () {
     return isFunction(callback) ? callback(result) : result;
+  });
+}
+
+function retryable(fn, done) {
+  var promise;
+  return function () {
+    return promise || (promise = makeAsync(fn).apply(this, arguments).then(done, function (e) {
+      promise = null;
+      throw e;
+    }));
+  };
+}
+
+function deferrable(arr) {
+  arr = makeArray(arr);
+  var resolved;
+  var promise = resolve().then(function next() {
+    resolved = !arr.length;
+    return resolved ? undefined : always(promise_polyfill.allSettled(arr.splice(0)), next);
+  });
+  return extend(promise, {
+    waitFor: function waitFor() {
+      return !resolved && !!arr.push.apply(arr, arguments);
+    }
   });
 }
 
@@ -2217,18 +2243,6 @@ var getTree = executeOnce(function () {
   return tree;
 });
 
-function retryable(fn, done) {
-  var promise;
-  return function () {
-    return promise || (promise = resolve(fn()).then(done, function () {
-      // user has rejected the cancellation
-      // remove the promise object so that user will be prompted again
-      promise = null;
-      return reject(errorWithCode(cancellationRejected));
-    }));
-  };
-}
-
 function lock(element, promise, oncancel, flag) {
   var lock = getTree().setNode(element);
   return promise ? lock.wait(promise, oncancel, flag) : resolve();
@@ -2323,6 +2337,8 @@ definePrototype(DOMLock, TraversableNode, {
       }, resolve()).then(function () {
         // @ts-ignore: unable to reflect on interface member
         self.cancel(true);
+      }, function () {
+        throw errorWithCode(cancellationRejected);
       });
     })))();
   },
