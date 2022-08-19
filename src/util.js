@@ -26,7 +26,7 @@ const compareFn = [
 
 var setImmediateStore = new Map();
 var matchWordCache;
-var watchStore;
+var watchStore = createPrivateStore();
 
 /* --------------------------------------
  * Miscellaneous
@@ -670,8 +670,7 @@ function deepFreeze(obj) {
  * -------------------------------------- */
 
 function getObservableState(obj, sync) {
-    var cache = watchStore || (watchStore = createPrivateStore());
-    return cache(obj) || cache(obj, {
+    return watchStore(obj) || watchStore(obj, {
         sync: !!sync,
         values: {},
         oldValues: {},
@@ -679,7 +678,7 @@ function getObservableState(obj, sync) {
         alias: {},
         handlers: [],
         handleChanges: function (callback) {
-            var self = cache(obj);
+            var self = watchStore(obj);
             try {
                 self.lock = true;
                 do {
@@ -769,8 +768,11 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
 }
 
 function watch(obj, prop, handler, fireInit) {
-    if (prop === true) {
-        var state = getObservableState(obj, true);
+    if (typeof prop === 'boolean') {
+        if (watchStore(obj)) {
+            throw new Error('Observable initialized');
+        }
+        var state = getObservableState(obj, prop);
         return state.handleChanges;
     }
     var wrapper, handlers;

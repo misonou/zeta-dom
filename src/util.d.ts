@@ -678,19 +678,18 @@ export function deepFreeze<T>(obj: T): Zeta.DeepReadonly<T>;
  * -------------------------------------- */
 
 /**
- * Makes an object observable which hooked listeners
- * are called synchronously immediately after a property is changed.
+ * Makes an object observable.
  *
  * This must be called in advanced of any other methods such as
  * `watch`, `watchOnce`, `defineAliasProperty`, `defineObservableProperty`
  * which automatically turns an object observable.
  *
  * @param obj An object to observe.
- * @param sync Must be the boolean value `true`.
+ * @param sync Whether handlers called synchronously immediately after a property is changed.
  * @returns A function which when called with a callback, the hooked listeners are not called until the given callback returns.
  * This is primarily for making updates to multiple properties singleton.
  */
-export function watch(obj: object, sync: true): ((callback: () => any) => void);
+export function watch(obj: object, sync: boolean): ((callback: () => any) => void);
 
 /**
  * Hooks a listener callback which will be fired when any observed property has been changed.
