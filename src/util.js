@@ -1,13 +1,15 @@
 import Promise from "./include/promise-polyfill.js";
 import { window } from "./env.js";
 
+const objectProto = Object.prototype;
 const keys = Object.keys;
 const freeze = Object.freeze;
 const defineProperty = Object.defineProperty;
 const getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 const getOwnPropertyNames = Object.getOwnPropertyNames;
-const hasOwnPropertyImpl = Object.prototype.hasOwnProperty;
-const propertyIsEnumerableImpl = Object.prototype.propertyIsEnumerable;
+const getPrototypeOf = Object.getPrototypeOf;
+const hasOwnPropertyImpl = objectProto.hasOwnProperty;
+const propertyIsEnumerableImpl = objectProto.propertyIsEnumerable;
 const values = Object.values || function (obj) {
     var vals = [];
     for (var key in obj) {
@@ -63,8 +65,8 @@ function isThenable(obj) {
 }
 
 function isPlainObject(obj) {
-    var proto = typeof obj === 'object' && obj !== null && Object.getPrototypeOf(obj);
-    return (proto === Object.prototype || proto === null) && obj;
+    var proto = typeof obj === 'object' && obj !== null && getPrototypeOf(obj);
+    return (proto === objectProto || proto === null) && obj;
 }
 
 function isArrayLike(obj) {
@@ -648,7 +650,7 @@ function definePrototype(fn, prototype, props) {
 }
 
 function inherit(proto, props) {
-    var obj = Object.create(isFunction(proto) ? proto.prototype : proto || Object.prototype);
+    var obj = Object.create(isFunction(proto) ? proto.prototype : proto || objectProto);
     define(obj, props);
     return obj;
 }
@@ -712,7 +714,7 @@ function getObservableState(obj, sync) {
 }
 
 function ensurePropertyObserved(obj, prop) {
-    for (var proto = obj; proto && proto !== Object.prototype; proto = Object.getPrototypeOf(proto)) {
+    for (var proto = obj; proto && proto !== objectProto; proto = getPrototypeOf(proto)) {
         if (hasOwnProperty(proto, prop)) {
             var state = getObservableState(proto);
             var alias = state.alias[prop];
@@ -727,12 +729,16 @@ function ensurePropertyObserved(obj, prop) {
     defineObservableProperty(obj, prop);
 }
 
-function defineAliasProperty(obj, prop, target, targetProp) {
+function throwNotOwnDataProperty(obj, prop) {
     var desc = getOwnPropertyDescriptor(obj, prop);
     if (!desc ? prop in obj : desc.get || desc.set) {
-        throw new Error('Cannot create alias property');
+        throw new Error('Must be own data property');
     }
+}
+
+function defineAliasProperty(obj, prop, target, targetProp) {
     targetProp = targetProp || prop;
+    throwNotOwnDataProperty(obj, prop);
     defineGetterProperty(obj, prop, function () {
         return target[targetProp];
     }, function (value) {
@@ -749,10 +755,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
         return defineObservableProperty(alias[0], alias[1], initialValue, callback);
     }
     if (!(prop in state.values)) {
-        var desc = getOwnPropertyDescriptor(obj, prop);
-        if (!desc ? prop in obj : desc.get || desc.set) {
-            throw new Error('Only own data property can be observed');
-        }
+        throwNotOwnDataProperty(obj, prop);
         var setter = function (value) {
             var state = getObservableState(this);
             var oldValue = state.values[prop];
