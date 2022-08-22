@@ -908,6 +908,19 @@ describe('watch', () => {
         });
         expect(cb).toBeCalledTimes(1);
     });
+
+    it('should not throw error when watching observed property defined in prototype', async () => {
+        function A() { }
+        defineObservableProperty(A.prototype, 'test');
+        const cb = mockFn();
+        const a = new A();
+
+        expect(() => watch(a, 'test', cb)).not.toThrow();
+        await after(() => {
+            a.test = 1;
+        });
+        expect(cb).toBeCalledTimes(1);
+    });
 });
 
 describe('watchOnce', () => {

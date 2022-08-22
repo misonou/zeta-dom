@@ -711,6 +711,22 @@ function getObservableState(obj, sync) {
     });
 }
 
+function ensurePropertyObserved(obj, prop) {
+    for (var proto = obj; proto && proto !== Object.prototype; proto = Object.getPrototypeOf(proto)) {
+        if (hasOwnProperty(proto, prop)) {
+            var state = getObservableState(proto);
+            var alias = state.alias[prop];
+            if (alias) {
+                return ensurePropertyObserved(alias[0], alias[1]);
+            }
+            if (prop in state.values) {
+                return;
+            }
+        }
+    }
+    defineObservableProperty(obj, prop);
+}
+
 function defineAliasProperty(obj, prop, target, targetProp) {
     var desc = getOwnPropertyDescriptor(obj, prop);
     if (!desc ? prop in obj : desc.get || desc.set) {
@@ -781,7 +797,7 @@ function watch(obj, prop, handler, fireInit) {
         handlers = getObservableState(obj).handlers;
         handlers.push(prop);
     } else {
-        defineObservableProperty(obj, prop);
+        ensurePropertyObserved(obj, prop);
         if (isFunction(handler)) {
             var alias = getObservableState(obj).alias[prop] || [obj, prop];
             handlers = getObservableState(alias[0]).handlers;
@@ -805,7 +821,7 @@ function watch(obj, prop, handler, fireInit) {
 }
 
 function watchOnce(obj, prop, handler) {
-    defineObservableProperty(obj, prop);
+    ensurePropertyObserved(obj, prop);
     return new Promise(function (resolve) {
         var alias = getObservableState(obj).alias[prop] || [obj, prop];
         var handlers = getObservableState(alias[0]).handlers;
