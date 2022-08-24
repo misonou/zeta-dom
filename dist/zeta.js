@@ -235,13 +235,15 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
 
 
+var objectProto = Object.prototype;
 var keys = Object.keys;
 var freeze = Object.freeze;
 var defineProperty = Object.defineProperty;
 var getOwnPropertyDescriptor = Object.getOwnPropertyDescriptor;
 var getOwnPropertyNames = Object.getOwnPropertyNames;
-var hasOwnPropertyImpl = Object.prototype.hasOwnProperty;
-var propertyIsEnumerableImpl = Object.prototype.propertyIsEnumerable;
+var getPrototypeOf = Object.getPrototypeOf;
+var hasOwnPropertyImpl = objectProto.hasOwnProperty;
+var propertyIsEnumerableImpl = objectProto.propertyIsEnumerable;
 
 var values = Object.values || function (obj) {
   var vals = [];
@@ -264,7 +266,7 @@ var compareFn = [function (b, v, i) {
 }];
 var setImmediateStore = new Map();
 var matchWordCache;
-var watchStore;
+var watchStore = createPrivateStore();
 /* --------------------------------------
  * Miscellaneous
  * -------------------------------------- */
@@ -300,8 +302,8 @@ function isThenable(obj) {
 }
 
 function isPlainObject(obj) {
-  var proto = _typeof(obj) === 'object' && obj !== null && Object.getPrototypeOf(obj);
-  return (proto === Object.prototype || proto === null) && obj;
+  var proto = _typeof(obj) === 'object' && obj !== null && getPrototypeOf(obj);
+  return (proto === objectProto || proto === null) && obj;
 }
 
 function isArrayLike(obj) {
@@ -925,7 +927,7 @@ function definePrototype(fn, prototype, props) {
 }
 
 function inherit(proto, props) {
-  var obj = Object.create(isFunction(proto) ? proto.prototype : proto || Object.prototype);
+  var obj = Object.create(isFunction(proto) ? proto.prototype : proto || objectProto);
   define(obj, props);
   return obj;
 }
@@ -947,8 +949,7 @@ function deepFreeze(obj) {
 
 
 function getObservableState(obj, sync) {
-  var cache = watchStore || (watchStore = createPrivateStore());
-  return cache(obj) || cache(obj, {
+  return watchStore(obj) || watchStore(obj, {
     sync: !!sync,
     values: {},
     oldValues: {},
@@ -956,7 +957,7 @@ function getObservableState(obj, sync) {
     alias: {},
     handlers: [],
     handleChanges: function handleChanges(callback) {
-      var self = cache(obj);
+      var self = watchStore(obj);
 
       try {
         self.lock = true;
@@ -994,14 +995,36 @@ function getObservableState(obj, sync) {
   });
 }
 
-function defineAliasProperty(obj, prop, target, targetProp) {
+function ensurePropertyObserved(obj, prop) {
+  for (var proto = obj; proto && proto !== objectProto; proto = getPrototypeOf(proto)) {
+    if (util_hasOwnProperty(proto, prop)) {
+      var state = getObservableState(proto);
+      var alias = state.alias[prop];
+
+      if (alias) {
+        return ensurePropertyObserved(alias[0], alias[1]);
+      }
+
+      if (prop in state.values) {
+        return;
+      }
+    }
+  }
+
+  defineObservableProperty(obj, prop);
+}
+
+function throwNotOwnDataProperty(obj, prop) {
   var desc = getOwnPropertyDescriptor(obj, prop);
 
   if (!desc ? prop in obj : desc.get || desc.set) {
-    throw new Error('Cannot create alias property');
+    throw new Error('Must be own data property');
   }
+}
 
+function defineAliasProperty(obj, prop, target, targetProp) {
   targetProp = targetProp || prop;
+  throwNotOwnDataProperty(obj, prop);
   defineGetterProperty(obj, prop, function () {
     return target[targetProp];
   }, function (value) {
@@ -1020,11 +1043,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
   }
 
   if (!(prop in state.values)) {
-    var desc = getOwnPropertyDescriptor(obj, prop);
-
-    if (!desc ? prop in obj : desc.get || desc.set) {
-      throw new Error('Only own data property can be observed');
-    }
+    throwNotOwnDataProperty(obj, prop);
 
     var setter = function setter(value) {
       var state = getObservableState(this);
@@ -1063,8 +1082,12 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
 }
 
 function _watch(obj, prop, handler, fireInit) {
-  if (prop === true) {
-    var state = getObservableState(obj, true);
+  if (typeof prop === 'boolean') {
+    if (watchStore(obj)) {
+      throw new Error('Observable initialized');
+    }
+
+    var state = getObservableState(obj, prop);
     return state.handleChanges;
   }
 
@@ -1075,7 +1098,7 @@ function _watch(obj, prop, handler, fireInit) {
     handlers = getObservableState(obj).handlers;
     handlers.push(prop);
   } else {
-    defineObservableProperty(obj, prop);
+    ensurePropertyObserved(obj, prop);
 
     if (isFunction(handler)) {
       var alias = getObservableState(obj).alias[prop] || [obj, prop];
@@ -1105,7 +1128,7 @@ function _watch(obj, prop, handler, fireInit) {
 }
 
 function _watchOnce(obj, prop, handler) {
-  defineObservableProperty(obj, prop);
+  ensurePropertyObserved(obj, prop);
   return new promise_polyfill(function (resolve) {
     var alias = getObservableState(obj).alias[prop] || [obj, prop];
     var handlers = getObservableState(alias[0]).handlers;
