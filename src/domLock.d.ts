@@ -33,11 +33,22 @@ export declare function lock<T>(element: Element, promise: Promise<T>, cancellab
 export declare function lock<T>(element: Element, promise: Promise<T>, oncancel?: () => Promise<any>): Promise<T>;
 
 /**
+ * Gets whether there are any pending operations associated, i.e. being locked.
+ */
+export declare function locked(): boolean;
+
+/**
  * Gets whether a given element has pending operation associated, i.e. being locked.
  * @param element A DOM element.
  * @param parents When given `true`, parent elements will be taken into account.
  */
 export declare function locked(element: Element, parents?: boolean): boolean;
+
+/**
+ * Requests cancellation of all asynchronous operations.
+ * @returns A promise which is fulfilled when all operations are cancelled; or is rejected otherwise.
+ */
+export declare function cancelLock(): Promise<void>;
 
 /**
  * Requests cancellation of asynchronous operations associated with any descendant elements.

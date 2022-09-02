@@ -33,8 +33,9 @@ function preventLeave(element, promise, oncancel) {
 }
 
 function locked(element, parents) {
+    element = element || root;
     var lock = getTree().getNode(element);
-    if (!parents) {
+    if (!parents || element === root) {
         return lock && lock.element === element && lock.locked;
     }
     return !!any(parents ? parentsAndSelf(lock) : makeArray(lock), function (v) {
@@ -43,7 +44,7 @@ function locked(element, parents) {
 }
 
 function cancelLock(element, force) {
-    var lock = getTree().getNode(element);
+    var lock = getTree().getNode(element || root);
     return lock ? lock.cancel(force) : resolve();
 }
 
