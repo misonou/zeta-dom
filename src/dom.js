@@ -138,6 +138,9 @@ function triggerModalChangeEvent() {
 
 function setFocus(element, source, path, suppressFocusChange) {
     var removed = [];
+    if (element === root) {
+        element = document.body;
+    }
     path = path || focusPath;
     if (path[1]) {
         var within = path !== focusPath ? element : focusable(element);
