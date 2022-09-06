@@ -35,7 +35,7 @@ module.exports = Promise;
 
 /***/ }),
 
-/***/ 510:
+/***/ 977:
 /***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -136,7 +136,7 @@ __webpack_require__.d(util_namespaceObject, {
   "resolveAll": function() { return resolveAll; },
   "retryable": function() { return retryable; },
   "setAdd": function() { return setAdd; },
-  "setImmediate": function() { return util_setImmediate; },
+  "setImmediate": function() { return setImmediate; },
   "setImmediateOnce": function() { return setImmediateOnce; },
   "setInterval": function() { return util_setInterval; },
   "setIntervalSafe": function() { return setIntervalSafe; },
@@ -630,7 +630,7 @@ function createPrivateStore() {
   };
 }
 
-function util_setImmediate(fn) {
+function setImmediate(fn) {
   var args = [].slice.call(arguments, 1);
   resolve().then(function () {
     fn.apply(undefined, args);
@@ -643,7 +643,7 @@ function setImmediateOnceCallback(fn) {
 
 function setImmediateOnce(fn) {
   mapGet(setImmediateStore, fn, function () {
-    return util_setImmediate(setImmediateOnceCallback.bind(0, fn)), fn;
+    return setImmediate(setImmediateOnceCallback.bind(0, fn)), fn;
   });
 }
 
@@ -1352,6 +1352,16 @@ function initDetachWatcher(element) {
 }
 
 
+// CONCATENATED MODULE: ./src/libCheck.js
+
+var ZETA_KEY = '__ZETA__';
+
+if (window[ZETA_KEY]) {
+  throw new Error('Another copy of zeta-dom is instantiated. Please check your dependencies.');
+}
+
+defineHiddenProperty(window, ZETA_KEY, true, true);
+/* harmony default export */ const libCheck = (null);
 // CONCATENATED MODULE: ./src/constants.js
 /**
  *  Key code mapping for keyboard events.
@@ -2280,9 +2290,10 @@ function preventLeave(element, promise, oncancel) {
 }
 
 function locked(element, parents) {
+  element = element || root;
   var lock = getTree().getNode(element);
 
-  if (!parents) {
+  if (!parents || element === root) {
     return lock && lock.element === element && lock.locked;
   }
 
@@ -2292,7 +2303,7 @@ function locked(element, parents) {
 }
 
 function cancelLock(element, force) {
-  var lock = getTree().getNode(element);
+  var lock = getTree().getNode(element || root);
   return lock ? lock.cancel(force) : resolve();
 }
 
@@ -2333,7 +2344,7 @@ definePrototype(DOMLock, TraversableNode, {
 
     if (force || !promises.size) {
       if (promises.size) {
-        util_setImmediate(function () {
+        setImmediate(function () {
           emitDOMEvent('cancelled', self.element);
         });
       }
@@ -2437,6 +2448,7 @@ env_window.onbeforeunload = function (e) {
 
 
 // CONCATENATED MODULE: ./src/dom.js
+
 
 
 
@@ -2577,6 +2589,11 @@ function triggerModalChangeEvent() {
 
 function setFocus(element, source, path, suppressFocusChange) {
   var removed = [];
+
+  if (element === root) {
+    element = env_document.body;
+  }
+
   path = path || focusPath;
 
   if (path[1]) {
@@ -4962,7 +4979,7 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__804__;
 /******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(510);
+/******/ 	return __webpack_require__(977);
 /******/ })()
 ;
 });
