@@ -524,7 +524,7 @@ export function htmlDecode(input: string): string;
  * -------------------------------------- */
 
 /** @alias `Promise.resolve` */
-export function resolve<T>(obj?: T): Promise<T>;
+export function resolve<T>(obj?: T): Promise<Awaited<T>>;
 
 /** @alias `Promise.reject` */
 export function reject(reason?: any): Promise<never>;
@@ -534,9 +534,9 @@ export function reject(reason?: any): Promise<never>;
  * @param promise A promise object.
  * @param callback A callback function that receives the promise state and the fulfillment value or rejection reason.
  */
-export function always<T, R>(promise: PromiseLike<T>, callback: (resolved: boolean, value: any) => R): Promise<Zeta.PromiseResult<R>>;
+export function always<T, R>(promise: PromiseLike<T>, callback: (resolved: boolean, value: any) => R): Promise<Awaited<R>>;
 
-export function always<T, R>(promise: T, callback: (resolved: boolean, value: any) => R): Promise<Zeta.PromiseResult<R>>;
+export function always<T, R>(promise: T, callback: (resolved: boolean, value: any) => R): Promise<Awaited<R>>;
 
 /**
  * Creates a promise object that, waits until all promises are fulfilled or rejected,
@@ -544,26 +544,26 @@ export function always<T, R>(promise: T, callback: (resolved: boolean, value: an
  * @param promises Promises to be waited.
  * @returns A promise object.
  */
-export function resolveAll<T extends readonly unknown[] | []>(promises: T): Promise<{ -readonly [P in keyof T]: Zeta.PromiseResult<T[P]> }>;
+export function resolveAll<T extends readonly unknown[] | []>(promises: T): Promise<{ -readonly [P in keyof T]: Awaited<T[P]> }>;
 
-export function resolveAll<T extends readonly unknown[] | [], R>(promises: T, callback: (result: { -readonly [P in keyof T]: Zeta.PromiseResult<T[P]> }) => R): Promise<Zeta.PromiseResult<R>>;
+export function resolveAll<T extends readonly unknown[] | [], R>(promises: T, callback: (result: { -readonly [P in keyof T]: Awaited<T[P]> }) => R): Promise<Awaited<R>>;
 
-export function resolveAll<T extends object>(promises: T): Promise<{ [P in keyof T]: Zeta.PromiseResult<T[P]> }>;
+export function resolveAll<T extends object>(promises: T): Promise<{ [P in keyof T]: Awaited<T[P]> }>;
 
-export function resolveAll<T extends object, R>(promises: T, callback: (result: { [P in keyof T]: Zeta.PromiseResult<T[P]> }) => R): Promise<Zeta.PromiseResult<R>>;
+export function resolveAll<T extends object, R>(promises: T, callback: (result: { [P in keyof T]: Awaited<T[P]> }) => R): Promise<Awaited<R>>;
 
 export function resolveAll<T>(promises: T): Promise<T>;
 
-export function resolveAll<T, R>(promises: T, callback: (result: Zeta.PromiseResult<T>) => R): Promise<Zeta.PromiseResult<R>>;
+export function resolveAll<T, R>(promises: T, callback: (result: Awaited<T>) => R): Promise<Awaited<R>>;
 
 /**
  * Wraps an asynchronous operation such that it can be retried again if the previous try has failed.
  * Only a single run is triggered at a time; and upon success, the result is cached and subsequent calls will have no effects.
  * @param fn A callback which performs asynchronous operation.
  */
-export function retryable<T>(fn: () => PromiseLike<T>): () => Promise<Zeta.PromiseResult<T>>;
+export function retryable<T>(fn: () => PromiseLike<T>): () => Promise<Awaited<T>>;
 
-export function retryable<T>(fn: () => PromiseLike<T>, callback: (result: Zeta.PromiseResult<T>) => R): () => Promise<Zeta.PromiseResult<R>>;
+export function retryable<T>(fn: () => PromiseLike<T>, callback: (result: Awaited<T>) => R): () => Promise<Awaited<R>>;
 
 /**
  * Creates a promise of which fulfilment can be deferred awaiting additional promises after it is created.
@@ -572,7 +572,7 @@ export function retryable<T>(fn: () => PromiseLike<T>, callback: (result: Zeta.P
  */
 export function deferrable(promises?: Promise<any> | Promise<any>[]): Promise<void> & Zeta.Deferrable;
 
-export function catchAsync<T>(promise: T): Promise<Zeta.PromiseResult<T>>;
+export function catchAsync<T>(promise: T): Promise<Awaited<T>>;
 
 /**
  * @deprecated Use {@link delay} instead.

@@ -21,6 +21,7 @@ declare namespace Zeta {
     type HintedString<T extends string> = string & {} | T;
     type WhitespaceDelimited<T extends string> = T extends `${infer L} ${infer R}` ? Exclude<L, ''> | WhitespaceDelimited<R> : Exclude<T, ''>;
     type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
+    /** @deprecated Use the built-in {@link Awaited} instead */
     type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
     type WatchableInstance<T, K = keyof T> = T & Watchable<T, K>;
 
