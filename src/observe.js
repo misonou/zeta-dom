@@ -94,7 +94,7 @@ function watchElements(element, selector, callback, fireInit) {
     var options = extend({}, optionsForChildList, {
         attributes: selector.indexOf('[') >= 0
     });
-    var fn = observe(element, options, function () {
+    var handler = function () {
         var matched = selectIncludeSelf(selector, element);
         var removedNodes = grep(collection, function (v) {
             return matched.indexOf(v) < 0;
@@ -107,17 +107,11 @@ function watchElements(element, selector, callback, fireInit) {
             removedNodes.forEach(remove);
             callback(addedNodes, removedNodes);
         }
-    });
+    };
     if (fireInit) {
-        domReady.then(function () {
-            var matched = selectIncludeSelf(selector, element);
-            if (matched[0]) {
-                matched.forEach(add);
-                callback(matched, []);
-            }
-        });
+        handler();
     }
-    return fn;
+    return observe(element, options, handler);
 }
 
 function watchAttributes(element, attributes, callback, fireInit) {
