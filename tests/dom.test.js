@@ -104,6 +104,14 @@ describe('focusable', () => {
         dom.setModal(modal);
         expect(dom.focusable(other)).toBe(false);
     });
+
+    it('should return false if element is detached', () => {
+        const div = document.createElement('div');
+        expect(dom.focusable(div)).toBe(false);
+
+        dom.retainFocus(body, div);
+        expect(dom.focusable(div)).toBe(false);
+    });
 });
 
 describe('setModal', () => {

@@ -102,7 +102,10 @@ function focused(element, strict) {
 }
 
 function focusable(element) {
-    if (element === root) {
+    if (!containsOrEquals(root, element)) {
+        return false;
+    }
+    if (element === root || !focusPath[1]) {
         return root;
     }
     var friends = map(parentsAndSelf(element), function (v) {
