@@ -1,13 +1,13 @@
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("promise-polyfill"), require("jQuery"));
+		module.exports = factory(require("jQuery"));
 	else if(typeof define === 'function' && define.amd)
-		define("zeta", ["promise-polyfill", "jQuery"], factory);
+		define("zeta", ["jQuery"], factory);
 	else if(typeof exports === 'object')
-		exports["zeta"] = factory(require("promise-polyfill"), require("jQuery"));
+		exports["zeta"] = factory(require("jQuery"));
 	else
-		root["zeta"] = factory(root["promise-polyfill"], root["jQuery"]);
-})(self, function(__WEBPACK_EXTERNAL_MODULE__804__, __WEBPACK_EXTERNAL_MODULE__609__) {
+		root["zeta"] = factory(root["jQuery"]);
+})(self, function(__WEBPACK_EXTERNAL_MODULE__609__) {
 return /******/ (function() { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
@@ -29,7 +29,7 @@ module.exports = jQuery;
 // @ts-nocheck
 
 /** @type {PromiseConstructor} */
-var Promise = window.Promise || __webpack_require__(804).default;
+var Promise = window.Promise || __webpack_require__.c[/*require.resolve*/(null /* weak dependency, without id */)].default;
 
 module.exports = Promise;
 
@@ -1267,7 +1267,8 @@ function watchElements(element, selector, callback, fireInit) {
   var options = extend({}, optionsForChildList, {
     attributes: selector.indexOf('[') >= 0
   });
-  var fn = observe(element, options, function () {
+
+  var handler = function handler() {
     var matched = selectIncludeSelf(selector, element);
     var removedNodes = grep(collection, function (v) {
       return matched.indexOf(v) < 0;
@@ -1281,20 +1282,13 @@ function watchElements(element, selector, callback, fireInit) {
       removedNodes.forEach(remove);
       callback(addedNodes, removedNodes);
     }
-  });
+  };
 
   if (fireInit) {
-    domReady.then(function () {
-      var matched = selectIncludeSelf(selector, element);
-
-      if (matched[0]) {
-        matched.forEach(add);
-        callback(matched, []);
-      }
-    });
+    handler();
   }
 
-  return fn;
+  return observe(element, options, handler);
 }
 
 function watchAttributes(element, attributes, callback, fireInit) {
@@ -2551,7 +2545,11 @@ function focused(element, strict) {
 }
 
 function focusable(element) {
-  if (element === root) {
+  if (!containsOrEquals(root, element)) {
+    return false;
+  }
+
+  if (element === root || !focusPath[1]) {
     return root;
   }
 
@@ -4911,14 +4909,6 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 "use strict";
 module.exports = __WEBPACK_EXTERNAL_MODULE__609__;
 
-/***/ }),
-
-/***/ 804:
-/***/ (function(module) {
-
-"use strict";
-module.exports = __WEBPACK_EXTERNAL_MODULE__804__;
-
 /***/ })
 
 /******/ 	});
@@ -4934,17 +4924,23 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__804__;
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
+/******/ 			id: moduleId,
+/******/ 			loaded: false,
 /******/ 			exports: {}
 /******/ 		};
 /******/ 	
 /******/ 		// Execute the module function
 /******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 /******/ 	
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+/******/ 	
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
+/******/ 	
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = __webpack_module_cache__;
 /******/ 	
 /************************************************************************/
 /******/ 	/* webpack/runtime/define property getters */
@@ -4976,7 +4972,7 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__804__;
 /******/ 	}();
 /******/ 	
 /************************************************************************/
-/******/ 	// module exports must be returned from runtime so entry inlining is disabled
+/******/ 	// module cache are used so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	return __webpack_require__(977);
