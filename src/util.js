@@ -41,7 +41,7 @@ function pipe(v) {
 }
 
 function either(x, y) {
-    return x ^ y;
+    return x ? !y : !!y;
 }
 
 function is(obj, fn) {
