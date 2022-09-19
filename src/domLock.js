@@ -1,7 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
-import { any, catchAsync, definePrototype, each, errorWithCode, executeOnce, makeArray, noop, reject, resolve, retryable, setImmediate } from "./util.js";
+import { always, any, catchAsync, definePrototype, each, errorWithCode, executeOnce, makeArray, noop, reject, resolve, retryable, setImmediate } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
 import { TraversableNode, TraversableNodeTree } from "./tree.js";
@@ -19,17 +19,37 @@ const getTree = executeOnce(function () {
     return tree;
 });
 
-function lock(element, promise, oncancel, flag) {
-    var lock = getTree().setNode(element);
-    return promise ? lock.wait(promise, oncancel, flag) : resolve();
+var leaveCounter = 0;
+
+function ensureLock(element) {
+    return getTree().setNode(element);
 }
 
-function notifyAsync(element, promise) {
-    catchAsync(lock(element, promise, true, true));
+function lock(element, promise, oncancel) {
+    var lock = ensureLock(element);
+    return promise && lock.wait(promise, oncancel, false);
+}
+
+function subscribeAsync(element) {
+    ensureLock(element);
+}
+
+function notifyAsync(element, promise, oncancel) {
+    var lock = ensureLock(element);
+    catchAsync(lock.wait(promise, function () {
+        (oncancel || noop)();
+        return true;
+    }, true));
 }
 
 function preventLeave(element, promise, oncancel) {
-    catchAsync(lock(element, promise, oncancel, false));
+    if (promise) {
+        element = lock(element, promise, oncancel);
+    }
+    leaveCounter++;
+    always(element, function () {
+        leaveCounter--;
+    });
 }
 
 function locked(element, parents) {
@@ -167,7 +187,7 @@ definePrototype(DOMLock, TraversableNode, {
 });
 
 window.onbeforeunload = function (e) {
-    if (locked(root)) {
+    if (leaveCounter) {
         e.returnValue = '';
         e.preventDefault();
     }
@@ -177,6 +197,7 @@ export {
     lock,
     locked,
     cancelLock,
+    subscribeAsync,
     notifyAsync,
     preventLeave
 };

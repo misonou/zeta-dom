@@ -25,7 +25,7 @@ describe('lock', () => {
         await expect(promise).rejects.toBeErrorWithCode(ErrorCode.cancelled);
     });
 
-    it('should emit asyncStart event when element is first locked', async () => {
+    it('should not emit asyncStart event when element is first locked', async () => {
         const { div } = initBody(`
             <div id="div"></div>
         `);
@@ -34,15 +34,17 @@ describe('lock', () => {
             dom.on(div, 'asyncStart', cb),
             dom.on(root, 'asyncStart', cb)
         );
-        await Promise.all([lock(div, delay()), lock(div, delay())]);
-        verifyCalls(cb, [
-            [objectContaining({ currentTarget: div }), _],
-            [objectContaining({ currentTarget: root }), _],
-        ]);
+        const promise1 = delay();
+        const promise2 = delay();
+        lock(div, promise1);
+        lock(div, promise2);
+        await promise1;
+        await promise2;
+        expect(cb).not.toBeCalled();
         unregister();
     });
 
-    it('should emit asyncEnd event when all promises are resolved', async () => {
+    it('should not emit asyncEnd event when all promises are resolved', async () => {
         const { div } = initBody(`
             <div id="div"></div>
         `);
@@ -51,42 +53,13 @@ describe('lock', () => {
             dom.on(div, 'asyncEnd', cb),
             dom.on(root, 'asyncEnd', cb)
         );
-        var resolve1, resolve2;
-        var promise1 = new Promise(resolve => resolve1 = resolve);
-        var promise2 = new Promise(resolve => resolve2 = resolve);
+        const promise1 = delay();
+        const promise2 = delay();
         lock(div, promise1);
         lock(div, promise2);
-
-        await after(resolve1 || noop);
+        await promise1;
+        await promise2;
         expect(cb).not.toBeCalled();
-
-        await after(resolve2 || noop);
-        verifyCalls(cb, [
-            [objectContaining({ currentTarget: div }), _],
-            [objectContaining({ currentTarget: root }), _]
-        ]);
-        unregister();
-    });
-
-    xit('should emit error event when given promise rejects', async () => {
-        const { div } = initBody(`
-            <div id="div"></div>
-        `);
-        const cb = mockFn();
-        const unregister = combineFn(
-            dom.on(div, 'error', cb),
-            dom.on(root, 'error', cb)
-        );
-        const error = new Error('dummy');
-        const promise = lock(div, Promise.reject(error));
-        promise.catch();
-
-        await delay();
-        verifyCalls(cb, [
-            [objectContaining({ currentTarget: div }), _],
-            [objectContaining({ currentTarget: body }), _],
-            [objectContaining({ currentTarget: root }), _]
-        ]);
         unregister();
     });
 });
@@ -146,6 +119,73 @@ describe('notifyAsync', () => {
             [objectContaining({ currentTarget: root }), _]
         ]);
         unregister();
+    });
+
+    it('should emit error event when given promise rejects', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = combineFn(
+            dom.on(div, 'error', cb),
+            dom.on(root, 'error', cb)
+        );
+        const error = new Error('dummy');
+        notifyAsync(div, Promise.reject(error));
+
+        await delay();
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: div }), _],
+            [objectContaining({ currentTarget: root }), _]
+        ]);
+        unregister();
+    });
+
+    it('should emit error event for the same error only once', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = combineFn(
+            dom.on(div, 'error', cb),
+            dom.on(root, 'error', cb)
+        );
+        const error = new Error('dummy');
+        notifyAsync(div, Promise.reject(error));
+        notifyAsync(div, Promise.reject(error));
+
+        await delay();
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: div }), _],
+            [objectContaining({ currentTarget: root }), _]
+        ]);
+        unregister();
+    });
+
+    it('should emit asyncEnd event when cancelLock is called', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = dom.on(div, 'asyncEnd', cb);
+        var promise = new Promise(() => { });
+        notifyAsync(div, promise);
+
+        await after(() => cancelLock(div));
+        expect(cb).toBeCalledTimes(1);
+        unregister();
+    });
+
+    it('should invoke oncancel callback when cancelLock is called', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        var promise = new Promise(() => { });
+        notifyAsync(div, promise, cb);
+
+        await after(() => cancelLock(div));
+        expect(cb).toBeCalledTimes(1);
     });
 });
 
@@ -299,7 +339,7 @@ describe('cancelLock', () => {
         const unsettled = new Promise(noop);
         const cb = mockFn();
         const unregister = dom.on(div, 'asyncEnd', cb);
-        lock(div, unsettled, true);
+        notifyAsync(div, unsettled);
         cancelLock(div);
 
         await delay();

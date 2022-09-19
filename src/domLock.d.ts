@@ -3,6 +3,7 @@
 /**
  * Enables listening of `asyncStart` and `asyncEnd` events that is triggered by descedant elements.
  * @param element A DOM element.
+ * @deprecated Use {@link subscribeAsync} instead.
  */
 export declare function lock(element: Element): Promise<void>;
 
@@ -18,9 +19,6 @@ export declare function lock<T>(element: Element, promise: Promise<T>, cancellab
 /**
  * Associates an asynchronous operation with the specified element.
  * Requests of cancellation can be raised by calling {@link cancelLock} on any parent elements.
- *
- * The element, and its parent elements that has been called with {@link lock} will receive `asyncStart` and `asyncEnd` events when
- * the promise is the first one associated to those elements and is the last one resolves.
  *
  * When the `oncancel` handler is supplied, it will be invoked upon request of cancellation; otherwise the cancellation request will be always rejected.
  * To reject the cancellation from the handler, return a rejected promise.
@@ -64,13 +62,23 @@ export declare function cancelLock(element: Element, force?: boolean): Promise<v
  * The element, and its parent elements that has been called with {@link lock} will receive `asyncStart` and `asyncEnd` events when
  * the promise is the first one associated to those elements and is the last one resolves.
  *
- * Has the same effect of calling `lock` with third argument being `true`.
- *
  * @param element A DOM element.
  * @param promise A promise which resolves or rejects when operation is completed.
- * @see {@link lock}
+ * @param oncancel An optional callback to be called when the operation is being cancelled.
  */
-export declare function notifyAsync(element: Element, promise: Promise<any>): void;
+export declare function notifyAsync(element: Element, promise: Promise<any>, oncancel?: () => any): void;
+
+/**
+ * Enables listening of `asyncStart` and `asyncEnd` events that is triggered by descedant elements.
+ * @param element A DOM element.
+ */
+export declare function subscribeAsync(element: Element): void;
+
+/**
+ * Prompts user before leaving the page within the lifetime of the promise.
+ * @param promise A promise object.
+ */
+export declare function preventLeave(promise: Promise<any>): void;
 
 /**
  * Associates an asynchronous operation with the specified element.
@@ -79,11 +87,9 @@ export declare function notifyAsync(element: Element, promise: Promise<any>): vo
  * When the `oncancel` handler is supplied, it will be invoked upon request of cancellation; otherwise the cancellation request will be always rejected.
  * To reject the cancellation from the handler, return a rejected promise.
  *
- * Has the similar effect of calling `lock` with the same argument except that there will be no `asyncStart` and `asyncEnd` events triggered.
- *
  * @param element A DOM element.
  * @param promise A promise which resolves or rejects when operation is completed.
  * @param oncancel A handler which handles request of cancellation by {@link cancelLock}.
- * @see {@link lock}
+ * @deprecated Use {@link lock} instead.
  */
 export declare function preventLeave<T>(element: Element, promise: Promise<T>, oncancel?: () => Promise<any>): void;
