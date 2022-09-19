@@ -278,7 +278,7 @@ function pipe(v) {
 }
 
 function either(x, y) {
-  return x ^ y;
+  return x ? !y : !!y;
 }
 
 function is(obj, fn) {
@@ -2269,18 +2269,38 @@ var getTree = executeOnce(function () {
   });
   return tree;
 });
+var leaveCounter = 0;
 
-function lock(element, promise, oncancel, flag) {
-  var lock = getTree().setNode(element);
-  return promise ? lock.wait(promise, oncancel, flag) : resolve();
+function ensureLock(element) {
+  return getTree().setNode(element);
 }
 
-function notifyAsync(element, promise) {
-  catchAsync(lock(element, promise, true, true));
+function lock(element, promise, oncancel) {
+  var lock = ensureLock(element);
+  return promise && lock.wait(promise, oncancel, false);
+}
+
+function subscribeAsync(element) {
+  ensureLock(element);
+}
+
+function notifyAsync(element, promise, oncancel) {
+  var lock = ensureLock(element);
+  catchAsync(lock.wait(promise, function () {
+    (oncancel || noop)();
+    return true;
+  }, true));
 }
 
 function preventLeave(element, promise, oncancel) {
-  catchAsync(lock(element, promise, oncancel, false));
+  if (promise) {
+    element = lock(element, promise, oncancel);
+  }
+
+  leaveCounter++;
+  always(element, function () {
+    leaveCounter--;
+  });
 }
 
 function locked(element, parents) {
@@ -2434,7 +2454,7 @@ definePrototype(DOMLock, TraversableNode, {
 });
 
 env_window.onbeforeunload = function (e) {
-  if (locked(root)) {
+  if (leaveCounter) {
     e.returnValue = '';
     e.preventDefault();
   }
@@ -3447,6 +3467,7 @@ function dom_focus(element) {
   lock: lock,
   locked: locked,
   cancelLock: cancelLock,
+  subscribeAsync: subscribeAsync,
   notifyAsync: notifyAsync,
   preventLeave: preventLeave,
   observe: observe,
