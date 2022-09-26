@@ -52,8 +52,16 @@ export function registerCleanup(element: Element, callback: Zeta.UnregisterCallb
 /**
  * Creates a map with DOM element as keys.
  * When an element is detached from the document, the element will be removed from the map.
+ * If value associated with element is a callback, the callback will be invoked when the element will be removed from the map.
  */
-export function createAutoCleanupMap<T, E extends Element = Element>(): Map<E, T>;
+export function createAutoCleanupMap<T = Zeta.UnregisterCallback, E extends Element = Element>(): Map<E, T>;
+
+/**
+ * Creates a map with DOM element as keys.
+ * When an element is detached from the element, the element will be removed from the map.
+ * If value associated with element is a callback, the callback will be invoked when the element will be removed from the map.
+ */
+export function createAutoCleanupMap<T = Zeta.UnregisterCallback, E extends Element = Element>(root: Element): Map<E, T>;
 
 /**
  * Creates a map with DOM element as keys.
@@ -61,6 +69,13 @@ export function createAutoCleanupMap<T, E extends Element = Element>(): Map<E, T
  * @param callback A callback to be invoked when an element is detached.
  */
 export function createAutoCleanupMap<T, E extends Element = Element>(callback: (element: E, value: T) => void): Map<E, T>;
+
+/**
+ * Creates a map with DOM element as keys.
+ * When an element is detached from the element, the element will be removed from the map, and the given handler is called with the element and its associated value in the map.
+ * @param callback A callback to be invoked when an element is detached.
+ */
+export function createAutoCleanupMap<T, E extends Element = Element>(root: Element, callback: (element: E, value: T) => void): Map<E, T>;
 
 /**
  * Get a promise that will be resolved when the element is removed from the specified parent.

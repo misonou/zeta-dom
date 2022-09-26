@@ -58,12 +58,16 @@ function registerCleanup(element, callback) {
     }
 }
 
-function createAutoCleanupMap(callback) {
+function createAutoCleanupMap(container, callback) {
+    if (!container || isFunction(container)) {
+        callback = container;
+        container = root;
+    }
     var map = new Map();
     callback = isFunction(callback) || noop;
-    observe(root, function () {
+    observe(container, function () {
         each(map, function (i) {
-            if (!root.contains(i)) {
+            if (!container.contains(i)) {
                 callback(i, mapRemove(map, i));
             }
         });
