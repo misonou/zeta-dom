@@ -81,6 +81,7 @@ export function createAutoCleanupMap<T, E extends Element = Element>(root: Eleme
  * Get a promise that will be resolved when the element is removed from the specified parent.
  * @param element A DOM element to observe.
  * @param container A DOM element that is an ancestor of the first argument. If not specified, it is set to the root element.
+ * @deprecated Use {@link createAutoCleanupMap} instead.
  */
 export function afterDetached<T extends Element>(element: T, container?: Element): Promise<T>;
 
@@ -97,5 +98,6 @@ export function afterDetached<T extends Element>(element: T, callback: (element:
  * @param element A DOM element to observe.
  * @param container A DOM element that is an ancestor of the first argument.
  * @param callback A callback to be fired when mutation occurs.
+ * @deprecated Use {@link createAutoCleanupMap} instead.
  */
 export function afterDetached<T extends Element>(element: T, container: Element, callback: (element: T) => any): void;
