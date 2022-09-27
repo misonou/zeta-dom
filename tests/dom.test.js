@@ -114,6 +114,30 @@ describe('focusable', () => {
     });
 });
 
+describe('setFocus', () => {
+    it('should not throw when delegated element containing the source element', async () => {
+        await dom.ready;
+        const { outer, inner } = initBody(`
+            <div id="outer">
+                <div id="inner"></div>
+            </div>
+        `);
+        dom.retainFocus(inner, outer);
+        dom.focus(inner);
+    });
+
+    it('should not throw when source element containing the delegated element', async () => {
+        await dom.ready;
+        const { outer, inner } = initBody(`
+            <div id="outer">
+                <div id="inner"></div>
+            </div>
+        `);
+        dom.retainFocus(outer, inner);
+        dom.focus(inner);
+    });
+});
+
 describe('setModal', () => {
     it('should focus modal element', async () => {
         await dom.ready;

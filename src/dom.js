@@ -173,7 +173,7 @@ function setFocus(element, source, path, suppressFocusChange) {
         var friend = map(added, function (v) {
             return focusFriends.get(v);
         })[0];
-        if (friend && !focused(friend)) {
+        if (friend && added.indexOf(friend) < 0 && !focused(friend)) {
             result = setFocus(friend, null, null, true);
         }
         if (result === undefined) {
