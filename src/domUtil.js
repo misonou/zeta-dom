@@ -427,30 +427,8 @@ function makeSelection(b, e) {
     var range = document.createRange();
     range.setStart(b.startContainer, b.startOffset);
     range.setEnd(e.endContainer, e.endOffset);
-    try {
-        selection.removeAllRanges();
-    } catch (e) {
-        // IE fails to clear ranges by removeAllRanges() in occasions mentioned in
-        // http://stackoverflow.com/questions/22914075
-        // @ts-ignore: non-standard member
-        var r = document.body.createTextRange();
-        r.collapse();
-        r.select();
-        selection.removeAllRanges();
-    }
-    try {
-        selection.addRange(range);
-    } catch (e) {
-        // IE may throws unspecified error even though the selection is successfully moved to the given range
-        // if the range is not successfully selected retry after selecting other range
-        if (!selection.rangeCount) {
-            var r1 = document.createRange();
-            r1.selectNode(document.body);
-            selection.addRange(r1);
-            selection.removeAllRanges();
-            selection.addRange(range);
-        }
-    }
+    selection.removeAllRanges();
+    selection.addRange(range);
 }
 
 function getRect(elm, includeMargin) {
