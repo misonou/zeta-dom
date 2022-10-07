@@ -151,27 +151,63 @@ describe('watchElements', () => {
     it('should fire callback when the set of matching elements changed', async () => {
         const cb1 = mockFn();
         const cb2 = mockFn();
-        watchElements(body, 'div', cb1);
-        watchElements(body, '[attr]', cb2);
-
-        const { div1, div2, p } = await after(() => initBody(`
-            <div id="div1">
-                <div id="div2" attr="value"></div>
-                <p id="p" attr="value"></p>
+        const { root, div1, div2, p } = await after(() => initBody(`
+            <div id="root">
+                <div id="div1">
+                    <div id="div2" attr="value"></div>
+                    <p id="p" attr="value"></p>
+                </div>
             </div>
         `));
+        watchElements(root, 'div', cb1);
+        watchElements(root, '[attr]', cb2);
+
         await after(() => {
             p.removeAttribute('attr');
             div1.setAttribute('attr', 'value');
             div1.removeChild(div2);
         });
         verifyCalls(cb1, [
-            [[div1, div2], []],
             [[], [div2]]
         ]);
         verifyCalls(cb2, [
-            [[div2, p], []],
             [[div1], [div2, p]]
+        ]);
+    });
+
+    it('should fire callback without existing elements when fireInit is false', async () => {
+        const cb = mockFn();
+        const { root, div1, div2 } = await after(() => initBody(`
+            <div id="root">
+                <div id="div1" class="test">
+                    <div id="div2" class="test"></div>
+                </div>
+            </div>
+        `));
+        watchElements(root, '.test', cb);
+
+        await after(() => {
+            const div = document.createElement('div');
+            div.classList.add('test');
+            div1.appendChild(div);
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.calls[0][0]).not.toContain(div1);
+        expect(cb.mock.calls[0][0]).not.toContain(div2);
+    });
+
+    it('should fire callback with existing elements when fireInit is true', async () => {
+        const cb = mockFn();
+        const { root, div1, div2 } = await after(() => initBody(`
+            <div id="root">
+                <div id="div1" class="test">
+                    <div id="div2" class="test"></div>
+                </div>
+            </div>
+        `));
+        watchElements(root, '.test', cb, true);
+        verifyCalls(cb, [
+            [[div1, div2], []]
         ]);
     });
 });

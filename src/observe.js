@@ -91,14 +91,11 @@ function afterDetached(element, from, callback) {
     return promise;
 }
 
-function watchElements(element, selector, callback, fireInit) {
+function trackElements(element, selector) {
     var collection = new Set();
     var add = collection.add.bind(collection);
     var remove = collection.delete.bind(collection);
-    var options = extend({}, optionsForChildList, {
-        attributes: selector.indexOf('[') >= 0
-    });
-    var handler = function () {
+    return function (callback) {
         var matched = selectIncludeSelf(selector, element);
         var removedNodes = grep(collection, function (v) {
             return matched.indexOf(v) < 0;
@@ -109,13 +106,22 @@ function watchElements(element, selector, callback, fireInit) {
         if (addedNodes[0] || removedNodes[0]) {
             addedNodes.forEach(add);
             removedNodes.forEach(remove);
-            callback(addedNodes, removedNodes);
+            (callback || noop)(addedNodes, removedNodes);
         }
+        return [addedNodes, removedNodes];
     };
-    if (fireInit) {
-        handler();
-    }
-    return observe(element, options, handler);
+}
+
+function watchElements(element, selector, callback, fireInit) {
+    var collect = trackElements(element, selector);
+    var options = extend({}, optionsForChildList, {
+        attributes: selector.indexOf('[') >= 0
+    });
+    var fn = observe(element, options, function () {
+        collect(callback);
+    });
+    collect(fireInit && callback);
+    return fn;
 }
 
 function watchAttributes(element, attributes, callback, fireInit) {
