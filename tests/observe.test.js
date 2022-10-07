@@ -213,29 +213,85 @@ describe('watchElements', () => {
 });
 
 describe('watchAttributes', () => {
-    it('should fire callback with a set of element having specified attributes updated', async () => {
+    it('should fire callback with a set of element having specified attributes added, updated or removed', async () => {
         const cb = mockFn();
-        watchAttributes(body, ['attr', 'attr-two'], cb);
-
-        const { div1, div2, p } = initBody(`
-            <div id="div1">
-                <div id="div2" attr="value"></div>
-                <p id="p" attr="value"></p>
+        const { root, div1, div2, div3 } = initBody(`
+            <div id="root">
+                <div id="div1">
+                    <div id="div2" attr="value"></div>
+                    <div id="div3" attr="value"></div>
+                </div>
             </div>
         `);
+        watchAttributes(root, ['attr', 'attr-two'], cb);
+
         await after(() => {
             div1.setAttribute('attr', 'newValue');
             div2.setAttribute('attr', 'newValue');
             div2.setAttribute('attr-two', 'newValue');
-        });
-        await after(() => {
-            div1.removeChild(div2);
-            p.removeAttribute('attr');
-            p.setAttribute('attr-two', 'value');
+            div3.removeAttribute('attr');
         });
         verifyCalls(cb, [
-            [[div1, div2]],
-            [[p]]
+            [[div1, div3, div2], [div1], [div3], [div2]]
+        ]);
+    });
+
+    it('should fire callback with existing elements when fireInit is true', async () => {
+        const cb = mockFn();
+        const { root, div2, div3 } = initBody(`
+            <div id="root">
+                <div id="div1">
+                    <div id="div2" attr="value"></div>
+                    <div id="div3" attr="value"></div>
+                </div>
+            </div>
+        `);
+        watchAttributes(root, ['attr'], cb, true);
+        verifyCalls(cb, [
+            [[div2, div3], [div2, div3], [], []]
+        ])
+    });
+
+    it('should fire callback with elements having specified attributes added in subtree', async () => {
+        const cb = mockFn();
+        const { root, div1, div2, div3 } = initBody(`
+            <div id="root">
+                <div id="div1">
+                    <div id="div2" attr="value"></div>
+                    <div id="div3" attr="value"></div>
+                </div>
+            </div>
+        `);
+        root.removeChild(div1);
+        watchAttributes(root, ['attr'], cb);
+        expect(cb).not.toHaveBeenCalled();
+
+        await after(() => {
+            root.appendChild(div1);
+        });
+        verifyCalls(cb, [
+            [[div2, div3], [div2, div3], [], []]
+        ]);
+    });
+
+    it('should fire callback with elements having specified attributes removed in subtree', async () => {
+        const cb = mockFn();
+        const { root, div1, div2, div3 } = initBody(`
+            <div id="root">
+                <div id="div1">
+                    <div id="div2" attr="value"></div>
+                    <div id="div3" attr="value"></div>
+                </div>
+            </div>
+        `);
+        watchAttributes(root, ['attr'], cb);
+        expect(cb).not.toHaveBeenCalled();
+
+        await after(() => {
+            root.removeChild(div1);
+        });
+        verifyCalls(cb, [
+            [[div2, div3], [], [div2, div3], []]
         ]);
     });
 });

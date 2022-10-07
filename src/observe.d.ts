@@ -35,7 +35,7 @@ export function watchElements(element: Element, selector: string, callback: (add
  * @param fireInit Optionally fired when DOM content is ready.
  * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function watchAttributes(element: Element, attributes: string | string[], callback: (nodes: Element[]) => any, fireInit?: boolean): () => void;
+export function watchAttributes(element: Element, attributes: string | readonly string[], callback: (nodes: Element[], addedNodes: Element[], removedNodes: Element[], changedNodes: Element[]) => any, fireInit?: boolean): () => void;
 
 /**
  * Registers a callback to be fired whenever there are elements detached from document.

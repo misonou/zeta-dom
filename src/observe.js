@@ -125,26 +125,28 @@ function watchElements(element, selector, callback, fireInit) {
 }
 
 function watchAttributes(element, attributes, callback, fireInit) {
-    var options = {
-        subtree: true,
+    var collect = trackElements(element, '[' + makeArray(attributes).join('],[') + ']');
+    var options = extend({}, optionsForChildList, {
         attributes: true,
         attributeFilter: makeArray(attributes)
-    };
+    });
     var fn = observe(element, options, function (records) {
         var set = new Set();
+        var arr = [[]].concat(collect());
+        var all = arr[1].concat(arr[2]);
         each(records, function (i, v) {
-            set.add(v.target);
-        });
-        callback(makeArray(set));
-    });
-    if (fireInit) {
-        domReady.then(function () {
-            var matched = selectIncludeSelf('[' + options.attributeFilter.join('],[') + ']', element);
-            if (matched[0]) {
-                callback(matched);
+            var target = v.target;
+            if (v.attributeName && all.indexOf(target) < 0 && set.add(target)) {
+                all.push(target);
             }
         });
-    }
+        arr[0] = all;
+        arr[3] = makeArray(set);
+        callback.apply(this, arr);
+    });
+    collect(fireInit && function (added) {
+        callback(added, added, [], []);
+    });
     return fn;
 }
 
