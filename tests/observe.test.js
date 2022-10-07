@@ -1,5 +1,5 @@
 import { after, body, initBody, mockFn, verifyCalls } from "./testUtil";
-import { afterDetached, createAutoCleanupMap, registerCleanup, watchAttributes, watchElements } from "../src/observe";
+import { afterDetached, createAutoCleanupMap, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "../src/observe";
 
 describe('registerCleanup', () => {
     it('should fire callback when element is removed from root', async () => {
@@ -293,5 +293,36 @@ describe('watchAttributes', () => {
         verifyCalls(cb, [
             [[div2, div3], [], [div2, div3], []]
         ]);
+    });
+});
+
+describe('watchOwnAttributes', () => {
+    it('should fire callback when specified attributes are upadated', async () => {
+        const cb = mockFn();
+        const { root } = initBody(`
+            <div id="root"></div>
+        `);
+        watchOwnAttributes(root, ['attr', 'attr2'], cb);
+
+        await after(() => {
+            root.setAttribute('attr', 'value');
+            root.setAttribute('attr2', 'value');
+        });
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should not fire callback when specified attributes of child elements are updated', async () => {
+        const cb = mockFn();
+        const { root, child } = initBody(`
+            <div id="root">
+                <div id="child"></div>
+            </div>
+        `);
+        watchOwnAttributes(root, ['attr'], cb);
+
+        await after(() => {
+            child.setAttribute('attr', 'value');
+        });
+        expect(cb).not.toBeCalled();
     });
 });

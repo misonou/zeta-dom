@@ -150,6 +150,13 @@ function watchAttributes(element, attributes, callback, fireInit) {
     return fn;
 }
 
+function watchOwnAttributes(element, attributes, callback) {
+    return observe(element, {
+        attributes: true,
+        attributeFilter: makeArray(attributes)
+    }, callback);
+}
+
 function initDetachWatcher(element) {
     return mapGet(detachHandlers, element, function () {
         var state = new DetachHandlerState();
@@ -182,5 +189,6 @@ export {
     createAutoCleanupMap,
     afterDetached,
     watchElements,
-    watchAttributes
+    watchAttributes,
+    watchOwnAttributes
 };

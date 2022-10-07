@@ -38,6 +38,14 @@ export function watchElements(element: Element, selector: string, callback: (add
 export function watchAttributes(element: Element, attributes: string | readonly string[], callback: (nodes: Element[], addedNodes: Element[], removedNodes: Element[], changedNodes: Element[]) => any, fireInit?: boolean): () => void;
 
 /**
+ * Registers a callback to be fired when specified attributes of the givne element has changed.
+ * @param element A DOM element to observe.
+ * @param attributes A string or a list of string specifying attributes to observe.
+ * @param callback A callback to be fired when mutation occurs.
+ */
+export function watchOwnAttributes(element: Element, attributes: string | readonly string[], callback: () => any): void;
+
+/**
  * Registers a callback to be fired whenever there are elements detached from document.
  * @param callback A callback to be fired when mutation occurs.
  * @deprecated Use overload with element instead.

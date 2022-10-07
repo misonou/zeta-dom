@@ -7,7 +7,7 @@ import { always, any, combineFn, each, errorWithCode, extend, grep, is, isFuncti
 import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
-import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements } from "./observe.js";
+import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
 
 const SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
 const META_KEYS = [16, 17, 18, 91, 93, 224];
@@ -922,7 +922,8 @@ export default {
     createAutoCleanupMap,
     afterDetached,
     watchElements,
-    watchAttributes
+    watchAttributes,
+    watchOwnAttributes
 };
 
 export {
