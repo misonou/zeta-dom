@@ -177,23 +177,7 @@ function setFocus(element, source, path, suppressFocusChange) {
             result = setFocus(friend, null, null, true);
         }
         if (result === undefined) {
-            if (added[0]) {
-                path.unshift.apply(path, added);
-                each(added, function (i, v) {
-                    focusElements.add(v);
-                });
-                triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
-            }
-            var activeElement = document.activeElement;
-            if (path[0] !== activeElement) {
-                path[0].focus();
-                // ensure previously focused element is properly blurred
-                // in case the new element is not focusable
-                if (activeElement && activeElement !== document.body && activeElement !== root && document.activeElement === activeElement) {
-                    // @ts-ignore: activeElement is HTMLElement
-                    activeElement.blur();
-                }
-            }
+            setFocusUnsafe(added, source, path);
             result = !!added[0];
         }
     }
@@ -203,22 +187,44 @@ function setFocus(element, source, path, suppressFocusChange) {
     return result;
 }
 
-function setModal(element, within) {
+function setFocusUnsafe(elements, source, path) {
+    path = path || focusPath;
+    if (elements[0]) {
+        path.unshift.apply(path, elements);
+        each(elements, function (i, v) {
+            focusElements.add(v);
+        });
+        triggerFocusEvent('focusin', elements.reverse(), null, source || new ZetaEventSource(elements[0], path));
+    }
+    if (path === focusPath) {
+        var activeElement = document.activeElement;
+        if (path[0] !== activeElement) {
+            path[0].focus();
+            // ensure previously focused element is properly blurred
+            // in case the new element is not focusable
+            if (activeElement && activeElement !== document.body && activeElement !== root && document.activeElement === activeElement) {
+                activeElement.blur();
+            }
+        }
+    }
+}
+
+function setModal(element) {
     if (modalElements.has(element)) {
         return true;
     }
     if (!focusable(element)) {
         return false;
     }
-    var focusWithin = is(within, Node) || root;
-    if (!focused(focusWithin)) {
-        setFocus(focusWithin);
-    }
     var from = focusPath.indexOf(element) + 1;
-    var until = focusWithin === root || document.body ? focusPath.length - 1 : focusPath.indexOf(focusWithin);
-    modalElements.set(element, focusPath.splice(from, until - from));
-    if (!focusPath[1]) {
-        setFocus(element);
+    var modalPath = focusPath.splice(from, focusPath.length - from - 1);
+    modalElements.set(element, modalPath);
+    if (!focused(element)) {
+        var added = parentsAndSelf(element).filter(function (v) {
+            return !focusElements.has(v);
+        });
+        setFocusUnsafe(added.slice(1), null, modalPath);
+        setFocusUnsafe([element]);
     }
     setImmediateOnce(triggerModalChangeEvent);
     return true;

@@ -142,7 +142,9 @@ describe('setModal', () => {
     it('should focus modal element', async () => {
         await dom.ready;
         const { modal } = initBody(`
-            <div id="modal"></div>
+            <div>
+                <div id="modal"></div>
+            </div>
         `);
         expect(dom.setModal(modal)).toBe(true);
         expect(dom.activeElement).toBe(modal);
@@ -165,16 +167,15 @@ describe('setModal', () => {
     it('should keep focus inside modal element', async () => {
         await dom.ready;
         const { modal, button } = initBody(`
-            <div id="modal"></div>
-            <button id="button"></button>
+            <div>
+                <div id="modal"></div>
+                <button id="button"></button>
+            </div>
         `);
-        const cb = mockFn();
-        const unregister = dom.on(button, 'focusin', cb);
         dom.setModal(modal);
         button.focus();
         expect(dom.activeElement).toBe(modal);
-        expect(cb).not.toBeCalled();
-        unregister();
+        expect(dom.focusedElements).toEqual([modal, root]);
     });
 
     it('should fire focusreturn event if keyboard, mouse or touch event is triggered outside modal element', async () => {
