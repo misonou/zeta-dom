@@ -105,13 +105,44 @@ export function focused(element: Element, strict?: boolean): boolean;
 
 export function focus(element: Element): void;
 
+/**
+ * Sets the given element as modal element.
+ *
+ * When a element is modal, only its descendant elements and elements to which focus can be delegated
+ * can be focused and receive events from user interaction.
+ *
+ * The modal state can be manually cancelled by {@link releaseModal}; or
+ * automatically when the element is detached.
+ *
+ * @param element A DOM element.
+ * @return Whether the given element has gained the modal state.
+ */
 export function setModal(element: Element): boolean;
 
+/**
+ * Unsets the modal state of the given element.
+ * @param element A DOM element.
+ */
 export function releaseModal(element: Element): void;
 
-export function retainFocus(a: Element, b: Element): void;
+/**
+ * Allows focus delegation to another element that is not a descenant of the source element.
+ *
+ * Once delegated, the target element can be focused while the source element remains in
+ * focused state (i.e. {@link focused} will still return true, and no `focusout` event will be fired.).
+ *
+ * Focus delegation can be cancelled by {@link releaseFocus}.
+ *
+ * @param source A DOM element to be remained in focused state.
+ * @param target A DOM element, usually a flyout.
+ */
+export function retainFocus(source: Element, target: Element): void;
 
-export function releaseFocus(b: Element): void;
+/**
+ * Removes focus delegation given to the target element.
+ * @param target A DOM element, usually a flyout.
+ */
+export function releaseFocus(target: Element): void;
 
 export function iterateFocusPath(element: Element): Iterator<Element>;
 
