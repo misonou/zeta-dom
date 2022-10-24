@@ -2568,7 +2568,7 @@ function getModalElement() {
   }
 
   if (!containsOrEquals(root, element)) {
-    cleanupFocusPath();
+    releaseModal(element);
     return getModalElement();
   }
 
@@ -2599,7 +2599,7 @@ function focusable(element) {
 
 function focusLockedWithin(element) {
   return single(modalElements, function (v, i) {
-    return jquery(v).find(element)[0] && i;
+    return containsOrEquals(v, element) && i;
   });
 }
 
@@ -2658,35 +2658,16 @@ function setFocus(element, source, path, suppressFocusChange) {
     var added = parentsAndSelf(element).filter(function (v) {
       return !focusElements.has(v);
     });
-    var friend = map(added, function (v) {
+    var friend = single(added, function (v) {
       return focusFriends.get(v);
-    })[0];
+    });
 
     if (friend && added.indexOf(friend) < 0 && !focused(friend)) {
-      result = setFocus(friend, null, null, true);
+      result = setFocus(friend, source, path, true);
     }
 
     if (result === undefined) {
-      if (added[0]) {
-        path.unshift.apply(path, added);
-        each(added, function (i, v) {
-          focusElements.add(v);
-        });
-        triggerFocusEvent('focusin', added.reverse(), null, source || new ZetaEventSource(added[0], path));
-      }
-
-      var activeElement = env_document.activeElement;
-
-      if (path[0] !== activeElement) {
-        path[0].focus(); // ensure previously focused element is properly blurred
-        // in case the new element is not focusable
-
-        if (activeElement && activeElement !== env_document.body && activeElement !== root && env_document.activeElement === activeElement) {
-          // @ts-ignore: activeElement is HTMLElement
-          activeElement.blur();
-        }
-      }
-
+      setFocusUnsafe(added, source, path);
       result = !!added[0];
     }
   }
@@ -2698,7 +2679,32 @@ function setFocus(element, source, path, suppressFocusChange) {
   return result;
 }
 
-function setModal(element, within) {
+function setFocusUnsafe(elements, source, path) {
+  path = path || focusPath;
+
+  if (elements[0]) {
+    path.unshift.apply(path, elements);
+    each(elements, function (i, v) {
+      focusElements.add(v);
+    });
+    triggerFocusEvent('focusin', elements.reverse(), null, source || new ZetaEventSource(elements[0], path));
+  }
+
+  if (path === focusPath) {
+    var activeElement = env_document.activeElement;
+
+    if (path[0] !== activeElement) {
+      path[0].focus(); // ensure previously focused element is properly blurred
+      // in case the new element is not focusable
+
+      if (activeElement && activeElement !== env_document.body && activeElement !== root && env_document.activeElement === activeElement) {
+        activeElement.blur();
+      }
+    }
+  }
+}
+
+function setModal(element) {
   if (modalElements.has(element)) {
     return true;
   }
@@ -2707,18 +2713,16 @@ function setModal(element, within) {
     return false;
   }
 
-  var focusWithin = is(within, Node) || root;
-
-  if (!focused(focusWithin)) {
-    setFocus(focusWithin);
-  }
-
   var from = focusPath.indexOf(element) + 1;
-  var until = focusWithin === root || env_document.body ? focusPath.length - 1 : focusPath.indexOf(focusWithin);
-  modalElements.set(element, focusPath.splice(from, until - from));
+  var modalPath = focusPath.splice(from, focusPath.length - from - 1);
+  modalElements.set(element, modalPath);
 
-  if (!focusPath[1]) {
-    setFocus(element);
+  if (!focused(element)) {
+    var added = parentsAndSelf(element).filter(function (v) {
+      return !focusElements.has(v);
+    });
+    setFocusUnsafe(added.slice(1), null, modalPath);
+    setFocusUnsafe([element]);
   }
 
   setImmediateOnce(triggerModalChangeEvent);
@@ -2727,23 +2731,37 @@ function setModal(element, within) {
 
 function releaseModal(element, modalPath) {
   modalPath = mapRemove(modalElements, element) || modalPath;
+
+  if (!modalPath) {
+    return;
+  }
+
   var index = focusPath.indexOf(element);
 
-  if (modalPath && index >= 0) {
-    var index2 = modalPath.findIndex(function (v) {
+  if (index >= 0) {
+    var inner = any(modalPath, function (v) {
       return containsOrEquals(v, element);
     });
 
-    if (index2 >= 0) {
+    if (inner && inner !== modalPath[0]) {
       // trigger focusout event for previously focused element
       // which focus is lost to modal element
-      setFocus(modalPath[index2], null, modalPath);
+      setFocus(inner, null, modalPath);
     }
 
     focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
     setFocus(focusPath[0]);
     cleanupFocusPath();
     setImmediateOnce(triggerModalChangeEvent);
+  } else {
+    each(modalElements, function (i, v) {
+      var index = v.indexOf(element);
+
+      if (index >= 0) {
+        v.splice.apply(v, [0, index + 1].concat(modalPath));
+        return false;
+      }
+    });
   }
 }
 
