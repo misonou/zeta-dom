@@ -232,8 +232,11 @@ function setModal(element) {
 
 function releaseModal(element, modalPath) {
     modalPath = mapRemove(modalElements, element) || modalPath;
+    if (!modalPath) {
+        return;
+    }
     var index = focusPath.indexOf(element);
-    if (modalPath && index >= 0) {
+    if (index >= 0) {
         var index2 = modalPath.findIndex(function (v) {
             return containsOrEquals(v, element);
         });
@@ -246,6 +249,14 @@ function releaseModal(element, modalPath) {
         setFocus(focusPath[0]);
         cleanupFocusPath();
         setImmediateOnce(triggerModalChangeEvent);
+    } else {
+        each(modalElements, function (i, v) {
+            var index = v.indexOf(element);
+            if (index >= 0) {
+                v.splice.apply(v, [0, index + 1].concat(modalPath));
+                return false;
+            }
+        });
     }
 }
 

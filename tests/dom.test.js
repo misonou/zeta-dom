@@ -330,6 +330,25 @@ describe('releaseModal', () => {
         ]);
         unregister();
     });
+
+    it('should restore correctly when modal is released out-of-order', async () => {
+        const { modal1, modal2, other } = await initBody(`
+            <div id="modal1"></div>
+            <div id="modal2"></div>
+            <div id="other"></div>
+        `);
+        dom.focus(other);
+        dom.setModal(modal1);
+        expect(dom.focusedElements).toEqual([modal1, root]);
+
+        dom.retainFocus(modal1, modal2);
+        expect(dom.setModal(modal2)).toBe(true);
+        expect(dom.focusedElements).toEqual([modal2, root]);
+
+        dom.releaseModal(modal1);
+        dom.releaseModal(modal2);
+        expect(dom.focusedElements).toEqual([modal2, body, root]);
+    });
 });
 
 describe('retainFocus', () => {
