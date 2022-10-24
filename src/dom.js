@@ -118,7 +118,7 @@ function focusable(element) {
 
 function focusLockedWithin(element) {
     return single(modalElements, function (v, i) {
-        return $(v).find(element)[0] && i;
+        return containsOrEquals(v, element) && i;
     });
 }
 
@@ -170,9 +170,9 @@ function setFocus(element, source, path, suppressFocusChange) {
         var added = parentsAndSelf(element).filter(function (v) {
             return !focusElements.has(v);
         });
-        var friend = map(added, function (v) {
+        var friend = single(added, function (v) {
             return focusFriends.get(v);
-        })[0];
+        });
         if (friend && added.indexOf(friend) < 0 && !focused(friend)) {
             result = setFocus(friend, source, path, true);
         }
@@ -237,13 +237,13 @@ function releaseModal(element, modalPath) {
     }
     var index = focusPath.indexOf(element);
     if (index >= 0) {
-        var index2 = modalPath.findIndex(function (v) {
+        var inner = any(modalPath, function (v) {
             return containsOrEquals(v, element);
         });
-        if (index2 >= 0) {
+        if (inner && inner !== modalPath[0]) {
             // trigger focusout event for previously focused element
             // which focus is lost to modal element
-            setFocus(modalPath[index2], null, modalPath)
+            setFocus(inner, null, modalPath);
         }
         focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
         setFocus(focusPath[0]);
