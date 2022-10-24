@@ -174,7 +174,7 @@ function setFocus(element, source, path, suppressFocusChange) {
             return focusFriends.get(v);
         })[0];
         if (friend && added.indexOf(friend) < 0 && !focused(friend)) {
-            result = setFocus(friend, null, null, true);
+            result = setFocus(friend, source, path, true);
         }
         if (result === undefined) {
             setFocusUnsafe(added, source, path);
