@@ -72,6 +72,23 @@ describe('focusedElements', () => {
     });
 });
 
+describe('modalElement', () => {
+    it('should not return detached element', async () => {
+        const { modal1, modal2 } = initBody(`
+            <div id="modal1"></div>
+            <div id="modal2"></div>
+        `);
+        dom.retainFocus(modal1, modal2);
+        dom.setModal(modal1);
+        dom.setModal(modal2);
+        expect(dom.modalElement).toBe(modal2);
+        removeNode(modal2);
+        expect(dom.modalElement).toBe(modal1);
+        removeNode(modal1);
+        expect(dom.modalElement).toBeNull();
+    });
+});
+
 describe('context', () => {
     it('should be null initially', async () => {
         await dom.ready;

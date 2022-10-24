@@ -90,7 +90,7 @@ function getModalElement() {
         return null;
     }
     if (!containsOrEquals(root, element)) {
-        cleanupFocusPath();
+        releaseModal(element);
         return getModalElement();
     }
     return element;
