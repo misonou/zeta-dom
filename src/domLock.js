@@ -2,7 +2,7 @@ import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
 import { always, any, catchAsync, definePrototype, each, errorWithCode, executeOnce, makeArray, noop, reject, resolve, retryable, setImmediate } from "./util.js";
-import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
+import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent } from "./events.js";
 import { TraversableNode, TraversableNodeTree } from "./tree.js";
 
@@ -186,12 +186,12 @@ definePrototype(DOMLock, TraversableNode, {
     }
 });
 
-window.onbeforeunload = function (e) {
+bind(window, 'beforeunload', function (e) {
     if (leaveCounter) {
         e.returnValue = '';
         e.preventDefault();
     }
-};
+});
 
 export {
     lock,
