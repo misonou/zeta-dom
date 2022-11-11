@@ -555,7 +555,7 @@ declare namespace Zeta {
         autoDestroy?: boolean;
 
         /**
-         * Sets whether successive touchstart and touchend events without touchmove will be normalized to click event.
+         * @deprecated Unused option.
          */
         normalizeTouchEvents?: boolean;
 
@@ -601,7 +601,7 @@ declare namespace Zeta {
         readonly autoDestroy: boolean;
 
         /**
-         * Gets whether successive touchstart and touchend events without touchmove will be normalized to click event.
+         * @deprecated Unused property.
          */
         readonly normalizeTouchEvents: boolean;
 

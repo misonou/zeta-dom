@@ -3,8 +3,8 @@ import { IS_MAC, window, document, root, getSelection, getComputedStyle, domRead
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, errorWithCode, extend, grep, is, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setImmediate, setImmediateOnce, single, ucfirst } from "./util.js";
-import { bind, bindUntil, containsOrEquals, dispatchDOMMouseEvent, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
+import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setImmediate, setImmediateOnce, single, ucfirst } from "./util.js";
+import { bind, bindUntil, containsOrEquals, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
@@ -443,7 +443,6 @@ domReady.then(function () {
     var modifiedKeyCode;
     var mouseInitialPoint;
     var mousedownFocus;
-    var normalizeTouchEvents;
     var pressTimeout;
     var hasCompositionUpdate;
     var imeModifyOnUpdate;
@@ -710,17 +709,10 @@ domReady.then(function () {
             }
         },
         touchstart: function (e) {
-            // @ts-ignore: e.target is Element
-            var container = getEventContext(e.target);
-            normalizeTouchEvents = container.normalizeTouchEvents;
             mouseInitialPoint = extend({}, e.touches[0]);
             setFocus(e.target);
             triggerMouseEvent('touchstart');
             if (!e.touches[1]) {
-                // @ts-ignore: e.target is Element
-                if (normalizeTouchEvents && focused(container.element)) {
-                    triggerMouseEvent('mousedown');
-                }
                 pressTimeout = setTimeout(function () {
                     if (mouseInitialPoint) {
                         triggerMouseEvent('longPress', e);
@@ -750,11 +742,6 @@ domReady.then(function () {
         },
         touchend: function (e) {
             clearTimeout(pressTimeout);
-            if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
-                triggerMouseEvent('click');
-                dispatchDOMMouseEvent('click', mouseInitialPoint, e);
-                e.preventDefault();
-            }
         },
         mousedown: function (e) {
             setFocus(e.target);
