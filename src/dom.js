@@ -534,6 +534,8 @@ domReady.then(function () {
 
     function handleUIEventWrapper(type, callback) {
         var isMoveEvent = matchWord(type, 'mousemove touchmove');
+        var isKeyboardEvent = matchWord(type, 'keydown keyup keypress');
+        var fireFocusReturn = matchWord(type, 'mousedown touchstart');
         return function (e) {
             currentEvent = e;
             setTimeout(function () {
@@ -552,8 +554,10 @@ domReady.then(function () {
                 setLastEventSource(null);
                 if (!focusable(e.target)) {
                     e.stopImmediatePropagation();
-                    e.preventDefault();
-                    if (matchWord(type, 'touchstart mousedown keydown')) {
+                    if (!isKeyboardEvent) {
+                        e.preventDefault();
+                    }
+                    if (fireFocusReturn) {
                         emitDOMEvent('focusreturn', focusPath.slice(-2)[0]);
                     }
                 }
