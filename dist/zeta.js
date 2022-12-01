@@ -2468,14 +2468,12 @@ definePrototype(DOMLock, TraversableNode, {
     });
   }
 });
-
-env_window.onbeforeunload = function (e) {
+bind(env_window, 'beforeunload', function (e) {
   if (leaveCounter) {
     e.returnValue = '';
     e.preventDefault();
   }
-};
-
+});
 
 // CONCATENATED MODULE: ./src/dom.js
 
@@ -2971,7 +2969,6 @@ domReady.then(function () {
   var modifiedKeyCode;
   var mouseInitialPoint;
   var mousedownFocus;
-  var normalizeTouchEvents;
   var pressTimeout;
   var hasCompositionUpdate;
   var imeModifyOnUpdate;
@@ -3071,6 +3068,8 @@ domReady.then(function () {
 
   function handleUIEventWrapper(type, callback) {
     var isMoveEvent = matchWord(type, 'mousemove touchmove');
+    var isKeyboardEvent = matchWord(type, 'keydown keyup keypress');
+    var fireFocusReturn = matchWord(type, 'mousedown touchstart');
     return function (e) {
       currentEvent = e;
       setTimeout(function () {
@@ -3093,9 +3092,12 @@ domReady.then(function () {
 
         if (!focusable(e.target)) {
           e.stopImmediatePropagation();
-          e.preventDefault();
 
-          if (matchWord(type, 'touchstart mousedown keydown')) {
+          if (!isKeyboardEvent) {
+            e.preventDefault();
+          }
+
+          if (fireFocusReturn) {
             emitDOMEvent('focusreturn', focusPath.slice(-2)[0]);
           }
         }
@@ -3266,19 +3268,11 @@ domReady.then(function () {
       }
     },
     touchstart: function touchstart(e) {
-      // @ts-ignore: e.target is Element
-      var container = getEventContext(e.target);
-      normalizeTouchEvents = container.normalizeTouchEvents;
       mouseInitialPoint = extend({}, e.touches[0]);
       setFocus(e.target);
       triggerMouseEvent('touchstart');
 
       if (!e.touches[1]) {
-        // @ts-ignore: e.target is Element
-        if (normalizeTouchEvents && focused(container.element)) {
-          triggerMouseEvent('mousedown');
-        }
-
         pressTimeout = setTimeout(function () {
           if (mouseInitialPoint) {
             triggerMouseEvent('longPress', e);
@@ -3312,12 +3306,6 @@ domReady.then(function () {
     },
     touchend: function touchend(e) {
       clearTimeout(pressTimeout);
-
-      if (normalizeTouchEvents && mouseInitialPoint && pressTimeout) {
-        triggerMouseEvent('click');
-        dispatchDOMMouseEvent('click', mouseInitialPoint, e);
-        e.preventDefault();
-      }
     },
     mousedown: function mousedown(e) {
       setFocus(e.target);
