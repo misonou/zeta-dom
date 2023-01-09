@@ -163,34 +163,34 @@ export function map<T, R>(obj: T, callback: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T
 /**
  * Filters items from the given array or array-like object.
  * @param obj An array or an array-like object.
- * @param callback Function called for each item which returns if the item should be included.
+ * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function grep<T>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: number) => any): T[];
+export function grep<T>(obj: readonly T[] | ArrayLike<T>, callback?: (v: T, i: number) => any): T[];
 
 /**
  * Filters items from the given set.
  * @param obj A set object.
- * @param callback Function called for each item which returns if the item should be included.
+ * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function grep<T>(obj: Set<T>, callback: (v: T, i: number) => any): T[];
+export function grep<T>(obj: Set<T>, callback?: (v: T, i: number) => any): T[];
 
 /**
  * Filters items from the given map.
  * @param obj A map object.
- * @param callback Function called for each item which returns if the item should be included.
+ * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function grep<K, V>(obj: Map<K, V>, callback: (v: V, i: K) => any): V[];
+export function grep<K, V>(obj: Map<K, V>, callback?: (v: V, i: K) => any): V[];
 
 /**
  * Filters values from the given object.
  * @param obj An object.
- * @param callback  Function called for each property which returns if the property value should be included.
+ * @param callback  Function called for each property which returns if the property value should be included. If omitted, truthy items will be included.
  * @returns An array containing property values for which the callback returned a truthy value.
  */
-export function grep<T>(obj: T, callback: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T>[];
+export function grep<T>(obj: T, callback?: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T>[];
 
 /**
  * Removes items that satifies a condition from an array and returns them as a new array.
@@ -203,34 +203,34 @@ export function splice<T>(arr: T[], callback: (v: T, i: number) => any): T[];
 /**
  * Extracts the first item in the given array or array-like object that satifies a condition.
  * @param obj An array or an array-like object.
- * @param callback Function called for each original item which determines if the item satifies a condition.
+ * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<T>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: number) => any): T | false;
+export function any<T>(obj: readonly T[] | ArrayLike<T>, callback?: (v: T, i: number) => any): T | false;
 
 /**
  * Extracts the first item in the given set that satifies a condition.
  * @param obj A set object.
- * @param callback Function called for each original item which determines if the item satifies a condition.
+ * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<T>(obj: Set<T>, callback: (v: T, i: number) => any): T | false;
+export function any<T>(obj: Set<T>, callback?: (v: T, i: number) => any): T | false;
 
 /**
  * Extracts the first item in the given map that satifies a condition.
  * @param obj A map object.
- * @param callback Function called for each original item which determines if the item satifies a condition.
+ * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<K, V>(obj: Map<K, V>, callback: (v: V, i: K) => any): V | false;
+export function any<K, V>(obj: Map<K, V>, callback?: (v: V, i: K) => any): V | false;
 
 /**
  * Extracts the first value in the properties of the given object that satifies a condition.
  * @param obj An object.
- * @param callback Function called for each original item which determines if the item satifies a condition.
+ * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<T>(obj: T, callback: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T> | false;
+export function any<T>(obj: T, callback?: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T> | false;
 
 /**
  * Iterates the given array or array-like object until a non-falsy value is returned by the given callback.

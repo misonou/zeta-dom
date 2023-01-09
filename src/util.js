@@ -195,6 +195,7 @@ function map(obj, callback) {
 
 function grep(obj, callback) {
     var arr = [];
+    callback = callback || pipe;
     each(obj, function (i, v) {
         if (callback.call(this, v, i)) {
             arr[arr.length] = v;
@@ -215,6 +216,7 @@ function splice(arr, callback) {
 
 function any(obj, callback) {
     var result = false;
+    callback = callback || pipe;
     each(obj, function (i, v) {
         if (callback.call(this, v, i)) {
             result = v;
