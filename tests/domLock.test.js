@@ -249,6 +249,10 @@ describe('locked', () => {
         expect(locked(div)).toBe(false);
     });
 
+    it('should return false if element is unlocked', async () => {
+        expect(locked(document.createElement('div'))).toBe(false);
+    });
+
     it('should return false if parent element is locked when last argument is false', async () => {
         const { div } = initBody(`
             <div id="div"></div>

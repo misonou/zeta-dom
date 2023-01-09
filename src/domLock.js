@@ -56,7 +56,7 @@ function locked(element, parents) {
     element = element || root;
     var lock = getTree().getNode(element);
     if (!parents || element === root) {
-        return lock && lock.element === element && lock.locked;
+        return !!lock && lock.element === element && lock.locked;
     }
     return !!any(parents ? parentsAndSelf(lock) : makeArray(lock), function (v) {
         return v.locked;
