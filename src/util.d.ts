@@ -1,7 +1,8 @@
 /// <reference path="types.d.ts" />
 
+type ExtractAny<T, U> = Zeta.IsAny<T> extends true ? U : Extract<T, U>;
 type Union<T, V> =
-    (1 | 2) extends (T extends object ? 1 : 2) ? any :
+    Zeta.IsAny<T> extends true ? any :
     T extends object ? (V extends T ? V : T extends V ? T : V extends object ? T & V : T) :
     V extends object ? V : any;
 type UnionAll<T> = T extends never[] ? {} : T extends [infer U, ...infer V] ? Union<U, UnionAll<V>> : {};
@@ -28,37 +29,37 @@ export function is<T extends Function>(a: any, b: T): InstanceType<T> | false;
  * Tests whether a given value is undefined or null.
  * @param value An input value to be tested.
  */
-export function isUndefinedOrNull(value: any): boolean;
+export function isUndefinedOrNull(value: any): value is undefined | null;
 
 /**
  * Tests whether the value is an array.
  * @param obj An input value to be tested.
  * @returns The same instance of array if it is a simple object; otherwise false.
  */
-export function isArray<T>(obj: T): T extends any[] ? T : false;
+export function isArray<T>(obj: T): ExtractAny<T, any[]> | false;
 
 /**
  * Tests whether the value is a function.
  * @param obj An input value to be tested.
  * @returns The same instance of function if it is a function; otherwise false.
  */
-export function isFunction<T>(obj: T): T extends Function ? T : false;
+export function isFunction<T>(obj: T): ExtractAny<T, Function> | false;
 
 /**
  * Tests whether the value is thenable, i.e. can be chained as a Promise.
  * @param obj An input value to be tested.
  * @returns The same instance of function if it is thenable; otherwise false.
  */
-export function isThenable<T>(obj: T): T extends PromiseLike<any> ? T : false;
+export function isThenable<T>(obj: T): ExtractAny<T, PromiseLike<any>> | false;
 
 /**
  * Tests whether the value is a simple object, i.e. created with object literal {}, or with no prototype chain.
  * @param obj An input value to be tested.
  * @returns The same instance of object if it is a simple object; otherwise false.
  */
-export function isPlainObject<T>(obj: T): T extends object ? T : false;
+export function isPlainObject<T>(obj: T): ExtractAny<T, object> | false;
 
-export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? T : false;
+export function isArrayLike<T>(obj: T): ExtractAny<T, ArrayLike<any>> | false;
 
 /**
  * Creates an array from input if it is not an array.
@@ -66,7 +67,7 @@ export function isArrayLike<T>(obj: T): T extends Array<any> | ArrayLike<any> ? 
  * @returns A copy of array if the object is an array; or an array containing items in an array-like object or iterable collection like Map or Set;
  * or an array with exactly one item (the input object) if it does not equals to null or undefined; otherwise an empty array.
  */
-export function makeArray<T>(obj: T): T extends (infer U)[] | ArrayLike<infer U> | Map<any, infer U> | Set<infer U> ? U[] : Exclude<T, null | undefined>[];
+export function makeArray<T>(obj: T): Zeta.IsAny<T> extends true ? any[] : T extends (infer U)[] | ArrayLike<infer U> | Map<any, infer U> | Set<infer U> ? U[] : Exclude<T, null | undefined>[];
 
 /**
  * Copys all properties that is not with undefined value to the object supplied as the first argument.
@@ -448,7 +449,7 @@ export function setIntervalSafe<T extends Zeta.AnyFunction>(callback: T, ms?: nu
 
 export function throws(error: string | Error): never;
 
-export function throwNotFunction(obj: any): Zeta.AnyFunction;
+export function throwNotFunction<T>(obj: T): ExtractAny<T, Function>;
 
 export function errorWithCode(code: string, message?: string, props?: Zeta.Dictionary<any>): Error;
 

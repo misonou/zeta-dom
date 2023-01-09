@@ -30,6 +30,7 @@ declare namespace Zeta {
     type MapResultValue<T> = T | T[] | null | undefined;
     type IterateCallbackOrNull<T, R> = null | ((node: T) => MapResultValue<R>);
 
+    type IsAny<T> = (1 | 2) extends (T extends never ? 1 : 2) ? true : false;
     type AnyFunction = (...args) => any;
     type AnyConstructor = new (...args) => any;
     type AdditionalMembers<T, U> = { [P in keyof U]: U[P] extends AnyFunction ? (this: T & U, ...args) => any : U[P] };
