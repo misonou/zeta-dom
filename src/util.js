@@ -422,9 +422,13 @@ function setIntervalSafe(callback, ms) {
  * Throw helper
  * -------------------------------------- */
 
+function throws(error) {
+    throw (is(error, Error) || new Error(error));
+}
+
 function throwNotFunction(obj, name) {
     if (!isFunction(obj)) {
-        throw new Error((name || 'callback') + ' must be a function');
+        throws((name || 'callback') + ' must be a function');
     }
     return obj;
 }
@@ -734,7 +738,7 @@ function ensurePropertyObserved(obj, prop) {
 function throwNotOwnDataProperty(obj, prop) {
     var desc = getOwnPropertyDescriptor(obj, prop);
     if (!desc ? prop in obj : desc.get || desc.set) {
-        throw new Error('Must be own data property');
+        throws('Must be own data property');
     }
 }
 
@@ -791,7 +795,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
 function watch(obj, prop, handler, fireInit) {
     if (typeof prop === 'boolean') {
         if (watchStore(obj)) {
-            throw new Error('Observable initialized');
+            throws('Observable initialized');
         }
         var state = getObservableState(obj, prop);
         return state.handleChanges;
@@ -898,6 +902,7 @@ export {
     setImmediateOnce,
 
     // throw
+    throws,
     throwNotFunction,
     errorWithCode,
     isErrorWithCode,

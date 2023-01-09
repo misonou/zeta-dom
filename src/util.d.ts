@@ -446,6 +446,8 @@ export function setIntervalSafe<T extends Zeta.AnyFunction>(callback: T, ms?: nu
  * Throw helper
  * -------------------------------------- */
 
+export function throws(error: string | Error): never;
+
 export function throwNotFunction(obj: any): Zeta.AnyFunction;
 
 export function errorWithCode(code: string, message?: string, props?: Zeta.Dictionary<any>): Error;

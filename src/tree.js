@@ -2,7 +2,7 @@ import { comparePosition, containsOrEquals, createTreeWalker, iterateNode, paren
 import { root } from "./env.js";
 import { ZetaEventContainer } from "./events.js";
 import { observe, watchElements } from "./observe.js";
-import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, is, isFunction, isPlainObject, kv, map, mapGet, mapRemove, noop, pick } from "./util.js";
+import { createPrivateStore, defineHiddenProperty, defineOwnProperty, definePrototype, each, equal, extend, grep, is, isFunction, isPlainObject, kv, map, mapGet, mapRemove, noop, pick, throws } from "./util.js";
 
 const SNAPSHOT_PROPS = 'parentNode previousSibling nextSibling'.split(' ');
 
@@ -21,7 +21,7 @@ var version = 0;
 
 function throwOrReturn(result, throwError, message) {
     if (!result && throwError) {
-        throw new Error(message);
+        throws(message);
     }
     return result;
 }
@@ -47,7 +47,7 @@ function VersionState() {
 function initNode(tree, node, element) {
     var map = (containsOrEquals(tree.element, element) ? _(tree).nodes : _(tree).detached);
     if (map.has(element)) {
-        throw new Error('Another node instance already exist');
+        throws('Another node instance already exist');
     }
     var state = mapGet(versionMap, element, VersionState);
     var sNode = _(node, {
