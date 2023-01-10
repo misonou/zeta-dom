@@ -146,6 +146,7 @@ __webpack_require__.d(util_namespaceObject, {
   "single": function() { return single; },
   "splice": function() { return splice; },
   "throwNotFunction": function() { return throwNotFunction; },
+  "throws": function() { return util_throws; },
   "trim": function() { return trim; },
   "ucfirst": function() { return ucfirst; },
   "values": function() { return values; },
@@ -454,6 +455,7 @@ function map(obj, callback) {
 
 function grep(obj, callback) {
   var arr = [];
+  callback = callback || pipe;
   each(obj, function (i, v) {
     if (callback.call(this, v, i)) {
       arr[arr.length] = v;
@@ -476,6 +478,7 @@ function splice(arr, callback) {
 
 function any(obj, callback) {
   var result = false;
+  callback = callback || pipe;
   each(obj, function (i, v) {
     if (callback.call(this, v, i)) {
       result = v;
@@ -694,9 +697,13 @@ function setIntervalSafe(callback, ms) {
  * -------------------------------------- */
 
 
+function util_throws(error) {
+  throw is(error, Error) || new Error(error);
+}
+
 function throwNotFunction(obj, name) {
   if (!isFunction(obj)) {
-    throw new Error((name || 'callback') + ' must be a function');
+    util_throws((name || 'callback') + ' must be a function');
   }
 
   return obj;
@@ -1018,7 +1025,7 @@ function throwNotOwnDataProperty(obj, prop) {
   var desc = getOwnPropertyDescriptor(obj, prop);
 
   if (!desc ? prop in obj : desc.get || desc.set) {
-    throw new Error('Must be own data property');
+    util_throws('Must be own data property');
   }
 }
 
@@ -1084,7 +1091,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
 function _watch(obj, prop, handler, fireInit) {
   if (typeof prop === 'boolean') {
     if (watchStore(obj)) {
-      throw new Error('Observable initialized');
+      util_throws('Observable initialized');
     }
 
     var state = getObservableState(obj, prop);
@@ -1367,7 +1374,7 @@ function initDetachWatcher(element) {
 var ZETA_KEY = '__ZETA__';
 
 if (window[ZETA_KEY]) {
-  throw new Error('Another copy of zeta-dom is instantiated. Please check your dependencies.');
+  util_throws('Another copy of zeta-dom is instantiated. Please check your dependencies.');
 }
 
 defineHiddenProperty(window, ZETA_KEY, true, true);
@@ -1501,7 +1508,7 @@ var version = 0;
 
 function throwOrReturn(result, throwError, message) {
   if (!result && throwError) {
-    throw new Error(message);
+    util_throws(message);
   }
 
   return result;
@@ -1530,7 +1537,7 @@ function initNode(tree, node, element) {
   var map = containsOrEquals(tree.element, element) ? _(tree).nodes : _(tree).detached;
 
   if (map.has(element)) {
-    throw new Error('Another node instance already exist');
+    util_throws('Another node instance already exist');
   }
 
   var state = mapGet(versionMap, element, VersionState);
@@ -2324,7 +2331,7 @@ function locked(element, parents) {
   var lock = getTree().getNode(element);
 
   if (!parents || element === root) {
-    return lock && lock.element === element && lock.locked;
+    return !!lock && lock.element === element && lock.locked;
   }
 
   return !!any(parents ? parentsAndSelf(lock) : makeArray(lock), function (v) {
