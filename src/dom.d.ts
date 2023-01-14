@@ -103,7 +103,12 @@ export function focused(window: Window): boolean;
  */
 export function focused(element: Element, strict?: boolean): boolean;
 
-export function focus(element: Element): void;
+/**
+ * Sets focus to the given element.
+ * @param element A DOM element.
+ * @return Whether the given element is set focused.
+ */
+export function focus(element: Element): boolean;
 
 /**
  * Sets the given element as modal element.

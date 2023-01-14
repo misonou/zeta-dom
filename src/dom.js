@@ -870,7 +870,7 @@ function focus(element) {
     if (!matchSelector(element, SELECTOR_FOCUSABLE)) {
         element = $(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
     }
-    setFocus(element);
+    return !!setFocus(element);
 }
 
 export default {
