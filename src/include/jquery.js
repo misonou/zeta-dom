@@ -1,5 +1,2 @@
-// @ts-nocheck
-
-/** @type {JQueryStatic} */
-const jQuery = window.jQuery || require('jquery');
-module.exports = jQuery;
+import jQuery from "jquery";
+export default jQuery;
