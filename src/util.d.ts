@@ -701,11 +701,11 @@ export function watch(obj: object, sync: boolean): ((callback: () => any) => voi
  */
 export function watch<T extends object>(obj: T, handler: (e: { oldValues: Partial<T>, newValues: Partial<T> }) => any): Zeta.UnregisterCallback;
 
-export function watch<T extends object, P extends keyof T>(obj: T, prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
+export function watch<T extends object, P extends Zeta.HintedString<keyof T>>(obj: T, prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
 
-export function watchOnce<T extends object, P extends keyof T>(obj: T, prop: P): Promise<T[P]>;
+export function watchOnce<T extends object, P extends Zeta.HintedString<keyof T>>(obj: T, prop: P): Promise<T[P]>;
 
-export function watchOnce<T extends object, P extends keyof T, U>(obj: T, prop: P, handler: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => U): Promise<U>;
+export function watchOnce<T extends object, P extends Zeta.HintedString<keyof T>, U>(obj: T, prop: P, handler: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => U): Promise<U>;
 
 /**
  * Creates a new object with `watch` and `watchOnce` method defined.
