@@ -819,33 +819,35 @@ domReady.then(function () {
         }
     }, true);
 
-    bind(window, {
-        wheel: function (e) {
-            // scrolling will happen on first scrollable element up the DOM tree
-            // prevent scrolling if interaction on such element should be blocked by modal element
-            var deltaX = -e.deltaX;
-            var deltaY = -e.deltaY;
+    bind(window, 'wheel', function (e) {
+        if (currentMetaKey) {
+            return;
+        }
+        // scrolling will happen on first scrollable element up the DOM tree
+        // prevent scrolling if interaction on such element should be blocked by modal element
+        var deltaX = -e.deltaX;
+        var deltaY = -e.deltaY;
+        // @ts-ignore: e.target is Element
+        for (var cur = e.target; cur && cur !== root; cur = cur.parentNode) {
             // @ts-ignore: e.target is Element
-            for (var cur = e.target; cur && cur !== root; cur = cur.parentNode) {
-                // @ts-ignore: e.target is Element
-                var style = getComputedStyle(cur);
-                // @ts-ignore: e.target is Element
-                if (cur.scrollWidth > cur.offsetWidth && matchWord(style.overflowX, 'auto scroll') && ((deltaX > 0 && cur.scrollLeft > 0) || (deltaX < 0 && cur.scrollLeft + cur.offsetWidth < cur.scrollWidth))) {
-                    break;
-                }
-                // @ts-ignore: e.target is Element
-                if (cur.scrollHeight > cur.offsetHeight && matchWord(style.overflowY, 'auto scroll') && ((deltaY > 0 && cur.scrollTop > 0) || (deltaY < 0 && cur.scrollTop + cur.offsetHeight < cur.scrollHeight))) {
-                    break;
-                }
+            var style = getComputedStyle(cur);
+            // @ts-ignore: e.target is Element
+            if (cur.scrollWidth > cur.offsetWidth && matchWord(style.overflowX, 'auto scroll') && ((deltaX > 0 && cur.scrollLeft > 0) || (deltaX < 0 && cur.scrollLeft + cur.offsetWidth < cur.scrollWidth))) {
+                break;
             }
-            if (!focusable(cur)) {
-                e.preventDefault();
+            // @ts-ignore: e.target is Element
+            if (cur.scrollHeight > cur.offsetHeight && matchWord(style.overflowY, 'auto scroll') && ((deltaY > 0 && cur.scrollTop > 0) || (deltaY < 0 && cur.scrollTop + cur.offsetHeight < cur.scrollHeight))) {
+                break;
             }
-        },
-        blur: function (e) {
-            if (e.target === window) {
-                windowFocusedOut = true;
-            }
+        }
+        if (!focusable(cur === root ? document.body : cur)) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    bind(window, 'blur', function (e) {
+        if (e.target === window) {
+            windowFocusedOut = true;
         }
     });
 
