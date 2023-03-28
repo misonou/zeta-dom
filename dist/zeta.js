@@ -9,36 +9,12 @@
 		root["zeta"] = factory(root["jQuery"]);
 })(self, function(__WEBPACK_EXTERNAL_MODULE__609__) {
 return /******/ (function() { // webpackBootstrap
+/******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 196:
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-// @ts-nocheck
-
-/** @type {JQueryStatic} */
-var jQuery = window.jQuery || __webpack_require__(609);
-
-module.exports = jQuery;
-
-/***/ }),
-
-/***/ 560:
-/***/ (function(module, __unused_webpack_exports, __webpack_require__) {
-
-// @ts-nocheck
-
-/** @type {PromiseConstructor} */
-var Promise = window.Promise || __webpack_require__.c[/*require.resolve*/(null /* weak dependency, without id */)].default;
-
-module.exports = Promise;
-
-/***/ }),
-
-/***/ 977:
+/***/ 702:
 /***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
 
-"use strict";
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
@@ -208,10 +184,14 @@ __webpack_require__.d(cssUtil_namespaceObject, {
   "runCSSTransition": function() { return runCSSTransition; }
 });
 
-// EXTERNAL MODULE: ./src/include/promise-polyfill.js
-var promise_polyfill = __webpack_require__(560);
-// EXTERNAL MODULE: ./src/include/jquery.js
-var jquery = __webpack_require__(196);
+// CONCATENATED MODULE: ./src/include/promise-polyfill.js
+var promise_polyfill_Promise = window.Promise;
+/* harmony default export */ const promise_polyfill = (promise_polyfill_Promise);
+// EXTERNAL MODULE: external "jQuery"
+var external_jQuery_ = __webpack_require__(609);
+// CONCATENATED MODULE: ./src/include/jquery.js
+
+/* harmony default export */ const jquery = (external_jQuery_);
 // CONCATENATED MODULE: ./src/env.js
 // @ts-nocheck
 
@@ -3390,35 +3370,39 @@ domReady.then(function () {
       }
     }
   }, true);
-  bind(env_window, {
-    wheel: function wheel(e) {
-      // scrolling will happen on first scrollable element up the DOM tree
-      // prevent scrolling if interaction on such element should be blocked by modal element
-      var deltaX = -e.deltaX;
-      var deltaY = -e.deltaY; // @ts-ignore: e.target is Element
-
-      for (var cur = e.target; cur && cur !== root; cur = cur.parentNode) {
-        // @ts-ignore: e.target is Element
-        var style = getComputedStyle(cur); // @ts-ignore: e.target is Element
-
-        if (cur.scrollWidth > cur.offsetWidth && matchWord(style.overflowX, 'auto scroll') && (deltaX > 0 && cur.scrollLeft > 0 || deltaX < 0 && cur.scrollLeft + cur.offsetWidth < cur.scrollWidth)) {
-          break;
-        } // @ts-ignore: e.target is Element
+  bind(env_window, 'wheel', function (e) {
+    if (currentMetaKey) {
+      return;
+    } // scrolling will happen on first scrollable element up the DOM tree
+    // prevent scrolling if interaction on such element should be blocked by modal element
 
 
-        if (cur.scrollHeight > cur.offsetHeight && matchWord(style.overflowY, 'auto scroll') && (deltaY > 0 && cur.scrollTop > 0 || deltaY < 0 && cur.scrollTop + cur.offsetHeight < cur.scrollHeight)) {
-          break;
-        }
+    var deltaX = -e.deltaX;
+    var deltaY = -e.deltaY; // @ts-ignore: e.target is Element
+
+    for (var cur = e.target; cur && cur !== root; cur = cur.parentNode) {
+      // @ts-ignore: e.target is Element
+      var style = getComputedStyle(cur); // @ts-ignore: e.target is Element
+
+      if (cur.scrollWidth > cur.offsetWidth && matchWord(style.overflowX, 'auto scroll') && (deltaX > 0 && cur.scrollLeft > 0 || deltaX < 0 && cur.scrollLeft + cur.offsetWidth < cur.scrollWidth)) {
+        break;
+      } // @ts-ignore: e.target is Element
+
+
+      if (cur.scrollHeight > cur.offsetHeight && matchWord(style.overflowY, 'auto scroll') && (deltaY > 0 && cur.scrollTop > 0 || deltaY < 0 && cur.scrollTop + cur.offsetHeight < cur.scrollHeight)) {
+        break;
       }
+    }
 
-      if (!focusable(cur)) {
-        e.preventDefault();
-      }
-    },
-    blur: function blur(e) {
-      if (e.target === env_window) {
-        windowFocusedOut = true;
-      }
+    if (!focusable(cur === root ? env_document.body : cur)) {
+      e.preventDefault();
+    }
+  }, {
+    passive: false
+  });
+  bind(env_window, 'blur', function (e) {
+    if (e.target === env_window) {
+      windowFocusedOut = true;
     }
   });
   listenDOMEvent('escape', function () {
@@ -3441,7 +3425,7 @@ function dom_focus(element) {
     element = jquery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
   }
 
-  setFocus(element);
+  return !!setFocus(element);
 }
 
 /* harmony default export */ const dom = ({
@@ -4625,7 +4609,7 @@ function getRect(elm, includeMargin) {
 
 
     var o = getRect(div);
-    rect = toPlainRect(0, 0, root.offsetWidth, root.offsetHeight).translate(o.left, o.top);
+    rect = toPlainRect(0, 0, root.clientWidth, root.clientHeight).translate(o.left, o.top);
   } else if (!containsOrEquals(root, elm)) {
     // IE10 throws Unspecified Error for detached elements
     rect = toPlainRect(0, 0, 0, 0);
@@ -4933,7 +4917,6 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 /***/ 609:
 /***/ (function(module) {
 
-"use strict";
 module.exports = __WEBPACK_EXTERNAL_MODULE__609__;
 
 /***/ })
@@ -4951,23 +4934,17 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__609__;
 /******/ 		}
 /******/ 		// Create a new module (and put it into the cache)
 /******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			id: moduleId,
-/******/ 			loaded: false,
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
 /******/ 			exports: {}
 /******/ 		};
 /******/ 	
 /******/ 		// Execute the module function
 /******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 /******/ 	
-/******/ 		// Flag the module as loaded
-/******/ 		module.loaded = true;
-/******/ 	
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-/******/ 	
-/******/ 	// expose the module cache
-/******/ 	__webpack_require__.c = __webpack_module_cache__;
 /******/ 	
 /************************************************************************/
 /******/ 	/* webpack/runtime/define property getters */
@@ -4999,10 +4976,10 @@ module.exports = __WEBPACK_EXTERNAL_MODULE__609__;
 /******/ 	}();
 /******/ 	
 /************************************************************************/
-/******/ 	// module cache are used so entry inlining is disabled
+/******/ 	// module exports must be returned from runtime so entry inlining is disabled
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(977);
+/******/ 	return __webpack_require__(702);
 /******/ })()
 ;
 });
