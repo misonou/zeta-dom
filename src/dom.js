@@ -235,8 +235,7 @@ function releaseModal(element, modalPath) {
     if (!modalPath) {
         return;
     }
-    var index = focusPath.indexOf(element);
-    if (index >= 0) {
+    if (focusPath.indexOf(element) >= 0) {
         var inner = any(modalPath, function (v) {
             return containsOrEquals(v, element);
         });
@@ -245,6 +244,8 @@ function releaseModal(element, modalPath) {
             // which focus is lost to modal element
             setFocus(inner, null, modalPath);
         }
+        // find the index again as focusPath might be updated
+        var index = focusPath.indexOf(element);
         focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
         setFocus(focusPath[0]);
         cleanupFocusPath();
