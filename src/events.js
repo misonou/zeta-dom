@@ -262,13 +262,10 @@ function emitterGetElements(emitter, bubbles) {
         return bubbles ? parentsAndSelf(target) : [target];
     }
     var originalEvent = emitter.originalEvent;
-    if (!originalEvent || originalEvent !== dom.event) {
-        return bubbles ? iterateFocusPath(target) : [target];
-    }
     var focusedElements = emitter.source.path;
     var index = focusedElements.indexOf(target);
-    if (index < 0) {
-        return [];
+    if (!originalEvent || originalEvent !== dom.event || index < 0) {
+        return bubbles ? iterateFocusPath(target) : [target];
     }
     var targets = focusedElements.slice(index);
     if (emitter.clientX === undefined || !document.elementFromPoint) {
