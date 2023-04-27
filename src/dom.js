@@ -792,7 +792,7 @@ domReady.then(function () {
     };
 
     each(uiEvents, function (i, v) {
-        bind(root, i, handleUIEventWrapper(i, v), true);
+        bind(root, i, handleUIEventWrapper(i, v), { capture: true, passive: false });
     });
 
     bind(root, {
