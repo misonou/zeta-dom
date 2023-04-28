@@ -2762,6 +2762,7 @@ function iterateFocusPath(element) {
   var returnedOnce;
 
   if (element === root || !focused(element)) {
+    var visited = new Set();
     return createIterator(function () {
       if (!returnedOnce || !element) {
         returnedOnce = true;
@@ -2769,9 +2770,10 @@ function iterateFocusPath(element) {
         var friend = focusFriends.get(element); // make sure the next iterated element in connected in DOM and
         // not being the descendants of current element
 
-        element = friend && containsOrEquals(root, friend) && !containsOrEquals(element, friend) ? friend : element.parentNode;
+        element = friend && !visited.has(friend) && containsOrEquals(root, friend) && !containsOrEquals(element, friend) ? friend : element.parentNode;
       }
 
+      visited.add(element);
       return element;
     });
   }
@@ -3340,7 +3342,10 @@ domReady.then(function () {
     }
   };
   each(uiEvents, function (i, v) {
-    bind(root, i, handleUIEventWrapper(i, v), true);
+    bind(root, i, handleUIEventWrapper(i, v), {
+      capture: true,
+      passive: false
+    });
   });
   bind(root, {
     focusin: function focusin(e) {
@@ -3787,16 +3792,11 @@ function emitterGetElements(emitter, bubbles) {
   }
 
   var originalEvent = emitter.originalEvent;
-
-  if (!originalEvent || originalEvent !== dom.event) {
-    return bubbles ? iterateFocusPath(target) : [target];
-  }
-
   var focusedElements = emitter.source.path;
   var index = focusedElements.indexOf(target);
 
-  if (index < 0) {
-    return [];
+  if (!originalEvent || originalEvent !== dom.event || index < 0) {
+    return bubbles ? iterateFocusPath(target) : [target];
   }
 
   var targets = focusedElements.slice(index);
