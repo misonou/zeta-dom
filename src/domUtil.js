@@ -394,7 +394,7 @@ function scrollIntoView(element, rect, within) {
     deltaY = Math.min(deltaY, 0) || Math.max(0, Math.min(deltaY, rect.bottom - parentRect.bottom));
     var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
     if (parent !== root) {
-        var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y), within);
+        var parentResult = scrollIntoView(parent.parentNode, rect.translate(-result.x, -result.y), within);
         if (parentResult) {
             result = {
                 x: result.x + parentResult.x,
