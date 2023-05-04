@@ -1,5 +1,5 @@
 import { } from "./libCheck.js";
-import { IS_MAC, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
+import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
@@ -751,7 +751,9 @@ domReady.then(function () {
             clearTimeout(pressTimeout);
         },
         mousedown: function (e) {
-            setFocus(e.target);
+            if (!IS_TOUCH) {
+                setFocus(e.target);
+            }
             if (isMouseDown(e)) {
                 triggerMouseEvent('mousedown');
             }
