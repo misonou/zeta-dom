@@ -3297,7 +3297,9 @@ domReady.then(function () {
       clearTimeout(pressTimeout);
     },
     mousedown: function mousedown(e) {
-      setFocus(e.target);
+      if (!IS_TOUCH) {
+        setFocus(e.target);
+      }
 
       if (isMouseDown(e)) {
         triggerMouseEvent('mousedown');
@@ -4550,7 +4552,7 @@ function scrollIntoView(element, rect, within) {
   var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
 
   if (parent !== root) {
-    var parentResult = scrollIntoView(parent.parentNode, rect.translate(result.x, result.y), within);
+    var parentResult = scrollIntoView(parent.parentNode, rect.translate(-result.x, -result.y), within);
 
     if (parentResult) {
       result = {
