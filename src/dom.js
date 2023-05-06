@@ -1,5 +1,5 @@
 import { } from "./libCheck.js";
-import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
+import { IS_MAC, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
@@ -140,7 +140,7 @@ function triggerModalChangeEvent() {
     });
 }
 
-function setFocus(element, source, path, suppressFocusChange) {
+function setFocus(element, source, path, suppressFocus, suppressFocusChange) {
     var removed = [];
     if (element === root) {
         element = document.body;
@@ -174,10 +174,10 @@ function setFocus(element, source, path, suppressFocusChange) {
             return focusFriends.get(v);
         });
         if (friend && added.indexOf(friend) < 0 && !focused(friend)) {
-            result = setFocus(friend, source, path, true);
+            result = setFocus(friend, source, path, suppressFocus, true);
         }
         if (result === undefined) {
-            setFocusUnsafe(added, source, path);
+            setFocusUnsafe(added, source, path, suppressFocus);
             result = !!added[0];
         }
     }
@@ -187,7 +187,7 @@ function setFocus(element, source, path, suppressFocusChange) {
     return result;
 }
 
-function setFocusUnsafe(elements, source, path) {
+function setFocusUnsafe(elements, source, path, suppressFocus) {
     path = path || focusPath;
     if (elements[0]) {
         path.unshift.apply(path, elements);
@@ -196,7 +196,7 @@ function setFocusUnsafe(elements, source, path) {
         });
         triggerFocusEvent('focusin', elements.reverse(), null, source || new ZetaEventSource(elements[0], path));
     }
-    if (path === focusPath) {
+    if (path === focusPath && !suppressFocus) {
         var activeElement = document.activeElement;
         if (path[0] !== activeElement) {
             path[0].focus();
@@ -717,7 +717,7 @@ domReady.then(function () {
         },
         touchstart: function (e) {
             mouseInitialPoint = extend({}, e.touches[0]);
-            setFocus(e.target);
+            setFocus(e.target, null, null, true);
             triggerMouseEvent('touchstart');
             if (!e.touches[1]) {
                 pressTimeout = setTimeout(function () {
@@ -751,9 +751,7 @@ domReady.then(function () {
             clearTimeout(pressTimeout);
         },
         mousedown: function (e) {
-            if (!IS_TOUCH) {
-                setFocus(e.target);
-            }
+            setFocus(e.target);
             if (isMouseDown(e)) {
                 triggerMouseEvent('mousedown');
             }
