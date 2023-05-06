@@ -734,7 +734,9 @@ describe('getRect', () => {
     });
 
     it('should return a rect expanded by the specified amount', () => {
+        const cb = mockFn().mockReturnValue(toPlainRect(0, 0, 0, 0));
         expect(getRect(body, 10)).toEqual(toPlainRect(-10, -10, 10, 10));
+        expect(getRect({ getRect: cb }, 10)).toEqual(toPlainRect(-10, -10, 10, 10));
     });
 });
 

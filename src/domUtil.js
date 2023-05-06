@@ -435,33 +435,35 @@ function getRect(elm, includeMargin) {
     var rect;
     elm = elm || root;
     if (elm.getRect) {
-        return elm.getRect();
-    }
-    elm = elm.element || elm;
-    if (elm === root || elm === window) {
-        var div = originDiv || (originDiv = $('<div style="position:fixed; top:0; left:0;">')[0]);
-        if (!containsOrEquals(document.body, div)) {
-            document.body.appendChild(div);
-        }
-        // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
-        // when virtual keyboard is shown on mobile devices
-        var o = getRect(div);
-        rect = toPlainRect(0, 0, root.clientWidth, root.clientHeight).translate(o.left, o.top);
-    } else if (!containsOrEquals(root, elm)) {
-        // IE10 throws Unspecified Error for detached elements
-        rect = toPlainRect(0, 0, 0, 0);
+        rect = elm.getRect();
     } else {
-        rect = toPlainRect(elm.getBoundingClientRect());
-        if (includeMargin === true) {
-            var style = getComputedStyle(elm);
-            var marginTop = Math.max(0, parseFloat(style.marginTop));
-            var marginLeft = Math.max(0, parseFloat(style.marginLeft));
-            var marginRight = Math.max(0, parseFloat(style.marginRight));
-            var marginBottom = Math.max(0, parseFloat(style.marginBottom));
-            rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
-        } else if (includeMargin) {
-            rect = rect.expand(includeMargin);
+        elm = elm.element || elm;
+        if (elm === root || elm === window) {
+            var div = originDiv || (originDiv = $('<div style="position:fixed; top:0; left:0;">')[0]);
+            if (!containsOrEquals(document.body, div)) {
+                document.body.appendChild(div);
+            }
+            // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
+            // when virtual keyboard is shown on mobile devices
+            var o = getRect(div);
+            rect = toPlainRect(0, 0, root.clientWidth, root.clientHeight).translate(o.left, o.top);
+        } else if (!containsOrEquals(root, elm)) {
+            // IE10 throws Unspecified Error for detached elements
+            rect = toPlainRect(0, 0, 0, 0);
+        } else {
+            rect = toPlainRect(elm.getBoundingClientRect());
+            if (includeMargin === true) {
+                var style = getComputedStyle(elm);
+                var marginTop = Math.max(0, parseFloat(style.marginTop));
+                var marginLeft = Math.max(0, parseFloat(style.marginLeft));
+                var marginRight = Math.max(0, parseFloat(style.marginRight));
+                var marginBottom = Math.max(0, parseFloat(style.marginBottom));
+                rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
+            }
         }
+    }
+    if (typeof includeMargin === 'number') {
+        rect = rect.expand(includeMargin);
     }
     return rect;
 }
