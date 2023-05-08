@@ -618,27 +618,25 @@ domReady.then(function () {
             var afterNodeText = imeNodeText;
             var afterOffset = imeOffset[1];
             var startOffset = afterOffset;
-            if (imeModifyOnUpdate) {
-                // in some case the node does not contain the final input text
-                if (prevOffset[0] + imeText.length !== afterOffset) {
-                    afterNodeText = imeNodeText.slice(0, afterOffset) + imeText + imeNodeText.slice(afterOffset);
-                    afterOffset += imeText.length;
-                }
-            } else {
-                // some old mobile browsers fire compositionend event before replacing final character sequence
-                // need to compare both to truncate the correct range of characters
-                // three cases has been observed: XXX{imeText}|, XXX{prevText}| and XXX|{imeText}
-                var o1 = afterOffset - imeText.length;
-                var o2 = afterOffset - prevText.length;
-                if (imeNodeText.slice(o1, afterOffset) === imeText) {
-                    startOffset = o1;
-                } else if (imeNodeText.slice(o2, afterOffset) === prevText) {
-                    startOffset = o2;
-                } else if (imeNodeText.substr(afterOffset, imeText.length) === imeText) {
-                    afterOffset += imeText.length;
-                }
-                prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
+            // in some case the node does not contain the final input text
+            if (imeModifyOnUpdate && (prevOffset[0] + imeText.length !== afterOffset)) {
+                afterNodeText = imeNodeText.slice(0, afterOffset) + imeText + imeNodeText.slice(afterOffset);
+                afterOffset += imeText.length;
             }
+            // some old mobile browsers fire compositionend event before replacing final character sequence
+            // need to compare both to truncate the correct range of characters
+            // three cases has been observed: XXX{imeText}|, XXX{prevText}| and XXX|{imeText}
+            var o1 = afterOffset - imeText.length;
+            var o2 = afterOffset - prevText.length;
+            if (imeNodeText.slice(o1, afterOffset) === imeText) {
+                startOffset = o1;
+            } else if (imeNodeText.slice(o2, afterOffset) === prevText) {
+                startOffset = o2;
+            } else if (imeNodeText.substr(afterOffset, imeText.length) === imeText) {
+                afterOffset += imeText.length;
+            }
+            prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
+
             var range = document.createRange();
             if (isInputElm) {
                 inputValueImpl(imeNode, 'set', prevNodeText);
