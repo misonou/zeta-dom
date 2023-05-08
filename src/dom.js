@@ -578,6 +578,9 @@ domReady.then(function () {
             imeText = '';
         },
         compositionupdate: function (e) {
+            if (!imeNode || imeOffset[0] === null) {
+                return;
+            }
             if (!hasCompositionUpdate && imeOffset[0] !== imeOffset[1]) {
                 triggerUIEvent('textInput', '');
             }
@@ -596,6 +599,9 @@ domReady.then(function () {
             }
         },
         compositionend: function (e) {
+            if (!imeNode || imeOffset[0] === null) {
+                return;
+            }
             var isInputElm = 'selectionEnd' in imeNode;
             var prevText = imeText;
             var prevOffset = imeOffset;
