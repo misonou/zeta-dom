@@ -447,6 +447,7 @@ domReady.then(function () {
     var mouseInitialPoint;
     var mousedownFocus;
     var pressTimeout;
+    var hasBeforeInput;
     var hasCompositionUpdate;
     var imeModifyOnUpdate;
     var imeNodeText;
@@ -663,9 +664,10 @@ domReady.then(function () {
         textInput: function (e) {
             // required for older mobile browsers that do not support beforeinput event
             // ignore in case browser fire textInput before/after compositionend
-            if (!hasCompositionUpdate && (e.data === imeText || triggerUIEvent('textInput', e.data))) {
+            if (!hasCompositionUpdate && (e.data === imeText || (!hasBeforeInput && triggerUIEvent('textInput', e.data)))) {
                 e.preventDefault();
             }
+            hasBeforeInput = false;
         },
         keydown: function (e) {
             if (!imeNode) {
@@ -703,6 +705,7 @@ domReady.then(function () {
             if (!imeNode && e.cancelable) {
                 switch (e.inputType) {
                     case 'insertText':
+                        hasBeforeInput = true;
                         if (triggerUIEvent('textInput', e.data)) {
                             e.preventDefault();
                         }
