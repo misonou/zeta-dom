@@ -2606,7 +2606,7 @@ function triggerModalChangeEvent() {
   });
 }
 
-function setFocus(element, source, path, suppressFocusChange) {
+function setFocus(element, source, path, suppressFocus, suppressFocusChange) {
   var removed = [];
 
   if (element === root) {
@@ -2648,11 +2648,11 @@ function setFocus(element, source, path, suppressFocusChange) {
     });
 
     if (friend && added.indexOf(friend) < 0 && !focused(friend)) {
-      result = setFocus(friend, source, path, true);
+      result = setFocus(friend, source, path, suppressFocus, true);
     }
 
     if (result === undefined) {
-      setFocusUnsafe(added, source, path);
+      setFocusUnsafe(added, source, path, suppressFocus);
       result = !!added[0];
     }
   }
@@ -2664,7 +2664,7 @@ function setFocus(element, source, path, suppressFocusChange) {
   return result;
 }
 
-function setFocusUnsafe(elements, source, path) {
+function setFocusUnsafe(elements, source, path, suppressFocus) {
   path = path || focusPath;
 
   if (elements[0]) {
@@ -2675,7 +2675,7 @@ function setFocusUnsafe(elements, source, path) {
     triggerFocusEvent('focusin', elements.reverse(), null, source || new ZetaEventSource(elements[0], path));
   }
 
-  if (path === focusPath) {
+  if (path === focusPath && !suppressFocus) {
     var activeElement = env_document.activeElement;
 
     if (path[0] !== activeElement) {
@@ -2959,6 +2959,7 @@ domReady.then(function () {
   var mouseInitialPoint;
   var mousedownFocus;
   var pressTimeout;
+  var hasBeforeInput;
   var hasCompositionUpdate;
   var imeModifyOnUpdate;
   var imeNodeText;
@@ -3105,6 +3106,10 @@ domReady.then(function () {
       imeText = '';
     },
     compositionupdate: function compositionupdate(e) {
+      if (!imeNode || imeOffset[0] === null) {
+        return;
+      }
+
       if (!hasCompositionUpdate && imeOffset[0] !== imeOffset[1]) {
         triggerUIEvent('textInput', '');
       }
@@ -3124,6 +3129,10 @@ domReady.then(function () {
       }
     },
     compositionend: function compositionend(e) {
+      if (!imeNode || imeOffset[0] === null) {
+        return;
+      }
+
       var isInputElm = ('selectionEnd' in imeNode);
       var prevText = imeText;
       var prevOffset = imeOffset;
@@ -3138,32 +3147,28 @@ domReady.then(function () {
 
       var afterNodeText = imeNodeText;
       var afterOffset = imeOffset[1];
-      var startOffset = afterOffset;
+      var startOffset = afterOffset; // in some case the node does not contain the final input text
 
-      if (imeModifyOnUpdate) {
-        // in some case the node does not contain the final input text
-        if (prevOffset[0] + imeText.length !== afterOffset) {
-          afterNodeText = imeNodeText.slice(0, afterOffset) + imeText + imeNodeText.slice(afterOffset);
-          afterOffset += imeText.length;
-        }
-      } else {
-        // some old mobile browsers fire compositionend event before replacing final character sequence
-        // need to compare both to truncate the correct range of characters
-        // three cases has been observed: XXX{imeText}|, XXX{prevText}| and XXX|{imeText}
-        var o1 = afterOffset - imeText.length;
-        var o2 = afterOffset - prevText.length;
+      if (imeModifyOnUpdate && prevOffset[0] + imeText.length !== afterOffset) {
+        afterNodeText = imeNodeText.slice(0, afterOffset) + imeText + imeNodeText.slice(afterOffset);
+        afterOffset += imeText.length;
+      } // some old mobile browsers fire compositionend event before replacing final character sequence
+      // need to compare both to truncate the correct range of characters
+      // three cases has been observed: XXX{imeText}|, XXX{prevText}| and XXX|{imeText}
 
-        if (imeNodeText.slice(o1, afterOffset) === imeText) {
-          startOffset = o1;
-        } else if (imeNodeText.slice(o2, afterOffset) === prevText) {
-          startOffset = o2;
-        } else if (imeNodeText.substr(afterOffset, imeText.length) === imeText) {
-          afterOffset += imeText.length;
-        }
 
-        prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
+      var o1 = afterOffset - imeText.length;
+      var o2 = afterOffset - prevText.length;
+
+      if (imeNodeText.slice(o1, afterOffset) === imeText) {
+        startOffset = o1;
+      } else if (imeNodeText.slice(o2, afterOffset) === prevText) {
+        startOffset = o2;
+      } else if (imeNodeText.substr(afterOffset, imeText.length) === imeText) {
+        afterOffset += imeText.length;
       }
 
+      prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
       var range = env_document.createRange();
 
       if (isInputElm) {
@@ -3198,9 +3203,11 @@ domReady.then(function () {
     textInput: function textInput(e) {
       // required for older mobile browsers that do not support beforeinput event
       // ignore in case browser fire textInput before/after compositionend
-      if (!hasCompositionUpdate && (e.data === imeText || triggerUIEvent('textInput', e.data))) {
+      if (!hasCompositionUpdate && (e.data === imeText || !hasBeforeInput && triggerUIEvent('textInput', e.data))) {
         e.preventDefault();
       }
+
+      hasBeforeInput = false;
     },
     keydown: function keydown(e) {
       if (!imeNode) {
@@ -3241,6 +3248,8 @@ domReady.then(function () {
       if (!imeNode && e.cancelable) {
         switch (e.inputType) {
           case 'insertText':
+            hasBeforeInput = true;
+
             if (triggerUIEvent('textInput', e.data)) {
               e.preventDefault();
             }
@@ -3258,7 +3267,7 @@ domReady.then(function () {
     },
     touchstart: function touchstart(e) {
       mouseInitialPoint = extend({}, e.touches[0]);
-      setFocus(e.target);
+      setFocus(e.target, null, null, true);
       triggerMouseEvent('touchstart');
 
       if (!e.touches[1]) {
@@ -3297,9 +3306,7 @@ domReady.then(function () {
       clearTimeout(pressTimeout);
     },
     mousedown: function mousedown(e) {
-      if (!IS_TOUCH) {
-        setFocus(e.target);
-      }
+      setFocus(e.target);
 
       if (isMouseDown(e)) {
         triggerMouseEvent('mousedown');
@@ -4596,38 +4603,40 @@ function getRect(elm, includeMargin) {
   elm = elm || root;
 
   if (elm.getRect) {
-    return elm.getRect();
+    rect = elm.getRect();
+  } else {
+    elm = elm.element || elm;
+
+    if (elm === root || elm === env_window) {
+      var div = originDiv || (originDiv = jquery('<div style="position:fixed; top:0; left:0;">')[0]);
+
+      if (!containsOrEquals(env_document.body, div)) {
+        env_document.body.appendChild(div);
+      } // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
+      // when virtual keyboard is shown on mobile devices
+
+
+      var o = getRect(div);
+      rect = toPlainRect(0, 0, root.clientWidth, root.clientHeight).translate(o.left, o.top);
+    } else if (!containsOrEquals(root, elm)) {
+      // IE10 throws Unspecified Error for detached elements
+      rect = toPlainRect(0, 0, 0, 0);
+    } else {
+      rect = toPlainRect(elm.getBoundingClientRect());
+
+      if (includeMargin === true) {
+        var style = getComputedStyle(elm);
+        var marginTop = Math.max(0, parseFloat(style.marginTop));
+        var marginLeft = Math.max(0, parseFloat(style.marginLeft));
+        var marginRight = Math.max(0, parseFloat(style.marginRight));
+        var marginBottom = Math.max(0, parseFloat(style.marginBottom));
+        rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
+      }
+    }
   }
 
-  elm = elm.element || elm;
-
-  if (elm === root || elm === env_window) {
-    var div = originDiv || (originDiv = jquery('<div style="position:fixed; top:0; left:0;">')[0]);
-
-    if (!containsOrEquals(env_document.body, div)) {
-      env_document.body.appendChild(div);
-    } // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
-    // when virtual keyboard is shown on mobile devices
-
-
-    var o = getRect(div);
-    rect = toPlainRect(0, 0, root.clientWidth, root.clientHeight).translate(o.left, o.top);
-  } else if (!containsOrEquals(root, elm)) {
-    // IE10 throws Unspecified Error for detached elements
-    rect = toPlainRect(0, 0, 0, 0);
-  } else {
-    rect = toPlainRect(elm.getBoundingClientRect());
-
-    if (includeMargin === true) {
-      var style = getComputedStyle(elm);
-      var marginTop = Math.max(0, parseFloat(style.marginTop));
-      var marginLeft = Math.max(0, parseFloat(style.marginLeft));
-      var marginRight = Math.max(0, parseFloat(style.marginRight));
-      var marginBottom = Math.max(0, parseFloat(style.marginBottom));
-      rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
-    } else if (includeMargin) {
-      rect = rect.expand(includeMargin);
-    }
+  if (typeof includeMargin === 'number') {
+    rect = rect.expand(includeMargin);
   }
 
   return rect;
