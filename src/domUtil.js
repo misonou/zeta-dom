@@ -367,7 +367,7 @@ function getContentRect(element) {
     var style = getComputedStyle(element);
     var hasOverflowX = element.offsetWidth < element.scrollWidth;
     var hasOverflowY = element.offsetHeight < element.scrollHeight;
-    var parentRect = getRect(element === document.body ? root : element);
+    var parentRect = getRect(element === root || element === document.body ? window : element);
     if ((style.overflow !== 'visible' || element === document.body) && (hasOverflowX || hasOverflowY)) {
         if (style.overflowY === 'scroll' || ((style.overflowY !== 'hidden' || element === document.body) && hasOverflowY)) {
             parentRect.right -= scrollbarWidth;
