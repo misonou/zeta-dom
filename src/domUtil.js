@@ -442,13 +442,11 @@ function getRect(elm, includeMargin) {
         if (elm === window) {
             rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
         } else if (elm === root) {
+            var div = originDiv || (originDiv = $('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;">')[0]);
             if (!containsOrEquals(document.body, div)) {
                 document.body.appendChild(div);
             }
-            // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
-            // when virtual keyboard is shown on mobile devices
-            var o = getRect(div);
-            rect = toPlainRect(0, 0, root.clientWidth, root.clientHeight).translate(o.left, o.top);
+            rect = getRect(div);
         } else if (!containsOrEquals(root, elm)) {
             // IE10 throws Unspecified Error for detached elements
             rect = toPlainRect(0, 0, 0, 0);
