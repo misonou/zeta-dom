@@ -6,6 +6,7 @@ import { emitDOMEvent } from "./events.js";
 // @ts-ignore: non-standard member
 const elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
 const compareDocumentPositionImpl = document.compareDocumentPosition;
+const visualViewport = window.visualViewport;
 const OFFSET_ZERO = Object.freeze({
     x: 0,
     y: 0
@@ -433,13 +434,14 @@ function makeSelection(b, e) {
 
 function getRect(elm, includeMargin) {
     var rect;
-    elm = elm || root;
+    elm = elm || window;
     if (elm.getRect) {
         rect = elm.getRect();
     } else {
         elm = elm.element || elm;
-        if (elm === root || elm === window) {
-            var div = originDiv || (originDiv = $('<div style="position:fixed; top:0; left:0;">')[0]);
+        if (elm === window) {
+            rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
+        } else if (elm === root) {
             if (!containsOrEquals(document.body, div)) {
                 document.body.appendChild(div);
             }
