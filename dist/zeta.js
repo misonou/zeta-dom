@@ -1,3 +1,4 @@
+/*! zeta-dom v0.3.10 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -4103,6 +4104,7 @@ function containerRemoveHandler(container, target, key) {
 
 var elementsFromPoint = env_document.msElementsFromPoint || env_document.elementsFromPoint;
 var compareDocumentPositionImpl = env_document.compareDocumentPosition;
+var visualViewport = env_window.visualViewport;
 var OFFSET_ZERO = Object.freeze({
   x: 0,
   y: 0
@@ -4523,7 +4525,7 @@ function getContentRect(element) {
   var style = getComputedStyle(element);
   var hasOverflowX = element.offsetWidth < element.scrollWidth;
   var hasOverflowY = element.offsetHeight < element.scrollHeight;
-  var parentRect = getRect(element === env_document.body ? root : element);
+  var parentRect = getRect(element === root || element === env_document.body ? env_window : element);
 
   if ((style.overflow !== 'visible' || element === env_document.body) && (hasOverflowX || hasOverflowY)) {
     if (style.overflowY === 'scroll' || (style.overflowY !== 'hidden' || element === env_document.body) && hasOverflowY) {
@@ -4600,24 +4602,23 @@ function makeSelection(b, e) {
 
 function getRect(elm, includeMargin) {
   var rect;
-  elm = elm || root;
+  elm = elm || env_window;
 
   if (elm.getRect) {
     rect = elm.getRect();
   } else {
     elm = elm.element || elm;
 
-    if (elm === root || elm === env_window) {
-      var div = originDiv || (originDiv = jquery('<div style="position:fixed; top:0; left:0;">')[0]);
+    if (elm === env_window) {
+      rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
+    } else if (elm === root) {
+      var div = originDiv || (originDiv = jquery('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;">')[0]);
 
       if (!containsOrEquals(env_document.body, div)) {
         env_document.body.appendChild(div);
-      } // origin used by CSS, DOMRect and properties like clientX/Y may move away from the top-left corner of the window
-      // when virtual keyboard is shown on mobile devices
+      }
 
-
-      var o = getRect(div);
-      rect = toPlainRect(0, 0, root.clientWidth, root.clientHeight).translate(o.left, o.top);
+      rect = getRect(div);
     } else if (!containsOrEquals(root, elm)) {
       // IE10 throws Unspecified Error for detached elements
       rect = toPlainRect(0, 0, 0, 0);
