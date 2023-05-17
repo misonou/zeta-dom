@@ -338,6 +338,9 @@ function scrollBy(element, x, y) {
         return result;
     }
     var winOrElm = element === root || element === document.body ? window : element;
+    if (winOrElm !== window && getComputedStyle(winOrElm).overflow !== 'scroll') {
+        return OFFSET_ZERO;
+    }
     var orig = getScrollOffset(winOrElm);
     if (winOrElm.scrollBy) {
         winOrElm.scrollBy(x, y);

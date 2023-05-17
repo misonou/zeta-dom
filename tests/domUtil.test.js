@@ -625,7 +625,34 @@ describe('scrollBy', () => {
         expect(window.scrollBy).toBeCalledTimes(3);
     });
 
-    it('should set scrollLeft and scrollTop property for element', () => {
+    it('should set scrollLeft and scrollTop property for element when overflow is set to scroll', () => {
+        var scrollLeft = 0;
+        var scrollTop = 0;
+        const setScrollLeft = mockFn(() => { scrollLeft = 10; });
+        const setScrollTop = mockFn(() => { scrollTop = 10; });
+
+        const node = document.createElement('div');
+        node.style.overflow = 'scroll';
+        Object.defineProperties(node, {
+            scrollLeft: {
+                configurable: true,
+                enumerable: true,
+                get: function () { return scrollLeft; },
+                set: setScrollLeft
+            },
+            scrollTop: {
+                configurable: true,
+                enumerable: true,
+                get: function () { return scrollTop; },
+                set: setScrollTop
+            }
+        });
+        expect(scrollBy(node, 20, 30)).toEqual({ x: 10, y: 10 });
+        expect(setScrollLeft).toBeCalledWith(20);
+        expect(setScrollTop).toBeCalledWith(30);
+    });
+
+    it('should not set scrollLeft and scrollTop property for element when overflow is not set to scroll', () => {
         var scrollLeft = 0;
         var scrollTop = 0;
         const setScrollLeft = mockFn(() => { scrollLeft = 10; });
@@ -646,9 +673,9 @@ describe('scrollBy', () => {
                 set: setScrollTop
             }
         });
-        expect(scrollBy(node, 20, 30)).toEqual({ x: 10, y: 10 });
-        expect(setScrollLeft).toBeCalledWith(20);
-        expect(setScrollTop).toBeCalledWith(30);
+        expect(scrollBy(node, 20, 30)).toEqual({ x: 0, y: 0 });
+        expect(setScrollLeft).not.toBeCalled();
+        expect(setScrollTop).not.toBeCalled();
     });
 });
 
