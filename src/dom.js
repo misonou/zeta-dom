@@ -709,11 +709,14 @@ domReady.then(function () {
             if (!imeNode && e.cancelable) {
                 switch (e.inputType) {
                     case 'insertText':
+                    case 'insertFromPaste':
+                    case 'insertFromDrop':
                         hasBeforeInput = true;
                         if (triggerUIEvent('textInput', e.data)) {
                             e.preventDefault();
                         }
                         return;
+                    case 'deleteByCut':
                     case 'deleteContent':
                     case 'deleteContentBackward':
                         return triggerKeystrokeEvent('backspace', '');
