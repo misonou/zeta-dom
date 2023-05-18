@@ -386,7 +386,7 @@ declare namespace Zeta {
         /**
          * Gets the key or key combinations if this event is triggered by keyboard.
          */
-        readonly sourceKeyName: KeyNameSingleCharacter | KeyNameSpecial;
+        readonly sourceKeyName: KeyNameSingleCharacter | KeyNameSpecial | null;
 
         /**
          * Gets the data associated with this event.
@@ -501,7 +501,7 @@ declare namespace Zeta {
 
         readonly path: string;
         readonly source: ZetaEventSourceName;
-        sourceKeyName: string;
+        sourceKeyName: string | null;
     }
 
     interface EventEmitOptions {
