@@ -64,6 +64,35 @@ function createIterator(callback) {
     };
 }
 
+function inputValueImpl(element, method, value) {
+    // React defines its own getter and setter on input elements
+    var desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
+    if (desc && desc[method]) {
+        return desc[method].call(element, value);
+    }
+    return method === 'get' ? element.value : (element.value = value);
+}
+
+function setTextData(node, text, offset) {
+    if (node.tagName) {
+        inputValueImpl(node, 'set', text);
+        node.setSelectionRange(offset, offset);
+    } else {
+        var range = document.createRange();
+        node.data = text;
+        range.setStart(node, offset);
+        makeSelection(range);
+    }
+}
+
+function dispatchInputEvent(element, text) {
+    element.dispatchEvent(new InputEvent('input', {
+        inputType: text ? 'insertText' : 'deleteContent',
+        data: text || null,
+        bubbles: true
+    }));
+}
+
 /* --------------------------------------
  * Focus management
  * -------------------------------------- */
@@ -460,15 +489,6 @@ domReady.then(function () {
         return mod ? lcfirst(mod + ucfirst(suffix)) : suffix;
     }
 
-    function inputValueImpl(element, method, value) {
-        // React defines its own getter and setter on input elements
-        var desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
-        if (desc && desc[method]) {
-            return desc[method].call(element, value);
-        }
-        return method === 'get' ? element.value : (element.value = value);
-    }
-
     function updateIMEState() {
         var element = document.activeElement || root;
         var selection = getSelection();
@@ -602,7 +622,6 @@ domReady.then(function () {
             if (!imeNode || imeOffset[0] === null) {
                 return;
             }
-            var isInputElm = 'selectionEnd' in imeNode;
             var prevText = imeText;
             var prevOffset = imeOffset;
             var prevNodeText = imeNodeText;
@@ -637,27 +656,10 @@ domReady.then(function () {
             }
             prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
 
-            var range = document.createRange();
-            if (isInputElm) {
-                inputValueImpl(imeNode, 'set', prevNodeText);
-                imeNode.setSelectionRange(startOffset, startOffset);
-            } else {
-                imeNode.data = prevNodeText;
-                range.setStart(imeNode, startOffset);
-                makeSelection(range);
-            }
+            setTextData(imeNode, prevNodeText, startOffset);
             if (!triggerUIEvent('textInput', imeText)) {
-                if (isInputElm) {
-                    var event = document.createEvent('Event');
-                    event.initEvent('change', true);
-                    inputValueImpl(imeNode, 'set', afterNodeText);
-                    imeNode.setSelectionRange(afterOffset, afterOffset);
-                    imeNode.dispatchEvent(event);
-                } else {
-                    imeNode.data = afterNodeText;
-                    range.setStart(imeNode, afterOffset);
-                    makeSelection(range);
-                }
+                setTextData(imeNode, afterNodeText, afterOffset);
+                dispatchInputEvent(e.target, imeText);
             }
             imeNode = null;
             hasCompositionUpdate = false;
