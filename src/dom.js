@@ -677,14 +677,14 @@ domReady.then(function () {
             if (!imeNode) {
                 var keyCode = e.keyCode;
                 var isModifierKey = (META_KEYS.indexOf(keyCode) >= 0);
-                var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || (keyCode >= 96 && keyCode <= 111));
+                var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || keyCode === 32 || (keyCode >= 96 && keyCode <= 111));
                 // @ts-ignore: boolean arithmetic
                 modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !isModifierKey;
                 // @ts-ignore: boolean arithmetic
                 modifierCount *= isSpecialKey || ((modifierCount > 2 || (modifierCount > 1 && !e.shiftKey)) && !isModifierKey);
                 modifiedKeyCode = keyCode;
                 if (modifierCount) {
-                    triggerKeystrokeEvent(getEventName(e, KEYNAMES[keyCode] || e.key), keyCode === 32 ? ' ' : '');
+                    triggerKeystrokeEvent(getEventName(e, KEYNAMES[keyCode] || e.key), '');
                 }
             }
         },
@@ -694,12 +694,16 @@ domReady.then(function () {
                 modifiedKeyCode = null;
                 modifierCount--;
             }
+            lastEventSource.sourceKeyName = null;
         },
         keypress: function (e) {
-            var data = e.char || e.key || String.fromCharCode(e.charCode);
-            // @ts-ignore: non-standard member
-            if (!imeNode && !modifierCount && (e.synthetic || !('onbeforeinput' in e.target))) {
-                triggerKeystrokeEvent(getEventName(e, KEYNAMES[modifiedKeyCode] || data), data);
+            if (!imeNode) {
+                var data = e.char || e.key || String.fromCharCode(e.charCode);
+                var keyName = getEventName(e, KEYNAMES[modifiedKeyCode] || data);
+                lastEventSource.sourceKeyName = keyName;
+                if (!modifierCount) {
+                    triggerKeystrokeEvent(keyName, data);
+                }
             }
         },
         beforeinput: function (e) {
@@ -707,11 +711,14 @@ domReady.then(function () {
                 hasCompositionUpdate = false;
             }
             if (!imeNode && e.cancelable) {
+                hasBeforeInput = true;
                 switch (e.inputType) {
                     case 'insertText':
+                        if (lastEventSource.sourceKeyName) {
+                            return;
+                        }
                     case 'insertFromPaste':
                     case 'insertFromDrop':
-                        hasBeforeInput = true;
                         if (triggerUIEvent('textInput', e.data)) {
                             e.preventDefault();
                         }
