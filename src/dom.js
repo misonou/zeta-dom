@@ -3,7 +3,7 @@ import { IS_MAC, window, document, root, getSelection, getComputedStyle, domRead
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setImmediate, setImmediateOnce, single, ucfirst } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setImmediate, setImmediateOnce, single, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
@@ -470,6 +470,31 @@ function beginPinchZoom(callback) {
     });
 }
 
+function insertText(element, text, startOffset, endOffset) {
+    if (isUndefinedOrNull(element.selectionStart)) {
+        throw errorWithCode(ErrorCode.invalidOperation);
+    }
+    var prevText = inputValueImpl(element, 'get');
+    var maxLength = element.maxLength;
+    if (startOffset === undefined) {
+        startOffset = element.selectionStart;
+        endOffset = element.selectionEnd;
+    } else {
+        startOffset = Math.max(0, Math.min(startOffset, prevText.length));
+        endOffset = Math.max(startOffset, endOffset || startOffset);
+    }
+    if (maxLength >= 0) {
+        text = text.slice(0, Math.max(0, maxLength - prevText.length + endOffset - startOffset));
+    }
+    if (text || startOffset !== endOffset) {
+        var newtext = prevText.slice(0, startOffset) + text + prevText.slice(endOffset);
+        setTextData(element, newtext, startOffset + text.length);
+        dispatchInputEvent(element, text);
+        return true;
+    }
+    return false;
+}
+
 domReady.then(function () {
     var modifierCount;
     var modifiedKeyCode;
@@ -934,6 +959,7 @@ export default {
     focus,
     beginDrag,
     beginPinchZoom,
+    insertText,
     getShortcut,
     setShortcut,
 
@@ -962,6 +988,7 @@ export {
     textInputAllowed,
     beginDrag,
     beginPinchZoom,
+    insertText,
     getShortcut,
     setShortcut,
     focusable,

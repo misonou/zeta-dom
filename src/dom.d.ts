@@ -16,6 +16,7 @@ declare const methods = {
     focus,
     beginDrag,
     beginPinchZoom,
+    insertText,
     getShortcut,
     setShortcut,
 };
@@ -165,3 +166,29 @@ export function beginDrag(progressCallback?: (x: number, y: number, dx: number, 
 export function beginDrag(within: Element, progressCallback?: (x: number, y: number, dx: number, dy: number) => void): Promise<void>;
 
 export function beginPinchZoom(progressCallback?: (deg: number, scale: number, translateX: number, translateY: number) => void): Promise<void>;
+
+/**
+ * Inserts text an input element, where text currently highlighted will be replaced.
+ *
+ * Note that if the input element does not support selection API, where it is the case for some input type in certain browsers,
+ * an `zeta/invalid-operation` error will be thrown. It can be verifed by whether `selectionStart` property of the input element is `null`.
+ *
+ * @param element An input element.
+ * @param text Text to be inserted.
+ * @returns Whether text is inserted and native `input` event is dispatched.
+ */
+export function insertText(element: HTMLInputElement | HTMLTextAreaElement, text: string): boolean;
+
+/**
+ * Inserts text an input element.
+ *
+ * Note that if the input element does not support selection API, where it is the case for some input type in certain browsers,
+ * an `zeta/invalid-operation` error will be thrown. It can be verifed by whether `selectionStart` property of the input element is `null`.
+ *
+ * @param element An input element.
+ * @param text Text to be inserted.
+ * @param startOffset Position to insert the text, `0` being at the start of current text. If it is larger than the length of current value, the text will be inserted at the end.
+ * @param endOffset When specified, the substring between `startOffset` and `endOffset` will be replaced by the inserting text.
+ * @returns Whether text is inserted and native `input` event is dispatched.
+ */
+export function insertText(element: HTMLInputElement | HTMLTextAreaElement, text: string, startOffset: number, endOffset?: number): boolean;

@@ -383,6 +383,124 @@ describe('retainFocus', () => {
     });
 });
 
+describe('insertText', () => {
+    it('should insert text to cursor position', () => {
+        const { input } = initBody(`
+            <input id="input" value="1234567890">
+        `);
+        input.setSelectionRange(3, 3);
+        expect(dom.insertText(input, 'foo')).toBe(true);
+        expect(input).toMatchObject({
+            value: '123foo4567890',
+            selectionStart: 6,
+            selectionEnd: 6
+        });
+    });
+
+    it('should insert text to specified position', () => {
+        const { input } = initBody(`
+            <input id="input" value="1234567890">
+        `);
+        expect(dom.insertText(input, 'foo', 3)).toBe(true);
+        expect(input).toMatchObject({
+            value: '123foo4567890',
+            selectionStart: 6,
+            selectionEnd: 6
+        });
+    });
+
+    it('should replace text in selected position', () => {
+        const { input } = initBody(`
+            <input id="input" value="1234567890">
+        `);
+        input.setSelectionRange(3, 6);
+        expect(dom.insertText(input, 'foo')).toBe(true);
+        expect(input).toMatchObject({
+            value: '123foo7890',
+            selectionStart: 6,
+            selectionEnd: 6
+        });
+    });
+
+    it('should replace text in specified position', () => {
+        const { input } = initBody(`
+            <input id="input" value="1234567890">
+        `);
+        expect(dom.insertText(input, 'foo', 3, 6)).toBe(true);
+        expect(input).toMatchObject({
+            value: '123foo7890',
+            selectionStart: 6,
+            selectionEnd: 6
+        });
+    });
+
+    it('should normalize startOffset and endOffset', () => {
+        const { input } = initBody(`
+            <input id="input" value="1234567890">
+        `);
+        dom.insertText(input, 'foo', -1, 10);
+        expect(input).toMatchObject({
+            value: 'foo',
+            selectionStart: 3,
+            selectionEnd: 3
+        });
+        dom.insertText(input, 'bar', 3, 0);
+        expect(input).toMatchObject({
+            value: 'foobar',
+            selectionStart: 6,
+            selectionEnd: 6
+        });
+    });
+
+    it('should respect maxLength property', () => {
+        const { input } = initBody(`
+            <input id="input" value="1234567890" maxlength="10">
+        `);
+        expect(dom.insertText(input, 'foobar', 3, 6)).toBe(true);
+        expect(input).toMatchObject({
+            value: '123foo7890',
+            selectionStart: 6,
+            selectionEnd: 6
+        });
+    });
+
+    it('should dispatch input event when value updated', () => {
+        const { container, input } = initBody(`
+            <div id="container">
+                <input id="input">
+            </div>
+        `);
+        const cb = mockFn();
+        input.addEventListener('input', cb);
+        container.addEventListener('input', cb);
+        expect(dom.insertText(input, 'foo')).toBe(true);
+        expect(cb).toBeCalledTimes(2);
+    });
+
+    it('should return false and not dispatch input event when value not updated', () => {
+        const { input } = initBody(`
+            <input id="input">
+        `);
+        const cb = mockFn();
+        input.addEventListener('input', cb);
+        expect(dom.insertText(input, '')).toBe(false);
+        expect(cb).not.toBeCalled();
+    });
+
+    it('should work for textarea element', () => {
+        // jsdom erreously report maxLength as 0 when maxlength attribute not exists
+        const { input } = initBody(`
+            <textarea id="input" maxlength="50">1234567890</textarea>
+        `);
+        expect(dom.insertText(input, 'foo', 3)).toBe(true);
+        expect(input).toMatchObject({
+            value: '123foo4567890',
+            selectionStart: 6,
+            selectionEnd: 6
+        });
+    });
+});
+
 describe('focus event', () => {
     it('is not handleable', () => {
         const { node1, node2 } = initBody(`
