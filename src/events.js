@@ -14,6 +14,12 @@ const asyncEventData = new Map();
 const asyncEvents = [];
 const then = Promise.prototype.then;
 
+const beforeInputType = {
+    insertFromDrop: 'drop',
+    insertFromPaste: 'paste',
+    deleteByCut: 'cut'
+};
+
 export var eventSource;
 export var lastEventSource;
 
@@ -84,10 +90,13 @@ function getEventSourceName() {
     }
     var event = dom.event || window.event;
     var type = (event && event.type) || '';
+    if (type === 'beforeinput') {
+        return beforeInputType[event.inputType] || 'keyboard';
+    }
     if (/^(touch|mouse)./.test(type)) {
         return RegExp.$1;
     }
-    if (/^(key|composition)./.test(type) || matchWord(type, 'beforeinput textInput')) {
+    if (/^(?:key.|composition.|textInput$)/.test(type)) {
         return 'keyboard';
     }
     if (matchWord(type, 'wheel click dblclick contextmenu')) {
