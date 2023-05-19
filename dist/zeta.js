@@ -1,4 +1,4 @@
-/*! zeta-dom v0.3.10 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.3.11 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -2524,6 +2524,37 @@ function createIterator(callback) {
     }
   };
 }
+
+function inputValueImpl(element, method, value) {
+  // React defines its own getter and setter on input elements
+  var desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
+
+  if (desc && desc[method]) {
+    return desc[method].call(element, value);
+  }
+
+  return method === 'get' ? element.value : element.value = value;
+}
+
+function setTextData(node, text, offset) {
+  if (node.tagName) {
+    inputValueImpl(node, 'set', text);
+    node.setSelectionRange(offset, offset);
+  } else {
+    var range = env_document.createRange();
+    node.data = text;
+    range.setStart(node, offset);
+    makeSelection(range);
+  }
+}
+
+function dispatchInputEvent(element, text) {
+  element.dispatchEvent(new InputEvent('input', {
+    inputType: text ? 'insertText' : 'deleteContent',
+    data: text || null,
+    bubbles: true
+  }));
+}
 /* --------------------------------------
  * Focus management
  * -------------------------------------- */
@@ -2954,6 +2985,36 @@ function beginPinchZoom(callback) {
   });
 }
 
+function insertText(element, text, startOffset, endOffset) {
+  if (isUndefinedOrNull(element.selectionStart)) {
+    throw errorWithCode(invalidOperation);
+  }
+
+  var prevText = inputValueImpl(element, 'get');
+  var maxLength = element.maxLength;
+
+  if (startOffset === undefined) {
+    startOffset = element.selectionStart;
+    endOffset = element.selectionEnd;
+  } else {
+    startOffset = Math.max(0, Math.min(startOffset, prevText.length));
+    endOffset = Math.max(startOffset, endOffset || startOffset);
+  }
+
+  if (maxLength >= 0) {
+    text = text.slice(0, Math.max(0, maxLength - prevText.length + endOffset - startOffset));
+  }
+
+  if (text || startOffset !== endOffset) {
+    var newtext = prevText.slice(0, startOffset) + text + prevText.slice(endOffset);
+    setTextData(element, newtext, startOffset + text.length);
+    dispatchInputEvent(element, text);
+    return true;
+  }
+
+  return false;
+}
+
 domReady.then(function () {
   var modifierCount;
   var modifiedKeyCode;
@@ -2971,17 +3032,6 @@ domReady.then(function () {
   function getEventName(e, suffix) {
     var mod = (e.ctrlKey || e.metaKey ? 'Ctrl' : '') + (e.altKey ? 'Alt' : '') + (e.shiftKey ? 'Shift' : '');
     return mod ? lcfirst(mod + ucfirst(suffix)) : suffix;
-  }
-
-  function inputValueImpl(element, method, value) {
-    // React defines its own getter and setter on input elements
-    var desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
-
-    if (desc && desc[method]) {
-      return desc[method].call(element, value);
-    }
-
-    return method === 'get' ? element.value : element.value = value;
   }
 
   function updateIMEState() {
@@ -3134,7 +3184,6 @@ domReady.then(function () {
         return;
       }
 
-      var isInputElm = ('selectionEnd' in imeNode);
       var prevText = imeText;
       var prevOffset = imeOffset;
       var prevNodeText = imeNodeText;
@@ -3150,7 +3199,7 @@ domReady.then(function () {
       var afterOffset = imeOffset[1];
       var startOffset = afterOffset; // in some case the node does not contain the final input text
 
-      if (imeModifyOnUpdate && prevOffset[0] + imeText.length !== afterOffset) {
+      if ((!hasCompositionUpdate || imeModifyOnUpdate) && prevOffset[0] + imeText.length !== afterOffset) {
         afterNodeText = imeNodeText.slice(0, afterOffset) + imeText + imeNodeText.slice(afterOffset);
         afterOffset += imeText.length;
       } // some old mobile browsers fire compositionend event before replacing final character sequence
@@ -3170,29 +3219,11 @@ domReady.then(function () {
       }
 
       prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
-      var range = env_document.createRange();
-
-      if (isInputElm) {
-        inputValueImpl(imeNode, 'set', prevNodeText);
-        imeNode.setSelectionRange(startOffset, startOffset);
-      } else {
-        imeNode.data = prevNodeText;
-        range.setStart(imeNode, startOffset);
-        makeSelection(range);
-      }
+      setTextData(imeNode, prevNodeText, startOffset);
 
       if (!triggerUIEvent('textInput', imeText)) {
-        if (isInputElm) {
-          var event = env_document.createEvent('Event');
-          event.initEvent('change', true);
-          inputValueImpl(imeNode, 'set', afterNodeText);
-          imeNode.setSelectionRange(afterOffset, afterOffset);
-          imeNode.dispatchEvent(event);
-        } else {
-          imeNode.data = afterNodeText;
-          range.setStart(imeNode, afterOffset);
-          makeSelection(range);
-        }
+        setTextData(imeNode, afterNodeText, afterOffset);
+        dispatchInputEvent(e.target, imeText);
       }
 
       imeNode = null;
@@ -3214,7 +3245,7 @@ domReady.then(function () {
       if (!imeNode) {
         var keyCode = e.keyCode;
         var isModifierKey = META_KEYS.indexOf(keyCode) >= 0;
-        var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || keyCode >= 96 && keyCode <= 111); // @ts-ignore: boolean arithmetic
+        var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || keyCode === 32 || keyCode >= 96 && keyCode <= 111); // @ts-ignore: boolean arithmetic
 
         modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !isModifierKey; // @ts-ignore: boolean arithmetic
 
@@ -3222,7 +3253,7 @@ domReady.then(function () {
         modifiedKeyCode = keyCode;
 
         if (modifierCount) {
-          triggerKeystrokeEvent(getEventName(e, KEYNAMES[keyCode] || e.key), keyCode === 32 ? ' ' : '');
+          triggerKeystrokeEvent(getEventName(e, KEYNAMES[keyCode] || e.key), '');
         }
       }
     },
@@ -3233,12 +3264,18 @@ domReady.then(function () {
         modifiedKeyCode = null;
         modifierCount--;
       }
+
+      lastEventSource.sourceKeyName = null;
     },
     keypress: function keypress(e) {
-      var data = e.char || e.key || String.fromCharCode(e.charCode); // @ts-ignore: non-standard member
+      if (!imeNode) {
+        var data = e.char || e.key || String.fromCharCode(e.charCode);
+        var keyName = getEventName(e, KEYNAMES[modifiedKeyCode] || data);
+        lastEventSource.sourceKeyName = keyName;
 
-      if (!imeNode && !modifierCount && (e.synthetic || !('onbeforeinput' in e.target))) {
-        triggerKeystrokeEvent(getEventName(e, KEYNAMES[modifiedKeyCode] || data), data);
+        if (!modifierCount) {
+          triggerKeystrokeEvent(keyName, data);
+        }
       }
     },
     beforeinput: function beforeinput(e) {
@@ -3247,16 +3284,23 @@ domReady.then(function () {
       }
 
       if (!imeNode && e.cancelable) {
+        hasBeforeInput = true;
+
         switch (e.inputType) {
           case 'insertText':
-            hasBeforeInput = true;
+            if (lastEventSource.sourceKeyName) {
+              return;
+            }
 
+          case 'insertFromPaste':
+          case 'insertFromDrop':
             if (triggerUIEvent('textInput', e.data)) {
               e.preventDefault();
             }
 
             return;
 
+          case 'deleteByCut':
           case 'deleteContent':
           case 'deleteContentBackward':
             return triggerKeystrokeEvent('backspace', '');
@@ -3486,6 +3530,7 @@ function dom_focus(element) {
   focus: dom_focus,
   beginDrag: beginDrag,
   beginPinchZoom: beginPinchZoom,
+  insertText: insertText,
   getShortcut: getShortcut,
   setShortcut: setShortcut,
   getEventSource: getEventSource,
@@ -3524,6 +3569,11 @@ var domContainer = new ZetaEventContainer();
 var asyncEventData = new Map();
 var asyncEvents = [];
 var _then = promise_polyfill.prototype.then;
+var beforeInputType = {
+  insertFromDrop: 'drop',
+  insertFromPaste: 'paste',
+  deleteByCut: 'cut'
+};
 var eventSource;
 var lastEventSource;
 /* --------------------------------------
@@ -3598,11 +3648,15 @@ function getEventSourceName() {
   var event = dom.event || env_window.event;
   var type = event && event.type || '';
 
+  if (type === 'beforeinput') {
+    return beforeInputType[event.inputType] || 'keyboard';
+  }
+
   if (/^(touch|mouse)./.test(type)) {
     return RegExp.$1;
   }
 
-  if (/^(key|composition)./.test(type) || matchWord(type, 'beforeinput textInput')) {
+  if (/^(?:key.|composition.|textInput$)/.test(type)) {
     return 'keyboard';
   }
 
@@ -4489,6 +4543,11 @@ function scrollBy(element, x, y) {
   }
 
   var winOrElm = element === root || element === env_document.body ? env_window : element;
+
+  if (winOrElm !== env_window && getComputedStyle(winOrElm).overflow !== 'scroll') {
+    return OFFSET_ZERO;
+  }
+
   var orig = getScrollOffset(winOrElm);
 
   if (winOrElm.scrollBy) {
