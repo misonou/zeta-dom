@@ -638,7 +638,7 @@ domReady.then(function () {
             var afterOffset = imeOffset[1];
             var startOffset = afterOffset;
             // in some case the node does not contain the final input text
-            if (imeModifyOnUpdate && (prevOffset[0] + imeText.length !== afterOffset)) {
+            if ((!hasCompositionUpdate || imeModifyOnUpdate) && (prevOffset[0] + imeText.length !== afterOffset)) {
                 afterNodeText = imeNodeText.slice(0, afterOffset) + imeText + imeNodeText.slice(afterOffset);
                 afterOffset += imeText.length;
             }
