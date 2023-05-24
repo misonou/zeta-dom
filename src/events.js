@@ -93,6 +93,9 @@ function getEventSourceName() {
     if (type === 'beforeinput') {
         return beforeInputType[event.inputType] || 'keyboard';
     }
+    if (type === 'mousemove') {
+        return event.button || event.buttons ? 'mouse' : 'script';
+    }
     if (/^(touch|mouse)./.test(type)) {
         return RegExp.$1;
     }
