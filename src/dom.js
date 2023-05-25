@@ -777,11 +777,12 @@ domReady.then(function () {
             pressTimeout = null;
             if (mouseInitialPoint) {
                 if (!e.touches[1]) {
-                    var line = measureLine(e.touches[0], mouseInitialPoint);
+                    var point = mouseInitialPoint;
+                    var line = measureLine(e.touches[0], point);
                     if (line.length > 5) {
                         var swipeDir = approxMultipleOf(line.deg, 90) && (approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Down' : 'Up'));
                         if (!swipeDir || !triggerGestureEvent('swipe' + swipeDir)) {
-                            triggerMouseEvent('drag', mouseInitialPoint);
+                            triggerMouseEvent('drag', point);
                         }
                         mouseInitialPoint = null;
                         return;
