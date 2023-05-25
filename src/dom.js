@@ -545,13 +545,17 @@ domReady.then(function () {
         }
     }
 
-    function triggerUIEvent(eventName, data, point, target) {
-        return emitDOMEvent(eventName, target || focusPath[0], data, {
+    function triggerUIEvent(eventName, data, preventNative, point, target) {
+        var handled = emitDOMEvent(eventName, target || focusPath[0], data, {
             clientX: (point || '').clientX,
             clientY: (point || '').clientY,
             bubbles: true,
             originalEvent: currentEvent
         });
+        if (handled && preventNative) {
+            currentEvent.preventDefault();
+        }
+        return handled;
     }
 
     function triggerKeystrokeEvent(keyName, char) {
@@ -560,10 +564,7 @@ domReady.then(function () {
             char: char
         };
         lastEventSource.sourceKeyName = keyName;
-        if (triggerUIEvent('keystroke', data)) {
-            currentEvent.preventDefault();
-            return true;
-        }
+        return triggerUIEvent('keystroke', data, true);
     }
 
     function triggerMouseEvent(eventName, event) {
@@ -572,13 +573,13 @@ domReady.then(function () {
             target: event.target,
             metakey: getEventName(event) || ''
         };
-        return triggerUIEvent(eventName, data, mouseInitialPoint || event);
+        return triggerUIEvent(eventName, data, true, mouseInitialPoint || event);
     }
 
     function triggerGestureEvent(gesture) {
         var target = mouseInitialPoint.target;
         mouseInitialPoint = null;
-        return triggerUIEvent('gesture', gesture, null, target);
+        return triggerUIEvent('gesture', gesture, true, null, target);
     }
 
     function handleUIEventWrapper(type, callback) {
@@ -596,7 +597,7 @@ domReady.then(function () {
                 var metaKey = getEventName(e, '');
                 if (metaKey !== currentMetaKey) {
                     currentMetaKey = metaKey;
-                    triggerUIEvent('metakeychange', metaKey);
+                    triggerUIEvent('metakeychange', metaKey, false);
                 }
             }
             if (!isMoveEvent) {
@@ -627,7 +628,7 @@ domReady.then(function () {
                 return;
             }
             if (!hasCompositionUpdate && imeOffset[0] !== imeOffset[1]) {
-                triggerUIEvent('textInput', '');
+                triggerUIEvent('textInput', '', false);
             }
             imeText = e.data;
             hasCompositionUpdate = true;
@@ -682,7 +683,7 @@ domReady.then(function () {
             prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
 
             setTextData(imeNode, prevNodeText, startOffset);
-            if (!triggerUIEvent('textInput', imeText)) {
+            if (!triggerUIEvent('textInput', imeText, false)) {
                 setTextData(imeNode, afterNodeText, afterOffset);
                 dispatchInputEvent(e.target, imeText);
             }
@@ -695,7 +696,7 @@ domReady.then(function () {
         textInput: function (e) {
             // required for older mobile browsers that do not support beforeinput event
             // ignore in case browser fire textInput before/after compositionend
-            if (!hasCompositionUpdate && (e.data === imeText || (!hasBeforeInput && triggerUIEvent('textInput', e.data)))) {
+            if (!hasCompositionUpdate && (e.data === imeText || (!hasBeforeInput && triggerUIEvent('textInput', e.data, true)))) {
                 e.preventDefault();
             }
             hasBeforeInput = false;
@@ -746,10 +747,7 @@ domReady.then(function () {
                         }
                     case 'insertFromPaste':
                     case 'insertFromDrop':
-                        if (triggerUIEvent('textInput', e.data)) {
-                            e.preventDefault();
-                        }
-                        return;
+                        return triggerUIEvent('textInput', e.data, true);
                     case 'deleteByCut':
                     case 'deleteContent':
                     case 'deleteContentBackward':
@@ -819,7 +817,7 @@ domReady.then(function () {
         },
         wheel: function (e) {
             var dir = e.deltaY || e.deltaX || e.detail;
-            if (dir && !textInputAllowed(e.target) && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1), e, e.target)) {
+            if (dir && !textInputAllowed(e.target) && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1), false, e, e.target)) {
                 e.stopPropagation();
             }
         },
