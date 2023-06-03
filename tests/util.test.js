@@ -1,4 +1,4 @@
-import { any, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapObject, pick, resolveAll, retryable, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
+import { any, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapObject, pick, resolveAll, retryable, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
 import { after, delay, mockFn, objectContaining, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
@@ -108,6 +108,36 @@ describe('makeArray', () => {
         expect(result[0]).toBe(obj);
 
         expect(makeArray(1)).toEqual([1]);
+    });
+});
+
+describe('each', () => {
+    it('should not invoke callback with element removed in set during invocation', () => {
+        const set = new Set([1, 2, 3]);
+        const cb = mockFn((i, v) => {
+            if (v === 1) {
+                set.delete(2);
+            }
+        });
+        each(set, cb);
+        verifyCalls(cb, [
+            [0, 1],
+            [1, 3],
+        ]);
+    });
+
+    it('should not invoke callback with element removed in map during invocation', () => {
+        const map = new Map([[1, 1], [2, 4], [3, 9]]);
+        const cb = mockFn((i, v) => {
+            if (v === 1) {
+                map.delete(2);
+            }
+        });
+        each(map, cb);
+        verifyCalls(cb, [
+            [1, 1],
+            [3, 9],
+        ]);
     });
 });
 

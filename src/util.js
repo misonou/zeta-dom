@@ -145,12 +145,7 @@ function each(obj, callback) {
             obj = obj.split(' ');
         } else if (obj instanceof Set) {
             // would be less useful if key and value refers to the same object
-            obj = isFunction(obj.values) ? obj.values() : (function (obj, arr) {
-                return obj.forEach(function (v) {
-                    // @ts-ignore: arr is hinted as never[]
-                    arr[arr.length] = v;
-                }), arr;
-            }(obj, []));
+            obj = obj.values();
         }
         if (isArrayLike(obj)) {
             var len = obj.length;
