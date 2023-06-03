@@ -630,7 +630,7 @@ domReady.then(function () {
             if (!hasCompositionUpdate && imeOffset[0] !== imeOffset[1]) {
                 triggerUIEvent('textInput', '', false);
             }
-            imeText = e.data;
+            imeText = e.data || '';
             hasCompositionUpdate = true;
             // check whether input value or node data
             // are updated immediately after compositionupdate event
