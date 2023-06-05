@@ -288,7 +288,7 @@ function mapObject(obj, callback) {
 
 function mapGet(map, key, fn) {
     if (!map.has(key) && fn) {
-        map.set(key, new fn());
+        map.set(key, hasOwnProperty(fn, 'prototype') ? new fn() : fn());
     }
     return map.get(key);
 }

@@ -1,4 +1,4 @@
-import { any, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapObject, pick, resolveAll, retryable, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
+import { any, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
 import { after, delay, mockFn, objectContaining, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
@@ -325,6 +325,18 @@ describe('mapObject', () => {
             [3, 'c']
         ]);
         expect(cb.mock.instances[0]).toBe(obj);
+    });
+});
+
+describe('mapGet', () => {
+    it('should not throw when callback is not constructible', () => {
+        const map = new Map();
+        var returnValue;
+        expect(() => {
+            returnValue = mapGet(map, 'foo', () => 'bar');
+        }).not.toThrow();
+        expect(returnValue).toBe('bar');
+        expect(map.get('foo')).toBe('bar');
     });
 });
 
