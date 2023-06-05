@@ -19,6 +19,9 @@ const values = Object.values || function (obj) {
     }
     return vals;
 };
+const queueMicrotask = window.queueMicrotask || function (callback) {
+    resolve().then(callback);
+};
 
 const compareFn = [
     function (b, v, i) { return b[i] !== v; },
@@ -357,7 +360,7 @@ function createPrivateStore() {
 
 function setImmediate(fn) {
     var args = [].slice.call(arguments, 1);
-    resolve().then(function () {
+    queueMicrotask(function () {
         fn.apply(undefined, args);
     });
 }
