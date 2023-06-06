@@ -1,4 +1,4 @@
-/*! zeta-dom v0.3.12 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.3.13 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -239,6 +239,10 @@ var values = Object.values || function (obj) {
   return vals;
 };
 
+var queueMicrotask = env_window.queueMicrotask || function (callback) {
+  resolve().then(callback);
+};
+
 var compareFn = [function (b, v, i) {
   return b[i] !== v;
 }, function (b, v, i) {
@@ -374,12 +378,7 @@ function each(obj, callback) {
       obj = obj.split(' ');
     } else if (obj instanceof Set) {
       // would be less useful if key and value refers to the same object
-      obj = isFunction(obj.values) ? obj.values() : function (obj, arr) {
-        return obj.forEach(function (v) {
-          // @ts-ignore: arr is hinted as never[]
-          arr[arr.length] = v;
-        }), arr;
-      }(obj, []);
+      obj = obj.values();
     }
 
     if (isArrayLike(obj)) {
@@ -540,7 +539,7 @@ function mapObject(obj, callback) {
 
 function mapGet(map, key, fn) {
   if (!map.has(key) && fn) {
-    map.set(key, new fn());
+    map.set(key, util_hasOwnProperty(fn, 'prototype') ? new fn() : fn());
   }
 
   return map.get(key);
@@ -616,7 +615,7 @@ function createPrivateStore() {
 
 function setImmediate(fn) {
   var args = [].slice.call(arguments, 1);
-  resolve().then(function () {
+  queueMicrotask(function () {
     fn.apply(undefined, args);
   });
 }
@@ -3167,7 +3166,7 @@ domReady.then(function () {
         triggerUIEvent('textInput', '', false);
       }
 
-      imeText = e.data;
+      imeText = e.data || '';
       hasCompositionUpdate = true; // check whether input value or node data
       // are updated immediately after compositionupdate event
 
