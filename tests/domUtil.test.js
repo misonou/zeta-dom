@@ -13,6 +13,13 @@ const [getBoundingClientRect] = [
     jest.spyOn(window, 'scrollBy')
 ];
 
+beforeAll(() => {
+    root.style.overflowX = 'auto';
+    root.style.overflowY = 'auto';
+    body.style.overflowX = 'auto';
+    body.style.overflowY = 'auto';
+});
+
 describe('combineNodeFilters', () => {
     /** @type {() => 1} */
     const return1 = () => 1;
@@ -632,7 +639,8 @@ describe('scrollBy', () => {
         const setScrollTop = mockFn(() => { scrollTop = 10; });
 
         const node = document.createElement('div');
-        node.style.overflow = 'scroll';
+        node.style.overflowX = 'scroll';
+        node.style.overflowY = 'scroll';
         Object.defineProperties(node, {
             scrollLeft: {
                 configurable: true,

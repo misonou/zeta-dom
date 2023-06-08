@@ -338,7 +338,17 @@ function scrollBy(element, x, y) {
         return result;
     }
     var winOrElm = element === root || element === document.body ? window : element;
-    if (winOrElm !== window && getComputedStyle(winOrElm).overflow !== 'scroll') {
+    if (element !== window) {
+        var style = getComputedStyle(element);
+        if (style.overflowX !== 'scroll' && style.overflowX !== 'auto') {
+            x = 0;
+        }
+        // include special case for root or body where scrolling is enabled when overflowY is visible
+        if (style.overflowY !== 'scroll' && style.overflowY !== 'auto' && (winOrElm !== window || style.overflowY !== 'visible')) {
+            y = 0;
+        }
+    }
+    if (!x && !y) {
         return OFFSET_ZERO;
     }
     var orig = getScrollOffset(winOrElm);
