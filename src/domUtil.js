@@ -392,6 +392,8 @@ function getContentRect(element) {
     if (result) {
         return toPlainRect(result);
     }
+    var isRoot = element === root || element === document.body;
+    var parentRect = getRect(isRoot ? window : element);
     if (scrollbarWidth === undefined) {
         // detect native scrollbar size
         // height being picked because scrollbar may not be shown if container is too short
@@ -399,15 +401,12 @@ function getContentRect(element) {
         scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
         removeNode(dummy);
     }
-    var style = getComputedStyle(element);
-    var hasOverflowX = element.offsetWidth < element.scrollWidth;
-    var hasOverflowY = element.offsetHeight < element.scrollHeight;
-    var parentRect = getRect(element === root || element === document.body ? window : element);
-    if ((style.overflow !== 'visible' || element === document.body) && (hasOverflowX || hasOverflowY)) {
-        if (style.overflowY === 'scroll' || ((style.overflowY !== 'hidden' || element === document.body) && hasOverflowY)) {
+    if (scrollbarWidth && !isRoot) {
+        var style = getComputedStyle(element);
+        if (style.overflowY === 'scroll' || (style.overflowY === 'auto' && element.offsetHeight < element.scrollHeight)) {
             parentRect.right -= scrollbarWidth;
         }
-        if (style.overflowX === 'scroll' || ((style.overflowX !== 'hidden' || element === document.body) && hasOverflowX)) {
+        if (style.overflowX === 'scroll' || (style.overflowX === 'auto' && element.offsetWidth < element.scrollWidth)) {
             parentRect.bottom -= scrollbarWidth;
         }
     }
