@@ -1,4 +1,4 @@
-import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep } from "./util.js";
+import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep, freeze } from "./util.js";
 import $ from "./include/jquery.js";
 import { window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { emitDOMEvent } from "./events.js";
@@ -7,13 +7,15 @@ import { emitDOMEvent } from "./events.js";
 const elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
 const compareDocumentPositionImpl = document.compareDocumentPosition;
 const visualViewport = window.visualViewport;
+const parseFloat = window.parseFloat;
 const OFFSET_ZERO = Object.freeze({
     x: 0,
     y: 0
 });
 
-var originDiv;
+var helperDiv = $('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;--sai:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)">')[0];
 var scrollbarWidth;
+var safeAreaInset;
 
 /* --------------------------------------
  * Custom class
@@ -82,6 +84,13 @@ definePrototype(Rect, {
 /* --------------------------------------
  * General helper
  * -------------------------------------- */
+
+function attachHelperDiv() {
+    if (!containsOrEquals(document.body, helperDiv)) {
+        document.body.appendChild(helperDiv);
+    }
+    return helperDiv;
+}
 
 function tagName(element) {
     return element && element.tagName && element.tagName.toLowerCase();
@@ -315,6 +324,19 @@ function setClass(element, className, values) {
     element.className = value;
 }
 
+function getSafeAreaInset() {
+    if (!safeAreaInset) {
+        var values = getComputedStyle(attachHelperDiv()).getPropertyValue('--sai').split(' ');
+        safeAreaInset = freeze({
+            top: parseFloat(values[0]) || 0,
+            left: parseFloat(values[3]) || 0,
+            right: parseFloat(values[1]) || 0,
+            bottom: parseFloat(values[2]) || 0
+        });
+    }
+    return safeAreaInset;
+}
+
 function getScrollOffset(winOrElm) {
     return {
         x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
@@ -455,11 +477,7 @@ function getRect(elm, includeMargin) {
         if (elm === window) {
             rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
         } else if (elm === root) {
-            var div = originDiv || (originDiv = $('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;">')[0]);
-            if (!containsOrEquals(document.body, div)) {
-                document.body.appendChild(div);
-            }
-            rect = getRect(div);
+            rect = getRect(attachHelperDiv());
         } else if (!containsOrEquals(root, elm)) {
             // IE10 throws Unspecified Error for detached elements
             rect = toPlainRect(0, 0, 0, 0);
@@ -564,6 +582,7 @@ export {
     removeNode,
     getClass,
     setClass,
+    getSafeAreaInset,
     getScrollOffset,
     getScrollParent,
     getContentRect,

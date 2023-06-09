@@ -226,6 +226,8 @@ export function setClass(element: Element, dict: Zeta.Dictionary<boolean | strin
  */
 export function setClass(element: Element, className: string, values: boolean | string[] | object): void;
 
+export function getSafeAreaInset(): Readonly<Zeta.Inset>;
+
 export function getScrollOffset(winOrElm: Window | Element): { x: number; y: number };
 
 export function getScrollParent(element: Element): Element;

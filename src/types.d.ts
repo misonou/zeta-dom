@@ -182,6 +182,13 @@ declare namespace Zeta {
         top: number;
     }
 
+    interface Inset {
+        top: number;
+        left: number;
+        right: number;
+        bottom: number;
+    }
+
     interface Rect {
         readonly width: number;
         readonly height: number;
