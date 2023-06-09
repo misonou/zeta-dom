@@ -388,12 +388,20 @@ function scrollBy(element, x, y) {
 }
 
 function getContentRect(element) {
-    var result = emitDOMEvent('getContentRect', element, null, { asyncResult: false });
-    if (result) {
-        return toPlainRect(result);
-    }
     var isRoot = element === root || element === document.body;
-    var parentRect = getRect(isRoot ? window : element);
+    var result = emitDOMEvent('getContentRect', element, null, { asyncResult: false });
+    var parentRect = result ? toPlainRect(result) : getRect(isRoot ? window : element);
+    if (isRoot) {
+        var inset = getSafeAreaInset();
+        var winRect = getRect();
+        var rootRect = getRect(root);
+        return toPlainRect({
+            top: Math.max(parentRect.top, rootRect.top, winRect.top + inset.top),
+            left: Math.max(parentRect.left, rootRect.left, winRect.left + inset.left),
+            right: Math.min(parentRect.right, rootRect.right, winRect.right - inset.right),
+            bottom: Math.min(parentRect.bottom, rootRect.bottom, winRect.bottom - inset.bottom)
+        });
+    }
     if (scrollbarWidth === undefined) {
         // detect native scrollbar size
         // height being picked because scrollbar may not be shown if container is too short
@@ -401,7 +409,7 @@ function getContentRect(element) {
         scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
         removeNode(dummy);
     }
-    if (scrollbarWidth && !isRoot) {
+    if (scrollbarWidth && !result) {
         var style = getComputedStyle(element);
         if (style.overflowY === 'scroll' || (style.overflowY === 'auto' && element.offsetHeight < element.scrollHeight)) {
             parentRect.right -= scrollbarWidth;
