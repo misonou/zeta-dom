@@ -344,10 +344,13 @@ function getScrollOffset(winOrElm) {
     };
 }
 
-function getScrollParent(element) {
-    for (var target = element; element && element !== root; element = element.parentNode) {
+function getScrollParent(element, skipSelf) {
+    for (var target = element; element; element = element.parentNode) {
         var s = getComputedStyle(element);
-        if (s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, { target }, { asyncResult: false })) {
+        if (skipSelf) {
+            return element === root || s.position === 'fixed' ? null : getScrollParent(element.parentNode);
+        }
+        if (element === root || s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, { target }, { asyncResult: false })) {
             break;
         }
     }
@@ -422,28 +425,28 @@ function getContentRect(element) {
 }
 
 function scrollIntoView(element, rect, within) {
+    if (!isVisible(element)) {
+        return false;
+    }
     within = within || root;
     if (!rect || rect.top === undefined) {
         rect = getRect(element, rect);
     }
     var parent = getScrollParent(element);
-    if (!containsOrEquals(within, parent) || !isVisible(element)) {
-        return false;
-    }
-    var parentRect = getContentRect(parent);
-    var deltaX = rect.left - parentRect.left;
-    var deltaY = rect.top - parentRect.top;
-    deltaX = Math.min(deltaX, 0) || Math.max(0, Math.min(deltaX, rect.right - parentRect.right));
-    deltaY = Math.min(deltaY, 0) || Math.max(0, Math.min(deltaY, rect.bottom - parentRect.bottom));
-    var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
-    if (parent !== root) {
-        var parentResult = scrollIntoView(parent.parentNode, rect.translate(-result.x, -result.y), within);
-        if (parentResult) {
-            result = {
-                x: result.x + parentResult.x,
-                y: result.y + parentResult.y
-            };
+    var result = { x: 0, y: 0 };
+    while (containsOrEquals(within, parent)) {
+        var parentRect = getContentRect(parent);
+        var deltaX = rect.left - parentRect.left;
+        var deltaY = rect.top - parentRect.top;
+        deltaX = Math.min(deltaX, 0) || Math.max(0, Math.min(deltaX, rect.right - parentRect.right));
+        deltaY = Math.min(deltaY, 0) || Math.max(0, Math.min(deltaY, rect.bottom - parentRect.bottom));
+        if (deltaX || deltaY) {
+            var parentResult = scrollBy(parent, deltaX, deltaY);
+            rect = rect.translate(-parentResult.x, -parentResult.y);
+            result.x += parentResult.x;
+            result.y += parentResult.y;
         }
+        parent = getScrollParent(parent, true);
     }
     return (result.x || result.y) ? result : false;
 }
