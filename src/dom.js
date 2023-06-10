@@ -225,15 +225,13 @@ function setFocusUnsafe(elements, source, path, suppressFocus) {
         });
         triggerFocusEvent('focusin', elements.reverse(), null, source || new ZetaEventSource(elements[0], path));
     }
-    if (path === focusPath && !suppressFocus) {
+    if (path === focusPath && !suppressFocus && path[0] !== document.activeElement) {
+        path[0].focus();
+        // ensure previously focused element is properly blurred
+        // in case the new element is not focusable
         var activeElement = document.activeElement;
-        if (path[0] !== activeElement) {
-            path[0].focus();
-            // ensure previously focused element is properly blurred
-            // in case the new element is not focusable
-            if (activeElement && activeElement !== document.body && activeElement !== root && document.activeElement === activeElement) {
-                activeElement.blur();
-            }
+        if (activeElement && !containsOrEquals(activeElement, path[0])) {
+            activeElement.blur();
         }
     }
 }
