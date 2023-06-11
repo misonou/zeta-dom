@@ -219,11 +219,12 @@ function setFocus(element, source, path, suppressFocus, suppressFocusChange) {
 function setFocusUnsafe(elements, source, path, suppressFocus) {
     path = path || focusPath;
     if (elements[0]) {
+        source = source || new ZetaEventSource(elements[0], path);
         path.unshift.apply(path, elements);
         each(elements, function (i, v) {
             focusElements.add(v);
         });
-        triggerFocusEvent('focusin', elements.reverse(), null, source || new ZetaEventSource(elements[0], path));
+        triggerFocusEvent('focusin', elements.reverse(), null, source);
     }
     if (path === focusPath && !suppressFocus && path[0] !== document.activeElement) {
         path[0].focus();
