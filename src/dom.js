@@ -3,7 +3,7 @@ import { IS_MAC, window, document, root, getSelection, getComputedStyle, domRead
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setImmediate, setImmediateOnce, single, ucfirst } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setAdd, setImmediate, setImmediateOnce, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
@@ -145,12 +145,6 @@ function focusable(element) {
     });
 }
 
-function focusLockedWithin(element) {
-    return single(modalElements, function (v, i) {
-        return containsOrEquals(v, element) && i;
-    });
-}
-
 function triggerFocusEvent(eventName, elements, relatedTarget, source) {
     var data = {
         relatedTarget: relatedTarget
@@ -169,60 +163,58 @@ function triggerModalChangeEvent() {
     });
 }
 
-function setFocus(element, source, path, suppressFocus, suppressFocusChange) {
-    var removed = [];
+function setFocus(element, source, suppressFocus, suppressFocusChange) {
     if (element === root) {
         element = document.body;
     }
-    path = path || focusPath;
-    if (path[1]) {
-        var within = path !== focusPath ? element : focusable(element);
-        if (!within) {
-            var lockParent = focusLockedWithin(element);
-            element = focused(lockParent) ? path[0] : lockParent;
-            within = focusable(element);
-        }
-        if (!within) {
-            return false;
-        }
-        removed = path.splice(0, path.indexOf(within));
-        each(removed, function (i, v) {
-            focusElements.delete(v);
-        });
-        triggerFocusEvent('focusout', removed, element, source);
+    var len = focusPath.length;
+    var index = focusPath.indexOf(element);
+    if (index === 0) {
+        setFocusUnsafe(focusPath, [], source, suppressFocus);
+        return len;
     }
-    var unchanged = path.slice(0);
-    var result;
-    // check whether the element is still attached in ROM
-    // which can be detached while dispatching focusout event above
-    if (containsOrEquals(root, element)) {
-        var added = parentsAndSelf(element).filter(function (v) {
-            return !focusElements.has(v);
+    if (index > 0) {
+        removeFocusUnsafe(focusPath, element, source, element, suppressFocus);
+        len = len - index;
+    } else {
+        var added = [];
+        var friend;
+        any(parentsAndSelf(element), function (v) {
+            return focusPath.indexOf(v) >= 0 || (added.push(v) && (friend = focusFriends.get(v)));
         });
-        var friend = single(added, function (v) {
-            return focusFriends.get(v);
-        });
-        if (friend && added.indexOf(friend) < 0 && !focused(friend)) {
-            result = setFocus(friend, source, path, suppressFocus, true);
+        if (friend && added.indexOf(friend) < 0 && focusPath.indexOf(friend) < 0) {
+            len = setFocus(friend, source, suppressFocus, true);
         }
-        if (result === undefined) {
-            setFocusUnsafe(added, source, path, suppressFocus);
-            result = !!added[0];
+        var within = focusable(element);
+        if (within) {
+            removeFocusUnsafe(focusPath, within, source, element, suppressFocus);
+            len = Math.min(len, focusPath.length);
+            // check whether the element is still attached in ROM
+            // which can be detached while dispatching focusout event above
+            if (containsOrEquals(root, element)) {
+                each(added, function (i, element) {
+                    if (focusElements.has(element) && focusPath.indexOf(element) < 0) {
+                        any(modalElements, function (v) {
+                            return removeFocusUnsafe(v, element, source, element, true) && v.shift();
+                        });
+                    }
+                });
+                setFocusUnsafe(focusPath, added, source, suppressFocus);
+            }
         }
     }
-    if (!suppressFocusChange && (removed[0] || result)) {
-        triggerFocusEvent('focuschange', unchanged, null, source);
+    if (!suppressFocusChange) {
+        triggerFocusEvent('focuschange', focusPath.slice(-len), null, source);
     }
-    return result;
+    return len;
 }
 
-function setFocusUnsafe(elements, source, path, suppressFocus) {
-    path = path || focusPath;
+function setFocusUnsafe(path, elements, source, suppressFocus) {
     if (elements[0]) {
         source = source || new ZetaEventSource(elements[0], path);
         path.unshift.apply(path, elements);
-        each(elements, function (i, v) {
-            focusElements.add(v);
+        elements = grep(elements, function (v) {
+            return setAdd(focusElements, v);
         });
         triggerFocusEvent('focusin', elements.reverse(), null, source);
     }
@@ -235,6 +227,19 @@ function setFocusUnsafe(elements, source, path, suppressFocus) {
             activeElement.blur();
         }
     }
+}
+
+function removeFocusUnsafe(path, element, source, relatedTarget, suppressFocus) {
+    var index = path.indexOf(element);
+    if (index > 0) {
+        var removed = path.splice(0, index);
+        each(removed, function (i, v) {
+            focusElements.delete(v);
+        });
+        triggerFocusEvent('focusout', removed, relatedTarget, source);
+        setFocusUnsafe(path, [], source, suppressFocus);
+    }
+    return index >= 0;
 }
 
 function setModal(element) {
@@ -251,8 +256,8 @@ function setModal(element) {
         var added = parentsAndSelf(element).filter(function (v) {
             return !focusElements.has(v);
         });
-        setFocusUnsafe(added.slice(1), null, modalPath);
-        setFocusUnsafe([element]);
+        setFocusUnsafe(modalPath, added.slice(1));
+        setFocusUnsafe(focusPath, [element]);
     }
     setImmediateOnce(triggerModalChangeEvent);
     return true;
@@ -270,7 +275,7 @@ function releaseModal(element, modalPath) {
         if (inner && inner !== modalPath[0]) {
             // trigger focusout event for previously focused element
             // which focus is lost to modal element
-            setFocus(inner, null, modalPath);
+            removeFocusUnsafe(modalPath, inner);
         }
         // find the index again as focusPath might be updated
         var index = focusPath.indexOf(element);
@@ -290,7 +295,9 @@ function releaseModal(element, modalPath) {
 }
 
 function retainFocus(a, b) {
-    focusFriends.set(b, a);
+    if (a !== root && a !== document.body) {
+        focusFriends.set(b, a);
+    }
 }
 
 function releaseFocus(b) {
@@ -758,7 +765,7 @@ domReady.then(function () {
         },
         touchstart: function (e) {
             mouseInitialPoint = extend({}, e.touches[0]);
-            setFocus(e.target, null, null, true);
+            setFocus(e.target, null, true);
             triggerMouseEvent('touchstart');
             if (!e.touches[1]) {
                 pressTimeout = setTimeout(function () {
@@ -917,7 +924,8 @@ function focus(element) {
     if (!matchSelector(element, SELECTOR_FOCUSABLE)) {
         element = $(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
     }
-    return !!setFocus(element);
+    setFocus(element);
+    return focusPath[0] === element;
 }
 
 export default {
