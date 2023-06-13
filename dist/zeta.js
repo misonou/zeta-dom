@@ -1,4 +1,4 @@
-/*! zeta-dom v0.3.13 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.3.14 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -153,6 +153,7 @@ __webpack_require__.d(domUtil_namespaceObject, {
   "getContentRect": function() { return getContentRect; },
   "getRect": function() { return getRect; },
   "getRects": function() { return getRects; },
+  "getSafeAreaInset": function() { return getSafeAreaInset; },
   "getScrollOffset": function() { return getScrollOffset; },
   "getScrollParent": function() { return getScrollParent; },
   "isVisible": function() { return isVisible; },
@@ -2613,12 +2614,6 @@ function focusable(element) {
   });
 }
 
-function focusLockedWithin(element) {
-  return single(modalElements, function (v, i) {
-    return containsOrEquals(v, element) && i;
-  });
-}
-
 function triggerFocusEvent(eventName, elements, relatedTarget, source) {
   var data = {
     relatedTarget: relatedTarget
@@ -2637,87 +2632,95 @@ function triggerModalChangeEvent() {
   });
 }
 
-function setFocus(element, source, path, suppressFocus, suppressFocusChange) {
-  var removed = [];
-
+function setFocus(element, source, suppressFocus, suppressFocusChange) {
   if (element === root) {
     element = env_document.body;
   }
 
-  path = path || focusPath;
+  var len = focusPath.length;
+  var index = focusPath.indexOf(element);
 
-  if (path[1]) {
-    var within = path !== focusPath ? element : focusable(element);
-
-    if (!within) {
-      var lockParent = focusLockedWithin(element);
-      element = focused(lockParent) ? path[0] : lockParent;
-      within = focusable(element);
-    }
-
-    if (!within) {
-      return false;
-    }
-
-    removed = path.splice(0, path.indexOf(within));
-    each(removed, function (i, v) {
-      focusElements.delete(v);
-    });
-    triggerFocusEvent('focusout', removed, element, source);
+  if (index === 0) {
+    setFocusUnsafe(focusPath, [], source, suppressFocus);
+    return len;
   }
 
-  var unchanged = path.slice(0);
-  var result; // check whether the element is still attached in ROM
-  // which can be detached while dispatching focusout event above
-
-  if (containsOrEquals(root, element)) {
-    var added = parentsAndSelf(element).filter(function (v) {
-      return !focusElements.has(v);
-    });
-    var friend = single(added, function (v) {
-      return focusFriends.get(v);
+  if (index > 0) {
+    removeFocusUnsafe(focusPath, element, source, element, suppressFocus);
+    len = len - index;
+  } else {
+    var added = [];
+    var friend;
+    any(parentsAndSelf(element), function (v) {
+      return focusPath.indexOf(v) >= 0 || added.push(v) && (friend = focusFriends.get(v));
     });
 
-    if (friend && added.indexOf(friend) < 0 && !focused(friend)) {
-      result = setFocus(friend, source, path, suppressFocus, true);
+    if (friend && added.indexOf(friend) < 0 && focusPath.indexOf(friend) < 0) {
+      len = setFocus(friend, source, suppressFocus, true);
     }
 
-    if (result === undefined) {
-      setFocusUnsafe(added, source, path, suppressFocus);
-      result = !!added[0];
-    }
-  }
+    var within = focusable(element);
 
-  if (!suppressFocusChange && (removed[0] || result)) {
-    triggerFocusEvent('focuschange', unchanged, null, source);
-  }
+    if (within) {
+      removeFocusUnsafe(focusPath, within, source, element, suppressFocus);
+      len = Math.min(len, focusPath.length); // check whether the element is still attached in ROM
+      // which can be detached while dispatching focusout event above
 
-  return result;
-}
-
-function setFocusUnsafe(elements, source, path, suppressFocus) {
-  path = path || focusPath;
-
-  if (elements[0]) {
-    path.unshift.apply(path, elements);
-    each(elements, function (i, v) {
-      focusElements.add(v);
-    });
-    triggerFocusEvent('focusin', elements.reverse(), null, source || new ZetaEventSource(elements[0], path));
-  }
-
-  if (path === focusPath && !suppressFocus) {
-    var activeElement = env_document.activeElement;
-
-    if (path[0] !== activeElement) {
-      path[0].focus(); // ensure previously focused element is properly blurred
-      // in case the new element is not focusable
-
-      if (activeElement && activeElement !== env_document.body && activeElement !== root && env_document.activeElement === activeElement) {
-        activeElement.blur();
+      if (containsOrEquals(root, element)) {
+        each(added, function (i, element) {
+          if (focusElements.has(element) && focusPath.indexOf(element) < 0) {
+            any(modalElements, function (v) {
+              return removeFocusUnsafe(v, element, source, element, true) && v.shift();
+            });
+          }
+        });
+        setFocusUnsafe(focusPath, added, source, suppressFocus);
       }
     }
   }
+
+  if (!suppressFocusChange) {
+    triggerFocusEvent('focuschange', focusPath.slice(-len), null, source);
+  }
+
+  return len;
+}
+
+function setFocusUnsafe(path, elements, source, suppressFocus) {
+  if (elements[0]) {
+    source = source || new ZetaEventSource(elements[0], path);
+    path.unshift.apply(path, elements);
+    elements = grep(elements, function (v) {
+      return setAdd(focusElements, v);
+    });
+    triggerFocusEvent('focusin', elements.reverse(), null, source);
+  }
+
+  if (path === focusPath && !suppressFocus && path[0] !== env_document.activeElement) {
+    path[0].focus(); // ensure previously focused element is properly blurred
+    // in case the new element is not focusable
+
+    var activeElement = env_document.activeElement;
+
+    if (activeElement && !containsOrEquals(activeElement, path[0])) {
+      activeElement.blur();
+    }
+  }
+}
+
+function removeFocusUnsafe(path, element, source, relatedTarget, suppressFocus) {
+  var index = path.indexOf(element);
+
+  if (index > 0) {
+    var removed = path.splice(0, index);
+    each(removed, function (i, v) {
+      focusElements.delete(v);
+    });
+    triggerFocusEvent('focusout', removed, relatedTarget, source);
+    setFocusUnsafe(path, [], source, suppressFocus);
+  }
+
+  return index >= 0;
 }
 
 function setModal(element) {
@@ -2737,8 +2740,8 @@ function setModal(element) {
     var added = parentsAndSelf(element).filter(function (v) {
       return !focusElements.has(v);
     });
-    setFocusUnsafe(added.slice(1), null, modalPath);
-    setFocusUnsafe([element]);
+    setFocusUnsafe(modalPath, added.slice(1));
+    setFocusUnsafe(focusPath, [element]);
   }
 
   setImmediateOnce(triggerModalChangeEvent);
@@ -2760,7 +2763,7 @@ function releaseModal(element, modalPath) {
     if (inner && inner !== modalPath[0]) {
       // trigger focusout event for previously focused element
       // which focus is lost to modal element
-      setFocus(inner, null, modalPath);
+      removeFocusUnsafe(modalPath, inner);
     } // find the index again as focusPath might be updated
 
 
@@ -2782,7 +2785,9 @@ function releaseModal(element, modalPath) {
 }
 
 function retainFocus(a, b) {
-  focusFriends.set(b, a);
+  if (a !== root && a !== env_document.body) {
+    focusFriends.set(b, a);
+  }
 }
 
 function releaseFocus(b) {
@@ -3309,7 +3314,7 @@ domReady.then(function () {
     },
     touchstart: function touchstart(e) {
       mouseInitialPoint = extend({}, e.touches[0]);
-      setFocus(e.target, null, null, true);
+      setFocus(e.target, null, true);
       triggerMouseEvent('touchstart');
 
       if (!e.touches[1]) {
@@ -3482,7 +3487,8 @@ function dom_focus(element) {
     element = jquery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
   }
 
-  return !!setFocus(element);
+  setFocus(element);
+  return focusPath[0] === element;
 }
 
 /* harmony default export */ const dom = ({
@@ -4161,12 +4167,14 @@ function containerRemoveHandler(container, target, key) {
 var elementsFromPoint = env_document.msElementsFromPoint || env_document.elementsFromPoint;
 var compareDocumentPositionImpl = env_document.compareDocumentPosition;
 var visualViewport = env_window.visualViewport;
+var domUtil_parseFloat = env_window.parseFloat;
 var OFFSET_ZERO = Object.freeze({
   x: 0,
   y: 0
 });
-var originDiv;
+var helperDiv = jquery('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;--sai:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)">')[0];
 var scrollbarWidth;
+var safeAreaInset;
 /* --------------------------------------
  * Custom class
  * -------------------------------------- */
@@ -4243,6 +4251,14 @@ definePrototype(Rect, {
 /* --------------------------------------
  * General helper
  * -------------------------------------- */
+
+function attachHelperDiv() {
+  if (!containsOrEquals(env_document.body, helperDiv)) {
+    env_document.body.appendChild(helperDiv);
+  }
+
+  return helperDiv;
+}
 
 function tagName(element) {
   return element && element.tagName && element.tagName.toLowerCase();
@@ -4509,6 +4525,20 @@ function setClass(element, className, values) {
   element.className = value;
 }
 
+function getSafeAreaInset() {
+  if (!safeAreaInset) {
+    var values = getComputedStyle(attachHelperDiv()).getPropertyValue('--sai').split(' ');
+    safeAreaInset = freeze({
+      top: domUtil_parseFloat(values[0]) || 0,
+      left: domUtil_parseFloat(values[3]) || 0,
+      right: domUtil_parseFloat(values[1]) || 0,
+      bottom: domUtil_parseFloat(values[2]) || 0
+    });
+  }
+
+  return safeAreaInset;
+}
+
 function getScrollOffset(winOrElm) {
   return {
     x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
@@ -4516,11 +4546,15 @@ function getScrollOffset(winOrElm) {
   };
 }
 
-function getScrollParent(element) {
-  for (var target = element; element && element !== root; element = element.parentNode) {
+function getScrollParent(element, skipSelf) {
+  for (var target = element; element; element = element.parentNode) {
     var s = getComputedStyle(element);
 
-    if (s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, {
+    if (skipSelf) {
+      return element === root || s.position === 'fixed' ? null : getScrollParent(element.parentNode);
+    }
+
+    if (element === root || s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, {
       target: target
     }, {
       asyncResult: false
@@ -4546,7 +4580,20 @@ function scrollBy(element, x, y) {
 
   var winOrElm = element === root || element === env_document.body ? env_window : element;
 
-  if (winOrElm !== env_window && getComputedStyle(winOrElm).overflow !== 'scroll') {
+  if (element !== env_window) {
+    var style = getComputedStyle(element);
+
+    if (style.overflowX !== 'scroll' && style.overflowX !== 'auto') {
+      x = 0;
+    } // include special case for root or body where scrolling is enabled when overflowY is visible
+
+
+    if (style.overflowY !== 'scroll' && style.overflowY !== 'auto' && (winOrElm !== env_window || style.overflowY !== 'visible')) {
+      y = 0;
+    }
+  }
+
+  if (!x && !y) {
     return OFFSET_ZERO;
   }
 
@@ -4567,12 +4614,22 @@ function scrollBy(element, x, y) {
 }
 
 function getContentRect(element) {
+  var isRoot = element === root || element === env_document.body;
   var result = emitDOMEvent('getContentRect', element, null, {
     asyncResult: false
   });
+  var parentRect = result ? toPlainRect(result) : getRect(isRoot ? env_window : element);
 
-  if (result) {
-    return toPlainRect(result);
+  if (isRoot) {
+    var inset = getSafeAreaInset();
+    var winRect = getRect();
+    var rootRect = getRect(root);
+    return toPlainRect({
+      top: Math.max(parentRect.top, rootRect.top, winRect.top + inset.top),
+      left: Math.max(parentRect.left, rootRect.left, winRect.left + inset.left),
+      right: Math.min(parentRect.right, rootRect.right, winRect.right - inset.right),
+      bottom: Math.min(parentRect.bottom, rootRect.bottom, winRect.bottom - inset.bottom)
+    });
   }
 
   if (scrollbarWidth === undefined) {
@@ -4583,17 +4640,14 @@ function getContentRect(element) {
     domUtil_removeNode(dummy);
   }
 
-  var style = getComputedStyle(element);
-  var hasOverflowX = element.offsetWidth < element.scrollWidth;
-  var hasOverflowY = element.offsetHeight < element.scrollHeight;
-  var parentRect = getRect(element === root || element === env_document.body ? env_window : element);
+  if (scrollbarWidth && !result) {
+    var style = getComputedStyle(element);
 
-  if ((style.overflow !== 'visible' || element === env_document.body) && (hasOverflowX || hasOverflowY)) {
-    if (style.overflowY === 'scroll' || (style.overflowY !== 'hidden' || element === env_document.body) && hasOverflowY) {
+    if (style.overflowY === 'scroll' || style.overflowY === 'auto' && element.offsetHeight < element.scrollHeight) {
       parentRect.right -= scrollbarWidth;
     }
 
-    if (style.overflowX === 'scroll' || (style.overflowX !== 'hidden' || element === env_document.body) && hasOverflowX) {
+    if (style.overflowX === 'scroll' || style.overflowX === 'auto' && element.offsetWidth < element.scrollWidth) {
       parentRect.bottom -= scrollbarWidth;
     }
   }
@@ -4602,6 +4656,10 @@ function getContentRect(element) {
 }
 
 function scrollIntoView(element, rect, within) {
+  if (!isVisible(element)) {
+    return false;
+  }
+
   within = within || root;
 
   if (!rect || rect.top === undefined) {
@@ -4609,27 +4667,26 @@ function scrollIntoView(element, rect, within) {
   }
 
   var parent = getScrollParent(element);
+  var result = {
+    x: 0,
+    y: 0
+  };
 
-  if (!containsOrEquals(within, parent) || !isVisible(element)) {
-    return false;
-  }
+  while (containsOrEquals(within, parent)) {
+    var parentRect = getContentRect(parent);
+    var deltaX = rect.left - parentRect.left;
+    var deltaY = rect.top - parentRect.top;
+    deltaX = Math.min(deltaX, 0) || Math.max(0, Math.min(deltaX, rect.right - parentRect.right));
+    deltaY = Math.min(deltaY, 0) || Math.max(0, Math.min(deltaY, rect.bottom - parentRect.bottom));
 
-  var parentRect = getContentRect(parent);
-  var deltaX = rect.left - parentRect.left;
-  var deltaY = rect.top - parentRect.top;
-  deltaX = Math.min(deltaX, 0) || Math.max(0, Math.min(deltaX, rect.right - parentRect.right));
-  deltaY = Math.min(deltaY, 0) || Math.max(0, Math.min(deltaY, rect.bottom - parentRect.bottom));
-  var result = (deltaX || deltaY) && scrollBy(parent, deltaX, deltaY) || OFFSET_ZERO;
-
-  if (parent !== root) {
-    var parentResult = scrollIntoView(parent.parentNode, rect.translate(-result.x, -result.y), within);
-
-    if (parentResult) {
-      result = {
-        x: result.x + parentResult.x,
-        y: result.y + parentResult.y
-      };
+    if (deltaX || deltaY) {
+      var parentResult = scrollBy(parent, deltaX, deltaY);
+      rect = rect.translate(-parentResult.x, -parentResult.y);
+      result.x += parentResult.x;
+      result.y += parentResult.y;
     }
+
+    parent = getScrollParent(parent, true);
   }
 
   return result.x || result.y ? result : false;
@@ -4673,13 +4730,7 @@ function getRect(elm, includeMargin) {
     if (elm === env_window) {
       rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
     } else if (elm === root) {
-      var div = originDiv || (originDiv = jquery('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;">')[0]);
-
-      if (!containsOrEquals(env_document.body, div)) {
-        env_document.body.appendChild(div);
-      }
-
-      rect = getRect(div);
+      rect = getRect(attachHelperDiv());
     } else if (!containsOrEquals(root, elm)) {
       // IE10 throws Unspecified Error for detached elements
       rect = toPlainRect(0, 0, 0, 0);
@@ -4688,10 +4739,10 @@ function getRect(elm, includeMargin) {
 
       if (includeMargin === true) {
         var style = getComputedStyle(elm);
-        var marginTop = Math.max(0, parseFloat(style.marginTop));
-        var marginLeft = Math.max(0, parseFloat(style.marginLeft));
-        var marginRight = Math.max(0, parseFloat(style.marginRight));
-        var marginBottom = Math.max(0, parseFloat(style.marginBottom));
+        var marginTop = Math.max(0, domUtil_parseFloat(style.marginTop));
+        var marginLeft = Math.max(0, domUtil_parseFloat(style.marginLeft));
+        var marginRight = Math.max(0, domUtil_parseFloat(style.marginRight));
+        var marginBottom = Math.max(0, domUtil_parseFloat(style.marginBottom));
         rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
       }
     }
