@@ -274,6 +274,20 @@ export function single<R>(obj: any, callback: (v: any, i: string) => R): R | fal
 export function kv<T extends string | number | symbol, V>(key: T, value: V): { [P in T]: V };
 
 /**
+ * Creates an object containing properties filled with the supplied value.
+ * @param keys Names of properties to be set.
+ * @param value Value to be set.
+ */
+export function fill<K extends string | number | symbol, V>(keys: K[], value: V): { [P in K]: V };
+
+/**
+ * Creates an object containing properties filled with the supplied value.
+ * @param keys Names of properties to be set.
+ * @param value Value to be set.
+ */
+export function fill<K extends string, V>(keys: K, value: V): { [P in Zeta.WhitespaceDelimited<K>]: V };
+
+/**
  * Sets properties with the supplied value on an object.
  * @param obj An object of which properties will be set.
  * @param keys Names of properties to be set.

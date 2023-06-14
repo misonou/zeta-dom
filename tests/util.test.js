@@ -250,6 +250,11 @@ describe('fill', () => {
         const obj = {};
         expect(fill(obj, 'a', 1)).toBe(obj);
     });
+
+    it('should return a new object', () => {
+        const sym = Symbol();
+        expect(fill(['a', 0, sym], 1)).toEqual({ a: 1, 0: 1, [sym]: 1 });
+    });
 });
 
 describe('pick', () => {

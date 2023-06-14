@@ -240,6 +240,9 @@ function kv(key, value) {
 }
 
 function fill(obj, keys, value) {
+    if (arguments.length < 3) {
+        return fill({}, obj, keys);
+    }
     each(keys, function (i, v) {
         obj[v] = value;
     });
