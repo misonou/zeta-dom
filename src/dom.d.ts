@@ -107,9 +107,10 @@ export function focused(element: Element, strict?: boolean): boolean;
 /**
  * Sets focus to the given element.
  * @param element A DOM element.
+ * @param focusInput Whether to focus the first focusable element within. Default is `true`.
  * @return Whether the given element is set focused.
  */
-export function focus(element: Element): boolean;
+export function focus(element: Element, focusInput?: boolean): boolean;
 
 /**
  * Sets the given element as modal element.

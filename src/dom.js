@@ -920,8 +920,8 @@ setShortcut({
  * Exports
  * -------------------------------------- */
 
-function focus(element) {
-    if (!matchSelector(element, SELECTOR_FOCUSABLE)) {
+function focus(element, focusInput) {
+    if (focusInput !== false && !matchSelector(element, SELECTOR_FOCUSABLE)) {
         element = $(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
     }
     setFocus(element);
