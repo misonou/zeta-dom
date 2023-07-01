@@ -158,7 +158,8 @@ function wrapSelectorHandler(selector, callback) {
     return function (e) {
         var matched = $(e.target).closest(selector)[0];
         if (matched) {
-            return callback.call(matched, e);
+            e.currentTarget = matched;
+            return callback.call(matched, e, matched);
         }
     };
 }

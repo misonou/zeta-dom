@@ -50,7 +50,7 @@ export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName>(event: E
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName>(event: E, selector: string, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, HTMLHtmlElement>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName, K extends string>(event: E, selector: K, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, Zeta.ElementType<K>>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to a DOM element.
@@ -77,4 +77,4 @@ export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOM
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOMEventName>(element: T, event: E, selector: string, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, T>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOMEventName, K extends string>(element: T, event: E, selector: K, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, Zeta.ElementType<K>>): Zeta.UnregisterCallback;

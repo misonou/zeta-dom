@@ -49,6 +49,11 @@ declare namespace Zeta {
         [a: number]: Node;
     }[T];
 
+    type ElementType<K> = K extends keyof HTMLElementTagNameMap ? HTMLElementTagNameMap[K] :
+        K extends keyof SVGElementTagNameMap ? SVGElementTagNameMap[K] :
+        K extends keyof MathMLElementTagNameMap ? MathMLElementTagNameMap[K] :
+        K extends keyof HTMLElementDeprecatedTagNameMap ? HTMLElementDeprecatedTagNameMap[K] : Element;
+
     type DOMEventNames =
         keyof AbortSignalEventMap |
         keyof AbstractWorkerEventMap |
