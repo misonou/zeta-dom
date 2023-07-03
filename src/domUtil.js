@@ -502,11 +502,23 @@ function getRect(elm, includeMargin) {
             rect = toPlainRect(0, 0, 0, 0);
         } else {
             rect = toPlainRect(elm.getBoundingClientRect());
-            if (includeMargin === true) {
-                includeMargin = getBoxValues(elm, 'margin');
-                for (var i = 0; i <= 3; i++) {
-                    includeMargin[i] = Math.max(0, includeMargin[i]);
-                }
+            switch (includeMargin) {
+                case true:
+                    includeMargin = getBoxValues(elm, 'margin');
+                    for (var i = 0; i <= 3; i++) {
+                        includeMargin[i] = Math.max(0, includeMargin[i]);
+                    }
+                    break;
+                case 'margin-box':
+                    includeMargin = getBoxValues(elm, 'margin');
+                    break;
+                case 'padding-box':
+                    includeMargin = getBoxValues(elm, 'border', -1);
+                    break;
+                case 'content-box':
+                    var a = getBoxValues(elm, 'border', -1);
+                    var b = getBoxValues(elm, 'padding');
+                    includeMargin[a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
             }
         }
     }

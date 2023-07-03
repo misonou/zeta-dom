@@ -268,13 +268,25 @@ export function scrollIntoView(element: Element, margin: number, within?: Elemen
 export function getRect(): Zeta.Rect;
 
 /**
+ * Gets a rect object containing position and dimension information of an element.
+ * @param element A DOM element, or other object that is associated to a DOM element.
+ * @param box Type of box according to CSS box model. Default is `border-box`.
+ */
+export function getRect(element: Element | Zeta.HasElement, box?: "margin-box" | "border-box" | "padding-box" | "content-box"): Zeta.Rect;
+
+/**
  * Gets a rect object containing position and dimension information of the specified node.
  * @param element A DOM node, or other object that is associated to a DOM element or a DOM rect.
- * @param [includeMargin] Optionally including margin of a DOM element in calculation.
- * @returns A rect object.
+ * @param includeMargin Whether to extend to outer margin if a side has positive margin.
+ * @deprecated
  */
-export function getRect(element: Window | Node | Zeta.HasRect | Zeta.HasElement, includeMargin?: boolean): Zeta.Rect;
+export function getRect(element: Window | Node | Zeta.HasRect | Zeta.HasElement, includeMargin: boolean): Zeta.Rect;
 
+/**
+ * Gets a rect object containing position and dimension information of the specified node.
+ * @param element A DOM node, or other object that is associated to a DOM element or a DOM rect.
+ * @param margin Number of pixels extended from the original bounding box, or retracted from when given negative value.
+ */
 export function getRect(element: Window | Node | Zeta.HasRect | Zeta.HasElement, margin: number): Zeta.Rect;
 
 /**
