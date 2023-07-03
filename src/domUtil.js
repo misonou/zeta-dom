@@ -1,4 +1,4 @@
-import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep, freeze } from "./util.js";
+import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep, freeze, isArray } from "./util.js";
 import $ from "./include/jquery.js";
 import { window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { emitDOMEvent } from "./events.js";
@@ -337,6 +337,15 @@ function getSafeAreaInset() {
     return safeAreaInset;
 }
 
+function getBoxValues(element, prop, sign) {
+    var style = getComputedStyle(element);
+    var t = parseFloat(style[prop + 'Top']) || 0;
+    var l = parseFloat(style[prop + 'Left']) || 0;
+    var r = parseFloat(style[prop + 'Right']) || 0;
+    var b = parseFloat(style[prop + 'Bottom']) || 0;
+    return sign === -1 ? [-l, -t, -r, -b] : [l, t, r, b];
+}
+
 function getScrollOffset(winOrElm) {
     return {
         x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
@@ -393,7 +402,7 @@ function scrollBy(element, x, y) {
 function getContentRect(element) {
     var isRoot = element === root || element === document.body;
     var result = emitDOMEvent('getContentRect', element, null, { asyncResult: false });
-    var parentRect = result ? toPlainRect(result) : getRect(isRoot ? window : element);
+    var parentRect = result ? toPlainRect(result) : getRect(isRoot ? window : element, getBoxValues(element, 'scrollPadding', -1));
     if (isRoot) {
         var inset = getSafeAreaInset();
         var winRect = getRect();
@@ -430,7 +439,7 @@ function scrollIntoView(element, rect, within) {
     }
     within = within || root;
     if (!rect || rect.top === undefined) {
-        rect = getRect(element, rect);
+        rect = getRect(element, typeof rect === 'number' ? rect : getBoxValues(element, 'scrollMargin'));
     }
     var parent = getScrollParent(element);
     var result = { x: 0, y: 0 };
@@ -494,17 +503,17 @@ function getRect(elm, includeMargin) {
         } else {
             rect = toPlainRect(elm.getBoundingClientRect());
             if (includeMargin === true) {
-                var style = getComputedStyle(elm);
-                var marginTop = Math.max(0, parseFloat(style.marginTop));
-                var marginLeft = Math.max(0, parseFloat(style.marginLeft));
-                var marginRight = Math.max(0, parseFloat(style.marginRight));
-                var marginBottom = Math.max(0, parseFloat(style.marginBottom));
-                rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
+                includeMargin = getBoxValues(elm, 'margin');
+                for (var i = 0; i <= 3; i++) {
+                    includeMargin[i] = Math.max(0, includeMargin[i]);
+                }
             }
         }
     }
     if (typeof includeMargin === 'number') {
         rect = rect.expand(includeMargin);
+    } else if (isArray(includeMargin)) {
+        rect = rect.expand.apply(rect, includeMargin);
     }
     return rect;
 }
