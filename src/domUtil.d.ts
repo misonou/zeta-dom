@@ -238,6 +238,7 @@ export function scrollBy(element: Window | Element, x: number, y: number): { x: 
 
 /**
  * Scroll all ancestor container so that the specified element is in view.
+ * This has the same behavior as `align` being set to `auto`.
  * @param element Element to be scrolled into view.
  * @param rect A rect represent a region inside the element to be scrolled into view.
  * @param within When specified, only this element and its descendants will be scrolled.
@@ -248,6 +249,7 @@ export function scrollIntoView(element: Element, rect?: Zeta.RectLike, within?: 
 
 /**
  * Scroll all ancestor container so that the specified element is in view.
+ * This has the same behavior as `align` being set to `auto`.
  * @param element Element to be scrolled into view.
  * @param margin Number of pixels away from the edge where element should be positioned.
  * @param within When specified, only this element and its descendants will be scrolled.
@@ -255,6 +257,28 @@ export function scrollIntoView(element: Element, rect?: Zeta.RectLike, within?: 
  * either because the element or the region is already in view, or parent elements cannot be further scrolled.
  */
 export function scrollIntoView(element: Element, margin: number, within?: Element): { x: number; y: number } | false;
+
+/**
+ * Scroll all ancestor container so that the specified element is in view.
+ * @param element Element to be scrolled into view.
+ * @param align Alignment to viewport.
+ * @param rect A rect represent a region inside the element to be scrolled into view.
+ * @param within When specified, only this element and its descendants will be scrolled.
+ * @returns Number of pixels in x and y direction actually scrolled; or `false` if scrolling did not happened,
+ * either because the element or the region is already in view, or parent elements cannot be further scrolled.
+ */
+export function scrollIntoView(element: Element, align: Zeta.BoxAlign, rect?: Zeta.RectLike, within?: Element): { x: number; y: number } | false;
+
+/**
+ * Scroll all ancestor container so that the specified element is in view.
+ * @param element Element to be scrolled into view.
+ * @param align Alignment to viewport.
+ * @param margin Number of pixels away from the edge where element should be positioned.
+ * @param within When specified, only this element and its descendants will be scrolled.
+ * @returns Number of pixels in x and y direction actually scrolled; or `false` if scrolling did not happened,
+ * either because the element or the region is already in view, or parent elements cannot be further scrolled.
+ */
+export function scrollIntoView(element: Element, align: Zeta.BoxAlign, margin: number, within?: Element): { x: number; y: number } | false;
 
 
 /* --------------------------------------

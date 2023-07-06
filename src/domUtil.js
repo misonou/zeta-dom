@@ -433,22 +433,37 @@ function getContentRect(element) {
     return parentRect;
 }
 
-function scrollIntoView(element, rect, within) {
+function scrollIntoView(element, align, rect, within) {
     if (!isVisible(element)) {
         return false;
+    }
+    if (typeof align !== 'string') {
+        within = rect;
+        rect = align;
+        align = '';
     }
     within = within || root;
     if (!rect || rect.top === undefined) {
         rect = getRect(element, typeof rect === 'number' ? rect : getBoxValues(element, 'scrollMargin'));
     }
+    var dirX = matchWord(align, 'left right') || matchWord(align, 'center');
+    var dirY = matchWord(align, 'top bottom') || matchWord(align, 'center');
+    var getDelta = function (a, b, dir, dStart, dEnd, dCenter) {
+        if (dir === dStart || dir === dEnd) {
+            return a[dir] - b[dir];
+        } else if (dir === 'center') {
+            return a[dCenter] - b[dCenter];
+        } else {
+            var d = a[dStart] - b[dStart];
+            return Math.min(d, 0) || Math.max(0, Math.min(d, a[dEnd] - b[dEnd]));
+        }
+    };
     var parent = getScrollParent(element);
     var result = { x: 0, y: 0 };
     while (containsOrEquals(within, parent)) {
         var parentRect = getContentRect(parent);
-        var deltaX = rect.left - parentRect.left;
-        var deltaY = rect.top - parentRect.top;
-        deltaX = Math.min(deltaX, 0) || Math.max(0, Math.min(deltaX, rect.right - parentRect.right));
-        deltaY = Math.min(deltaY, 0) || Math.max(0, Math.min(deltaY, rect.bottom - parentRect.bottom));
+        var deltaX = getDelta(rect, parentRect, dirX, 'left', 'right', 'centerX');
+        var deltaY = getDelta(rect, parentRect, dirY, 'top', 'bottom', 'centerY');
         if (deltaX || deltaY) {
             var parentResult = scrollBy(parent, deltaX, deltaY);
             rect = rect.translate(-parentResult.x, -parentResult.y);

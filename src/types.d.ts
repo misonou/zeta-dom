@@ -126,6 +126,9 @@ declare namespace Zeta {
     type DOMEventsOf<T extends EventTarget> = ({ [K in DOMEventNames]: T extends DOMEventIDLProp<K, any> ? K : never })[DOMEventNames];
 
     type Direction = 'left' | 'top' | 'right' | 'bottom';
+    type BoxAlign = Direction
+        | 'left bottom' | 'left top' | 'right bottom' | 'right top'
+        | 'left center' | 'top center' | 'right center' | 'bottom center' | 'center' | 'auto';
     type Direction2D = Direction
         | 'left bottom' | 'left top' | 'right bottom' | 'right top'
         | 'left bottom inset-x' | 'left top inset-x' | 'right bottom inset-x' | 'right top inset-x'
