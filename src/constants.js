@@ -1,6 +1,5 @@
 /**
  *  Key code mapping for keyboard events.
- *  @type {Record<number, string>}
  */
 export const KEYNAMES = {
     8: 'backspace',
@@ -103,3 +102,79 @@ export const KEYNAMES = {
     221: 'closeBracket',
     222: 'singleQuote'
 };
+
+'1234567890'.split('').forEach(function (v) {
+    KEYNAMES['Digit' + v] = v;
+    KEYNAMES['Numpad' + v] = 'numpad' + v;
+});
+'abcdefghijklmnopqrstuvwxyz'.split('').forEach(function (v) {
+    KEYNAMES['Key' + v.toUpperCase()] = v;
+});
+
+const map = {
+    ShiftLeft: 16,       // shift
+    ShiftRight: 16,      // shift
+    ControlLeft: 17,     // ctrl
+    ControlRight: 17,    // ctrl
+    AltLeft: 18,         // alt
+    AltRight: 18,        // alt
+    ArrowLeft: 37,       // leftArrow
+    ArrowUp: 38,         // upArrow
+    ArrowRight: 39,      // rightArrow
+    ArrowDown: 40,       // downArrow
+    OSLeft: 91,          // leftWindow
+    OSRight: 92,         // rightWindowKey
+    ContextMenu: 93,     // select
+    NumpadMultiply: 106, // multiply
+    NumpadAdd: 107,      // add
+    NumpadSubtract: 109, // subtract
+    NumpadDecimal: 110,  // decimalPoint
+    NumpadDivide: 111,   // divide
+    Equal: 187,          // equalSign
+    Minus: 189,          // dash
+    Slash: 191,          // forwardSlash
+    Backquote: 192,      // backtick
+    BracketLeft: 219,    // openBracket
+    BracketRight: 221,   // closeBracket
+    Quote: 222           // singleQuote
+};
+for (var i in map) {
+    KEYNAMES[i] = KEYNAMES[map[i]];
+}
+
+[
+    8,   // backspace
+    9,   // tab
+    13,  // enter
+    19,  // pause
+    20,  // capsLock
+    27,  // escape
+    32,  // space
+    33,  // pageUp
+    34,  // pageDown
+    35,  // end
+    36,  // home
+    45,  // insert
+    46,  // delete
+    144, // numLock
+    145, // scrollLock
+    186, // semiColon
+    188, // comma
+    190, // period
+    220, // backSlash
+    112, // f1
+    113, // f2
+    114, // f3
+    115, // f4
+    116, // f5
+    117, // f6
+    118, // f7
+    119, // f8
+    120, // f9
+    121, // f10
+    122, // f11
+    123  // f12
+].forEach(function (v) {
+    v = KEYNAMES[v];
+    KEYNAMES[v[0].toUpperCase() + v.slice(1)] = v;
+});

@@ -10,13 +10,17 @@ import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } f
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
 
 const SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
-const META_KEYS = [16, 17, 18, 91, 93, 224];
 
 const focusPath = [root];
 const focusFriends = new WeakMap();
 const focusElements = new Set([root]);
 const modalElements = createAutoCleanupMap(releaseModal);
 const shortcuts = {};
+const metaKeys = {
+    alt: true,
+    ctrl: true,
+    shift: true
+};
 
 var windowFocusedOut;
 var currentEvent;
@@ -50,6 +54,15 @@ function textInputAllowed(v) {
 
 function isMouseDown(e) {
     return (e.buttons || e.which) === 1;
+}
+
+function normalizeKey(e) {
+    var key = KEYNAMES[e.code || e.keyCode];
+    return {
+        key: key || lcfirst(e.code) || e.key,
+        char: e.char || ((e.key || '').length === 1 && e.key) || (e.charCode && String.fromCharCode(e.charCode)) || '',
+        meta: !!metaKeys[key]
+    };
 }
 
 function createIterator(callback) {
@@ -709,22 +722,18 @@ domReady.then(function () {
         },
         keydown: function (e) {
             if (!imeNode) {
-                var keyCode = e.keyCode;
-                var isModifierKey = (META_KEYS.indexOf(keyCode) >= 0);
-                var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || keyCode === 32 || (keyCode >= 96 && keyCode <= 111));
-                // @ts-ignore: boolean arithmetic
-                modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !isModifierKey;
-                // @ts-ignore: boolean arithmetic
-                modifierCount *= isSpecialKey || ((modifierCount > 2 || (modifierCount > 1 && !e.shiftKey)) && !isModifierKey);
-                modifiedKeyCode = keyCode;
+                var data = normalizeKey(e);
+                modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !data.meta;
+                modifierCount *= !data.meta && (!data.char || modifierCount > 2 || (modifierCount > 1 && !e.shiftKey));
+                modifiedKeyCode = data.key;
                 if (modifierCount) {
-                    triggerKeystrokeEvent(getEventName(e, KEYNAMES[keyCode] || e.key), '');
+                    triggerKeystrokeEvent(getEventName(e, data.key), '');
                 }
             }
         },
         keyup: function (e) {
-            var isModifierKey = (META_KEYS.indexOf(e.keyCode) >= 0);
-            if (!imeNode && (isModifierKey || modifiedKeyCode === e.keyCode)) {
+            var data = normalizeKey(e);
+            if (!imeNode && (data.meta || modifiedKeyCode === data.key)) {
                 modifiedKeyCode = null;
                 modifierCount--;
             }
@@ -732,8 +741,8 @@ domReady.then(function () {
         },
         keypress: function (e) {
             if (!imeNode) {
-                var data = e.char || e.key || String.fromCharCode(e.charCode);
-                var keyName = getEventName(e, KEYNAMES[modifiedKeyCode] || data);
+                var data = normalizeKey(e).char;
+                var keyName = getEventName(e, modifiedKeyCode || data);
                 lastEventSource.sourceKeyName = keyName;
                 if (!modifierCount) {
                     triggerKeystrokeEvent(keyName, data);
