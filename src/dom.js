@@ -867,14 +867,21 @@ domReady.then(function () {
         focusout: function (e) {
             imeNode = null;
             hasCompositionUpdate = false;
-            // browser set focus to body if the focused element is no longer visible
-            // which is not a desirable behavior in many cases
-            // find the first visible element in focusPath to focus
-            // @ts-ignore: e.target is Element
-            if (!e.relatedTarget && !isVisible(e.target)) {
-                var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
-                if (cur) {
-                    setFocus(cur, lastEventSource);
+            if (!e.relatedTarget) {
+                if (!isVisible(e.target)) {
+                    // browser set focus to body if the focused element is no longer visible
+                    // which is not a desirable behavior in many cases
+                    // find the first visible element in focusPath to focus
+                    var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
+                    if (cur) {
+                        setFocus(cur, lastEventSource);
+                    }
+                } else {
+                    setTimeout(function () {
+                        if (!windowFocusedOut && focusPath[0] === e.target) {
+                           setFocus(e.target.parentNode, lastEventSource);
+                        }
+                    });
                 }
             }
         }
