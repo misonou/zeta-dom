@@ -14,6 +14,7 @@ declare const methods = {
     releaseFocus,
     iterateFocusPath,
     focus,
+    blur,
     beginDrag,
     beginPinchZoom,
     insertText,
@@ -111,6 +112,13 @@ export function focused(element: Element, strict?: boolean): boolean;
  * @return Whether the given element is set focused.
  */
 export function focus(element: Element, focusInput?: boolean): boolean;
+
+/**
+ * Removes focus from the given element.
+ * @param element A DOM element.
+ * @return Whether the given element is not focused after operation.
+ */
+export function blur(element: Element): boolean;
 
 /**
  * Sets the given element as modal element.

@@ -131,6 +131,86 @@ describe('focusable', () => {
     });
 });
 
+describe('blur', () => {
+    it('should not change focus if given element is not focused', () => {
+        const { button1, button2 } = initBody(`
+            <button id="button1"></button>
+            <button id="button2"></button>
+        `);
+        dom.focus(button1);
+        expect(dom.activeElement).toBe(button1);
+
+        expect(dom.blur(button2)).toBe(true);
+        expect(dom.activeElement).toBe(button1);
+    });
+
+    it('should not change focus if given element is detached', () => {
+        const { button } = initBody(`
+            <button id="button"></button>
+        `);
+        dom.focus(button);
+        expect(dom.activeElement).toBe(button);
+
+        expect(dom.blur(document.createElement('div'))).toBe(true);
+        expect(dom.activeElement).toBe(button);
+    });
+
+    it('should set focus to parent element', () => {
+        const { parent, button } = initBody(`
+            <div id="parent">
+                <button id="button"></button>
+            </div>
+        `);
+        dom.focus(button);
+        expect(dom.activeElement).toBe(button);
+
+        expect(dom.blur(button)).toBe(true);
+        expect(dom.activeElement).toBe(parent);
+    });
+
+    it('should set focus to parent element', () => {
+        const { parent, button } = initBody(`
+            <div id="parent">
+                <button id="button"></button>
+            </div>
+        `);
+        dom.focus(button);
+        expect(dom.activeElement).toBe(button);
+
+        expect(dom.blur(button)).toBe(true);
+        expect(dom.activeElement).toBe(parent);
+    });
+
+    it('should set focus to source element from which focus is delegated', () => {
+        const { button1, button2 } = initBody(`
+            <button id="button1"></button>
+            <button id="button2"></button>
+        `);
+        dom.focus(button1);
+        dom.retainFocus(button1, button2);
+        dom.focus(button2);
+        expect(dom.activeElement).toBe(button2);
+
+        expect(dom.blur(button2)).toBe(true);
+        expect(dom.activeElement).toBe(button1);
+    });
+
+    it('should return false if element is behind modal element', () => {
+        const { button1, button2 } = initBody(`
+            <button id="button1"></button>
+            <button id="button2"></button>
+        `);
+        dom.focus(button1);
+        dom.retainFocus(button1, button2);
+        dom.setModal(button2);
+        dom.focus(button2);
+        expect(dom.activeElement).toBe(button2);
+
+        expect(dom.blur(button1)).toBe(false);
+        expect(dom.activeElement).toBe(button2);
+    });
+});
+
 describe('setFocus', () => {
     it('should not throw when delegated element containing the source element', async () => {
         await dom.ready;

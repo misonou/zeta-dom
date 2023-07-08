@@ -879,7 +879,7 @@ domReady.then(function () {
                 } else {
                     setTimeout(function () {
                         if (!windowFocusedOut && focusPath[0] === e.target) {
-                           setFocus(e.target.parentNode, lastEventSource);
+                            setFocus(e.target.parentNode, lastEventSource);
                         }
                     });
                 }
@@ -944,6 +944,11 @@ function focus(element, focusInput) {
     return focusPath[0] === element;
 }
 
+function blur(element) {
+    setFocus(focusPath[focusPath.indexOf(element) + 1]);
+    return !focusElements.has(element);
+}
+
 export default {
     get event() {
         return currentEvent;
@@ -979,6 +984,7 @@ export default {
     releaseFocus,
     iterateFocusPath,
     focus,
+    blur,
     beginDrag,
     beginPinchZoom,
     insertText,
@@ -1020,5 +1026,6 @@ export {
     retainFocus,
     releaseFocus,
     iterateFocusPath,
-    focus
+    focus,
+    blur
 }
