@@ -25,7 +25,7 @@ export function observe(element: Node, options: MutationObserverInit, callback: 
  * @param fireInit Optionally fired when DOM content is ready.
  * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function watchElements(element: Element, selector: string, callback: (addedNodes: Element[], removedNodes: Element[]) => any, fireInit?: boolean): () => void;
+export function watchElements<K extends string>(element: Element, selector: K, callback: (addedNodes: Zeta.ElementType<K>[], removedNodes: Zeta.ElementType<K>[]) => any, fireInit?: boolean): () => void;
 
 /**
  * Registers a callback to be fired when specified attributes of descandent elements are changed.

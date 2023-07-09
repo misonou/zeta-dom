@@ -23,7 +23,7 @@ export function tagName(element: Element): string;
  * @param b A valid CSS selector.
  * @returns Returns the given element if the given selector matches the element; otherwise false.
  */
-export function matchSelector(a: Element, b: string): Element | false;
+export function matchSelector<K extends string>(a: Element, b: K): Zeta.ElementType<K> | false;
 
 /**
  * Gets whether an HTML element is visually painted.
