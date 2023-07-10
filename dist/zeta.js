@@ -1,4 +1,4 @@
-/*! zeta-dom v0.3.14 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.0 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -485,6 +485,10 @@ function kv(key, value) {
 }
 
 function fill(obj, keys, value) {
+  if (arguments.length < 3) {
+    return fill({}, obj, keys);
+  }
+
   each(keys, function (i, v) {
     obj[v] = value;
   });
@@ -1363,7 +1367,6 @@ defineHiddenProperty(window, ZETA_KEY, true, true);
 // CONCATENATED MODULE: ./src/constants.js
 /**
  *  Key code mapping for keyboard events.
- *  @type {Record<number, string>}
  */
 var KEYNAMES = {
   8: 'backspace',
@@ -1466,6 +1469,105 @@ var KEYNAMES = {
   221: 'closeBracket',
   222: 'singleQuote'
 };
+'1234567890'.split('').forEach(function (v) {
+  KEYNAMES['Digit' + v] = v;
+  KEYNAMES['Numpad' + v] = 'numpad' + v;
+});
+'abcdefghijklmnopqrstuvwxyz'.split('').forEach(function (v) {
+  KEYNAMES['Key' + v.toUpperCase()] = v;
+});
+var constants_map = {
+  ShiftLeft: 16,
+  // shift
+  ShiftRight: 16,
+  // shift
+  ControlLeft: 17,
+  // ctrl
+  ControlRight: 17,
+  // ctrl
+  AltLeft: 18,
+  // alt
+  AltRight: 18,
+  // alt
+  ArrowLeft: 37,
+  // leftArrow
+  ArrowUp: 38,
+  // upArrow
+  ArrowRight: 39,
+  // rightArrow
+  ArrowDown: 40,
+  // downArrow
+  OSLeft: 91,
+  // leftWindow
+  OSRight: 92,
+  // rightWindowKey
+  ContextMenu: 93,
+  // select
+  NumpadMultiply: 106,
+  // multiply
+  NumpadAdd: 107,
+  // add
+  NumpadSubtract: 109,
+  // subtract
+  NumpadDecimal: 110,
+  // decimalPoint
+  NumpadDivide: 111,
+  // divide
+  Equal: 187,
+  // equalSign
+  Minus: 189,
+  // dash
+  Slash: 191,
+  // forwardSlash
+  Backquote: 192,
+  // backtick
+  BracketLeft: 219,
+  // openBracket
+  BracketRight: 221,
+  // closeBracket
+  Quote: 222 // singleQuote
+
+};
+
+for (var i in constants_map) {
+  KEYNAMES[i] = KEYNAMES[constants_map[i]];
+}
+
+[8, // backspace
+9, // tab
+13, // enter
+19, // pause
+20, // capsLock
+27, // escape
+32, // space
+33, // pageUp
+34, // pageDown
+35, // end
+36, // home
+45, // insert
+46, // delete
+144, // numLock
+145, // scrollLock
+186, // semiColon
+188, // comma
+190, // period
+220, // backSlash
+112, // f1
+113, // f2
+114, // f3
+115, // f4
+116, // f5
+117, // f6
+118, // f7
+119, // f8
+120, // f9
+121, // f10
+122, // f11
+123 // f12
+].forEach(function (v) {
+  v = KEYNAMES[v];
+  KEYNAMES[v[0].toUpperCase() + v.slice(1)] = v;
+});
 // CONCATENATED MODULE: ./src/tree.js
 
 
@@ -2475,12 +2577,16 @@ bind(env_window, 'beforeunload', function (e) {
 
 
 var SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
-var META_KEYS = [16, 17, 18, 91, 93, 224];
 var focusPath = [root];
 var focusFriends = new WeakMap();
 var focusElements = new Set([root]);
 var modalElements = createAutoCleanupMap(releaseModal);
 var shortcuts = {};
+var metaKeys = {
+  alt: true,
+  ctrl: true,
+  shift: true
+};
 var windowFocusedOut;
 var currentEvent;
 var currentMetaKey = '';
@@ -2511,6 +2617,15 @@ function textInputAllowed(v) {
 
 function isMouseDown(e) {
   return (e.buttons || e.which) === 1;
+}
+
+function normalizeKey(e) {
+  var key = KEYNAMES[e.code || e.keyCode];
+  return {
+    key: key || lcfirst(e.code) || e.key,
+    char: e.char || (e.key || '').length === 1 && e.key || e.charCode && String.fromCharCode(e.charCode) || '',
+    meta: !!metaKeys[key]
+  };
 }
 
 function createIterator(callback) {
@@ -3249,24 +3364,20 @@ domReady.then(function () {
     },
     keydown: function keydown(e) {
       if (!imeNode) {
-        var keyCode = e.keyCode;
-        var isModifierKey = META_KEYS.indexOf(keyCode) >= 0;
-        var isSpecialKey = !isModifierKey && (KEYNAMES[keyCode] || '').length > 1 && !(keyCode >= 186 || keyCode === 32 || keyCode >= 96 && keyCode <= 111); // @ts-ignore: boolean arithmetic
-
-        modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !isModifierKey; // @ts-ignore: boolean arithmetic
-
-        modifierCount *= isSpecialKey || (modifierCount > 2 || modifierCount > 1 && !e.shiftKey) && !isModifierKey;
-        modifiedKeyCode = keyCode;
+        var data = normalizeKey(e);
+        modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !data.meta;
+        modifierCount *= !data.meta && (!data.char || modifierCount > 2 || modifierCount > 1 && !e.shiftKey);
+        modifiedKeyCode = data.key;
 
         if (modifierCount) {
-          triggerKeystrokeEvent(getEventName(e, KEYNAMES[keyCode] || e.key), '');
+          triggerKeystrokeEvent(getEventName(e, data.key), '');
         }
       }
     },
     keyup: function keyup(e) {
-      var isModifierKey = META_KEYS.indexOf(e.keyCode) >= 0;
+      var data = normalizeKey(e);
 
-      if (!imeNode && (isModifierKey || modifiedKeyCode === e.keyCode)) {
+      if (!imeNode && (data.meta || modifiedKeyCode === data.key)) {
         modifiedKeyCode = null;
         modifierCount--;
       }
@@ -3275,8 +3386,8 @@ domReady.then(function () {
     },
     keypress: function keypress(e) {
       if (!imeNode) {
-        var data = e.char || e.key || String.fromCharCode(e.charCode);
-        var keyName = getEventName(e, KEYNAMES[modifiedKeyCode] || data);
+        var data = normalizeKey(e).char;
+        var keyName = getEventName(e, modifiedKeyCode || data);
         lastEventSource.sourceKeyName = keyName;
 
         if (!modifierCount) {
@@ -3418,16 +3529,24 @@ domReady.then(function () {
     },
     focusout: function focusout(e) {
       imeNode = null;
-      hasCompositionUpdate = false; // browser set focus to body if the focused element is no longer visible
-      // which is not a desirable behavior in many cases
-      // find the first visible element in focusPath to focus
-      // @ts-ignore: e.target is Element
+      hasCompositionUpdate = false;
 
-      if (!e.relatedTarget && !isVisible(e.target)) {
-        var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
+      if (!e.relatedTarget) {
+        if (!isVisible(e.target)) {
+          // browser set focus to body if the focused element is no longer visible
+          // which is not a desirable behavior in many cases
+          // find the first visible element in focusPath to focus
+          var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
 
-        if (cur) {
-          setFocus(cur, lastEventSource);
+          if (cur) {
+            setFocus(cur, lastEventSource);
+          }
+        } else {
+          setTimeout(function () {
+            if (!windowFocusedOut && focusPath[0] === e.target) {
+              setFocus(e.target.parentNode, lastEventSource);
+            }
+          });
         }
       }
     }
@@ -3482,13 +3601,18 @@ setShortcut({
  * Exports
  * -------------------------------------- */
 
-function dom_focus(element) {
-  if (!matchSelector(element, SELECTOR_FOCUSABLE)) {
+function dom_focus(element, focusInput) {
+  if (focusInput !== false && !matchSelector(element, SELECTOR_FOCUSABLE)) {
     element = jquery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
   }
 
   setFocus(element);
   return focusPath[0] === element;
+}
+
+function dom_blur(element) {
+  setFocus(focusPath[focusPath.indexOf(element) + 1]);
+  return !focusElements.has(element);
 }
 
 /* harmony default export */ const dom = ({
@@ -3532,6 +3656,7 @@ function dom_focus(element) {
   releaseFocus: releaseFocus,
   iterateFocusPath: iterateFocusPath,
   focus: dom_focus,
+  blur: dom_blur,
   beginDrag: beginDrag,
   beginPinchZoom: beginPinchZoom,
   insertText: insertText,
@@ -3734,7 +3859,8 @@ function wrapSelectorHandler(selector, callback) {
     var matched = jquery(e.target).closest(selector)[0];
 
     if (matched) {
-      return callback.call(matched, e);
+      e.currentTarget = matched;
+      return callback.call(matched, e, matched);
     }
   };
 }
@@ -4539,6 +4665,15 @@ function getSafeAreaInset() {
   return safeAreaInset;
 }
 
+function getBoxValues(element, prop, sign) {
+  var style = getComputedStyle(element);
+  var t = domUtil_parseFloat(style[prop + 'Top']) || 0;
+  var l = domUtil_parseFloat(style[prop + 'Left']) || 0;
+  var r = domUtil_parseFloat(style[prop + 'Right']) || 0;
+  var b = domUtil_parseFloat(style[prop + 'Bottom']) || 0;
+  return sign === -1 ? [-l, -t, -r, -b] : [l, t, r, b];
+}
+
 function getScrollOffset(winOrElm) {
   return {
     x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
@@ -4618,7 +4753,7 @@ function getContentRect(element) {
   var result = emitDOMEvent('getContentRect', element, null, {
     asyncResult: false
   });
-  var parentRect = result ? toPlainRect(result) : getRect(isRoot ? env_window : element);
+  var parentRect = result ? toPlainRect(result) : getRect(isRoot ? env_window : element, getBoxValues(element, 'scrollPadding', -1));
 
   if (isRoot) {
     var inset = getSafeAreaInset();
@@ -4655,16 +4790,36 @@ function getContentRect(element) {
   return parentRect;
 }
 
-function scrollIntoView(element, rect, within) {
+function scrollIntoView(element, align, rect, within) {
   if (!isVisible(element)) {
     return false;
+  }
+
+  if (typeof align !== 'string') {
+    within = rect;
+    rect = align;
+    align = '';
   }
 
   within = within || root;
 
   if (!rect || rect.top === undefined) {
-    rect = getRect(element, rect);
+    rect = getRect(element, typeof rect === 'number' ? rect : getBoxValues(element, 'scrollMargin'));
   }
+
+  var dirX = matchWord(align, 'left right') || matchWord(align, 'center');
+  var dirY = matchWord(align, 'top bottom') || matchWord(align, 'center');
+
+  var getDelta = function getDelta(a, b, dir, dStart, dEnd, dCenter) {
+    if (dir === dStart || dir === dEnd) {
+      return a[dir] - b[dir];
+    } else if (dir === 'center') {
+      return a[dCenter] - b[dCenter];
+    } else {
+      var d = a[dStart] - b[dStart];
+      return Math.min(d, 0) || Math.max(0, Math.min(d, a[dEnd] - b[dEnd]));
+    }
+  };
 
   var parent = getScrollParent(element);
   var result = {
@@ -4674,10 +4829,8 @@ function scrollIntoView(element, rect, within) {
 
   while (containsOrEquals(within, parent)) {
     var parentRect = getContentRect(parent);
-    var deltaX = rect.left - parentRect.left;
-    var deltaY = rect.top - parentRect.top;
-    deltaX = Math.min(deltaX, 0) || Math.max(0, Math.min(deltaX, rect.right - parentRect.right));
-    deltaY = Math.min(deltaY, 0) || Math.max(0, Math.min(deltaY, rect.bottom - parentRect.bottom));
+    var deltaX = getDelta(rect, parentRect, dirX, 'left', 'right', 'centerX');
+    var deltaY = getDelta(rect, parentRect, dirY, 'top', 'bottom', 'centerY');
 
     if (deltaX || deltaY) {
       var parentResult = scrollBy(parent, deltaX, deltaY);
@@ -4737,19 +4890,36 @@ function getRect(elm, includeMargin) {
     } else {
       rect = toPlainRect(elm.getBoundingClientRect());
 
-      if (includeMargin === true) {
-        var style = getComputedStyle(elm);
-        var marginTop = Math.max(0, domUtil_parseFloat(style.marginTop));
-        var marginLeft = Math.max(0, domUtil_parseFloat(style.marginLeft));
-        var marginRight = Math.max(0, domUtil_parseFloat(style.marginRight));
-        var marginBottom = Math.max(0, domUtil_parseFloat(style.marginBottom));
-        rect = rect.expand(marginLeft, marginTop, marginRight, marginBottom);
+      switch (includeMargin) {
+        case true:
+          includeMargin = getBoxValues(elm, 'margin');
+
+          for (var i = 0; i <= 3; i++) {
+            includeMargin[i] = Math.max(0, includeMargin[i]);
+          }
+
+          break;
+
+        case 'margin-box':
+          includeMargin = getBoxValues(elm, 'margin');
+          break;
+
+        case 'padding-box':
+          includeMargin = getBoxValues(elm, 'border', -1);
+          break;
+
+        case 'content-box':
+          var a = getBoxValues(elm, 'border', -1);
+          var b = getBoxValues(elm, 'padding');
+          includeMargin[(a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3])];
       }
     }
   }
 
   if (typeof includeMargin === 'number') {
     rect = rect.expand(includeMargin);
+  } else if (isArray(includeMargin)) {
+    rect = rect.expand.apply(rect, includeMargin);
   }
 
   return rect;
