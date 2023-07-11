@@ -14,6 +14,7 @@ const [getBoundingClientRect] = [
 ];
 
 beforeAll(() => {
+    root.scrollBy = mockFn();
     root.style.overflowX = 'auto';
     root.style.overflowY = 'auto';
     body.style.overflowX = 'auto';
@@ -625,11 +626,13 @@ describe('scrollBy', () => {
         expect(cb).toBeCalledWith(objectContaining({ type: 'scrollBy', target: body, x: 10, y: 20 }), _);
     });
 
-    it('should call window.scrollBy for window, root and body element', () => {
-        expect(scrollBy(window, 10, 10)).toMatchObject({ x: 0, y: 0 });
-        expect(scrollBy(root, 10, 10)).toMatchObject({ x: 0, y: 0 });
-        expect(scrollBy(body, 10, 10)).toMatchObject({ x: 0, y: 0 });
-        expect(window.scrollBy).toBeCalledTimes(3);
+    it('should call scrollBy on root for window, root and body element', () => {
+        scrollBy(window, 10, 10);
+        expect(root.scrollBy).toBeCalledTimes(1);
+        scrollBy(root, 10, 10);
+        expect(root.scrollBy).toBeCalledTimes(2);
+        scrollBy(body, 10, 10);
+        expect(root.scrollBy).toBeCalledTimes(3);
     });
 
     it('should set scrollLeft and scrollTop property for element when overflow is set to scroll', () => {

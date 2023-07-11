@@ -8,10 +8,6 @@ const elementsFromPoint = document.msElementsFromPoint || document.elementsFromP
 const compareDocumentPositionImpl = document.compareDocumentPosition;
 const visualViewport = window.visualViewport;
 const parseFloat = window.parseFloat;
-const OFFSET_ZERO = Object.freeze({
-    x: 0,
-    y: 0
-});
 
 var helperDiv = $('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;--sai:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)">')[0];
 var scrollbarWidth;
@@ -371,32 +367,47 @@ function scrollBy(element, x, y) {
     if (result) {
         return result;
     }
-    var winOrElm = element === root || element === document.body ? window : element;
-    if (element !== window) {
-        var style = getComputedStyle(element);
-        if (style.overflowX !== 'scroll' && style.overflowX !== 'auto') {
-            x = 0;
-        }
-        // include special case for root or body where scrolling is enabled when overflowY is visible
-        if (style.overflowY !== 'scroll' && style.overflowY !== 'auto' && (winOrElm !== window || style.overflowY !== 'visible')) {
-            y = 0;
-        }
+    element = element === window || element === document.body ? root : element;
+
+    var style = getComputedStyle(element);
+    if (style.overflowX !== 'scroll' && style.overflowX !== 'auto') {
+        x = 0;
+    }
+    // include special case for root or body where scrolling is enabled when overflowY is visible
+    if (style.overflowY !== 'scroll' && style.overflowY !== 'auto' && (element !== root || style.overflowY !== 'visible')) {
+        y = 0;
     }
     if (!x && !y) {
-        return OFFSET_ZERO;
+        return { x, y };
     }
-    var orig = getScrollOffset(winOrElm);
-    if (winOrElm.scrollBy) {
-        winOrElm.scrollBy(x, y);
-    } else {
-        winOrElm.scrollLeft = orig.x + x;
-        winOrElm.scrollTop = orig.y + y;
-    }
-    var cur = getScrollOffset(winOrElm);
-    return {
-        x: cur.x - orig.x,
-        y: cur.y - orig.y
+    var orig = getScrollOffset(element);
+    var getResult = function () {
+        var cur = getScrollOffset(element);
+        return {
+            x: cur.x - orig.x,
+            y: cur.y - orig.y
+        };
     };
+    if (element.scrollBy) {
+        element.scrollBy({
+            left: x,
+            top: y,
+            behavior: 'instant'
+        });
+        if (style.scrollBehavior === 'smooth') {
+            result = getResult();
+            element.scrollTo({
+                left: orig.x,
+                top: orig.y,
+                behavior: 'instant'
+            });
+            element.scrollBy(x, y);
+        }
+    } else {
+        element.scrollLeft = orig.x + x;
+        element.scrollTop = orig.y + y;
+    }
+    return result || getResult();
 }
 
 function getContentRect(element) {
