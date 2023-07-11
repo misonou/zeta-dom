@@ -26,6 +26,7 @@
     "@babel/core": "^7.12.3",
     "@babel/preset-env": "^7.12.1",
     "@jest/globals": "^26.6.2",
+    "@testing-library/user-event": "^14.4.3",
     "@types/jest": "^26.0.15",
     "babel-loader": "^8.2.1",
     "cross-env": "^7.0.2",

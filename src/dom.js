@@ -920,7 +920,9 @@ domReady.then(function () {
     });
 
     listenDOMEvent('escape', function () {
-        setFocus(getModalElement() || document.body);
+        blur(any(focusPath, function (v, i) {
+            return matchSelector(v, SELECTOR_FOCUSABLE) || !containsOrEquals(focusPath[i + 1] || root, v);
+        }));
     });
     setFocus(document.activeElement);
     lock(root);
