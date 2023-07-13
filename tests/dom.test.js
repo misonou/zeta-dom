@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
-import { after, body, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
+import { after, body, initBody, mockFn, objectContaining, root, verifyCalls, _, bindEvent } from "./testUtil";
 
 /** @type {import("@testing-library/user-event/dist/types/setup/setup").UserEvent} */
 const { keyboard } = userEvent.default;
@@ -629,6 +629,19 @@ describe('focus event', () => {
             [objectContaining({ type: 'focusout', target: node2 }), _],
             [objectContaining({ type: 'focusout', target: node1 }), _]
         ]);
+    });
+});
+
+describe('click event', () => {
+    it('should be emitted when native click event is directly dispatched', () => {
+        const cb = mockFn();
+        bindEvent(root, 'click', cb);
+        document.body.dispatchEvent(new MouseEvent('click', { clientX: 10, clientY: 10 }));
+        expect(cb).toBeCalledWith(expect.objectContaining({
+            type: 'click',
+            clientX: 10,
+            clientY: 10
+        }), _);
     });
 });
 

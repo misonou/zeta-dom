@@ -518,7 +518,7 @@ domReady.then(function () {
     var modifierCount;
     var modifiedKeyCode;
     var mouseInitialPoint;
-    var mousedownFocus;
+    var preventClick;
     var pressTimeout;
     var hasBeforeInput;
     var hasCompositionUpdate;
@@ -592,7 +592,7 @@ domReady.then(function () {
             target: event.target,
             metakey: getEventName(event) || ''
         };
-        return triggerUIEvent(eventName, data, true, mouseInitialPoint || event);
+        return triggerUIEvent(eventName, data, true, event);
     }
 
     function triggerGestureEvent(gesture) {
@@ -809,12 +809,12 @@ domReady.then(function () {
             clearTimeout(pressTimeout);
         },
         mousedown: function (e) {
+            mouseInitialPoint = e;
+            preventClick = false;
             setFocus(e.target);
             if (isMouseDown(e)) {
                 triggerMouseEvent('mousedown');
             }
-            mouseInitialPoint = e;
-            mousedownFocus = document.activeElement;
         },
         mousemove: function (e) {
             if (mouseInitialPoint && measureLine(e, mouseInitialPoint).length > 5) {
@@ -823,11 +823,7 @@ domReady.then(function () {
                     triggerMouseEvent('drag', mouseInitialPoint);
                 }
                 mouseInitialPoint = null;
-            }
-        },
-        mouseup: function () {
-            if (mousedownFocus && document.activeElement !== mousedownFocus) {
-                mousedownFocus.focus();
+                preventClick = true;
             }
         },
         wheel: function (e) {
@@ -837,9 +833,11 @@ domReady.then(function () {
             }
         },
         click: function (e) {
-            if (mouseInitialPoint) {
+            if (!preventClick) {
+                setFocus(e.target);
                 triggerMouseEvent(getEventName(e, 'click'));
             }
+            preventClick = false;
         },
         contextmenu: function (e) {
             triggerMouseEvent('rightClick');
