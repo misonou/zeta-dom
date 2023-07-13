@@ -130,6 +130,7 @@ const map = {
     NumpadSubtract: 109, // subtract
     NumpadDecimal: 110,  // decimalPoint
     NumpadDivide: 111,   // divide
+    Semicolon: 186,      // semiColon
     Equal: 187,          // equalSign
     Minus: 189,          // dash
     Slash: 191,          // forwardSlash
@@ -158,7 +159,6 @@ for (var i in map) {
     46,  // delete
     144, // numLock
     145, // scrollLock
-    186, // semiColon
     188, // comma
     190, // period
     220, // backSlash
