@@ -10,7 +10,6 @@ import { after, body, initBody, mockFn, objectContaining, root, verifyCalls, _, 
 const { keyboard } = userEvent.default;
 
 async function type(elm, keystroke) {
-    await domReady;
     await after(() => {
         dom.focus(elm);
         // @ts-ignore: unable to infer dynamically created method
@@ -18,14 +17,16 @@ async function type(elm, keystroke) {
     });
 }
 
+beforeAll(async () => {
+    await domReady;
+});
+
 describe('activeElement', () => {
     it('should return body as initial focused element', async () => {
-        await dom.ready;
         expect(dom.activeElement).toBe(body);
     });
 
     it('should return current focused element', async () => {
-        await dom.ready;
         const { button } = initBody(`
             <button id="button"></button>
         `);
@@ -34,7 +35,6 @@ describe('activeElement', () => {
     });
 
     it('should not return detached element', async () => {
-        await dom.ready;
         const { button } = initBody(`
             <button id="button"></button>
         `);
@@ -45,8 +45,7 @@ describe('activeElement', () => {
 });
 
 describe('focusedElements', () => {
-    it('should return current focused element and its parents', async () => {
-        await dom.ready;
+    it('should return current focused element and its parents', () => {
         const { button } = initBody(`
             <button id="button"></button>
         `);
@@ -54,8 +53,7 @@ describe('focusedElements', () => {
         expect(dom.focusedElements).toEqual([button, body, root]);
     });
 
-    it('should not return detached element', async () => {
-        await dom.ready;
+    it('should not return detached element', () => {
         const { button } = initBody(`
             <button id="button"></button>
         `);
@@ -64,8 +62,7 @@ describe('focusedElements', () => {
         expect(dom.focusedElements).toEqual([body, root]);
     });
 
-    it('should exclude elements that is not descandents of modal element', async () => {
-        await dom.ready;
+    it('should exclude elements that is not descandents of modal element', () => {
         const { modal } = initBody(`
             <div id="modal">
                 <button id="button"></button>
@@ -77,7 +74,7 @@ describe('focusedElements', () => {
 });
 
 describe('modalElement', () => {
-    it('should not return detached element', async () => {
+    it('should not return detached element', () => {
         const { modal1, modal2 } = initBody(`
             <div id="modal1"></div>
             <div id="modal2"></div>
@@ -94,13 +91,11 @@ describe('modalElement', () => {
 });
 
 describe('context', () => {
-    it('should be null initially', async () => {
-        await dom.ready;
+    it('should be null initially', () => {
         expect(dom.context).toBeNull();
     });
 
-    it('should return context object of current DOM event capturing container', async () => {
-        await dom.ready;
+    it('should return context object of current DOM event capturing container', () => {
         const { treeRoot, button } = initBody(`
             <div id="treeRoot">
                 <button id="button"></button>
@@ -116,8 +111,7 @@ describe('context', () => {
 });
 
 describe('focusable', () => {
-    it('should return false if element is blocked by modal element', async () => {
-        await dom.ready;
+    it('should return false if element is blocked by modal element', () => {
         const { modal, other } = initBody(`
             <div id="modal"></div>
             <div id="other"></div>
@@ -216,8 +210,7 @@ describe('blur', () => {
 });
 
 describe('setFocus', () => {
-    it('should not throw when delegated element containing the source element', async () => {
-        await dom.ready;
+    it('should not throw when delegated element containing the source element', () => {
         const { outer, inner } = initBody(`
             <div id="outer">
                 <div id="inner"></div>
@@ -227,8 +220,7 @@ describe('setFocus', () => {
         dom.focus(inner);
     });
 
-    it('should not throw when source element containing the delegated element', async () => {
-        await dom.ready;
+    it('should not throw when source element containing the delegated element', () => {
         const { outer, inner } = initBody(`
             <div id="outer">
                 <div id="inner"></div>
@@ -251,8 +243,7 @@ describe('setFocus', () => {
 });
 
 describe('setModal', () => {
-    it('should focus modal element', async () => {
-        await dom.ready;
+    it('should focus modal element', () => {
         const { modal } = initBody(`
             <div>
                 <div id="modal"></div>
@@ -263,8 +254,7 @@ describe('setModal', () => {
         expect(dom.modalElement).toBe(modal);
     });
 
-    it('should keep modal element and its descendant as focused', async () => {
-        await dom.ready;
+    it('should keep modal element and its descendant as focused', () => {
         const { modal, child } = initBody(`
             <div id="modal">
                 <div id="child"></div>
@@ -276,8 +266,7 @@ describe('setModal', () => {
         expect(dom.modalElement).toBe(modal);
     });
 
-    it('should keep focus inside modal element', async () => {
-        await dom.ready;
+    it('should keep focus inside modal element', () => {
         const { modal, button } = initBody(`
             <div>
                 <div id="modal"></div>
@@ -290,8 +279,7 @@ describe('setModal', () => {
         expect(dom.focusedElements).toEqual([modal, root]);
     });
 
-    it('should fire focusreturn event if keyboard, mouse or touch event is triggered outside modal element', async () => {
-        await dom.ready;
+    it('should fire focusreturn event if keyboard, mouse or touch event is triggered outside modal element', () => {
         const { modal, button } = initBody(`
             <div id="modal"></div>
             <button id="button"></button>
@@ -307,7 +295,6 @@ describe('setModal', () => {
     });
 
     it('should return focus to previously focused element if modal element is removed', async () => {
-        await dom.ready;
         const { modal, other, button } = initBody(`
             <div id="modal"></div>
             <div id="other">
@@ -327,8 +314,7 @@ describe('setModal', () => {
         expect(dom.focusedElements).toEqual([button, other, body, root]);
     });
 
-    it('should do no-op and return true when element is already modal', async () => {
-        await dom.ready;
+    it('should do no-op and return true when element is already modal', () => {
         const { modal } = initBody(`
             <div id="modal"></div>
         `);
@@ -339,8 +325,7 @@ describe('setModal', () => {
         expect(dom.focusedElements).toEqual([modal, root]);
     });
 
-    it('should do no-op and return false when element is not focusable', async () => {
-        await dom.ready;
+    it('should do no-op and return false when element is not focusable', () => {
         const { modal } = initBody(`
             <div id="modal"></div>
         `);
@@ -352,7 +337,6 @@ describe('setModal', () => {
     });
 
     it('should emit modalchange event', async () => {
-        await dom.ready;
         const { modal } = initBody(`
             <div id="modal"></div>
         `);
@@ -369,8 +353,7 @@ describe('setModal', () => {
 });
 
 describe('releaseModal', () => {
-    it('should keep currently focused element', async () => {
-        await dom.ready;
+    it('should keep currently focused element', () => {
         const { modal, other, button } = initBody(`
             <div id="modal"></div>
             <div id="other">
@@ -390,8 +373,7 @@ describe('releaseModal', () => {
         expect(dom.modalElement).toBe(null);
     });
 
-    it('should fire focusout event on previously focused element', async () => {
-        await dom.ready;
+    it('should fire focusout event on previously focused element', () => {
         const { modal, other, button } = initBody(`
             <div id="modal"></div>
             <div id="other">
@@ -408,7 +390,6 @@ describe('releaseModal', () => {
     });
 
     it('should emit modalchange event', async () => {
-        await dom.ready;
         const { modal } = initBody(`
             <div id="modal"></div>
         `);
@@ -426,8 +407,8 @@ describe('releaseModal', () => {
         unregister();
     });
 
-    it('should restore correctly when modal is released out-of-order', async () => {
-        const { modal1, modal2, other } = await initBody(`
+    it('should restore correctly when modal is released out-of-order', () => {
+        const { modal1, modal2, other } = initBody(`
             <div id="modal1"></div>
             <div id="modal2"></div>
             <div id="other"></div>
@@ -447,8 +428,7 @@ describe('releaseModal', () => {
 });
 
 describe('retainFocus', () => {
-    it('should return keep element given as first argument in focused state', async () => {
-        await dom.ready;
+    it('should return keep element given as first argument in focused state', () => {
         const { modal, other, inner } = initBody(`
             <div id="modal">
                 <div id="inner"></div>
@@ -465,8 +445,7 @@ describe('retainFocus', () => {
         unregister();
     });
 
-    it('should allow focus to delegated element outside modal element', async () => {
-        await dom.ready;
+    it('should allow focus to delegated element outside modal element', () => {
         const { modal, other } = initBody(`
             <div id="modal"></div>
             <div id="other"></div>
