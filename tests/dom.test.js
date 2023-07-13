@@ -237,6 +237,17 @@ describe('setFocus', () => {
         dom.retainFocus(outer, inner);
         dom.focus(inner);
     });
+
+    it('should focus correctly when given child element of focusable element', () => {
+        const { button, inner } = initBody(`
+            <button id="button">
+                <span id="inner"></span>
+            </button>
+        `);
+        dom.focus(inner);
+        expect(dom.activeElement).toBe(inner);
+        expect(document.activeElement).toBe(button);
+    });
 });
 
 describe('setModal', () => {

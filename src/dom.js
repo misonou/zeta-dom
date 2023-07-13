@@ -231,13 +231,14 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
         });
         triggerFocusEvent('focusin', elements.reverse(), null, source);
     }
-    if (path === focusPath && !suppressFocus && path[0] !== document.activeElement) {
-        path[0].focus();
-        // ensure previously focused element is properly blurred
-        // in case the new element is not focusable
-        var activeElement = document.activeElement;
-        if (activeElement && !containsOrEquals(activeElement, path[0])) {
-            activeElement.blur();
+    if (path === focusPath && !suppressFocus) {
+        var activeElement = any(focusPath, function (v) {
+            return matchSelector(v, SELECTOR_FOCUSABLE);
+        });
+        if (activeElement) {
+            activeElement.focus();
+        } else {
+            document.activeElement.blur();
         }
     }
 }
@@ -853,13 +854,13 @@ domReady.then(function () {
 
     bind(root, {
         focusin: function (e) {
+            var target = e.target;
             windowFocusedOut = false;
-            if (focusable(e.target)) {
-                setFocus(e.target, lastEventSource);
-                scrollIntoView(e.target, 10);
-            } else {
-                // @ts-ignore: e.target is Element
-                e.target.blur();
+            if (!focusable(target)) {
+                target.blur();
+            } else if (focusPath.indexOf(target) < 0) {
+                setFocus(target, lastEventSource);
+                scrollIntoView(target, 10);
             }
         },
         focusout: function (e) {
