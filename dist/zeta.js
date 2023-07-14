@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.0 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.1 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -1513,6 +1513,8 @@ var constants_map = {
   // decimalPoint
   NumpadDivide: 111,
   // divide
+  Semicolon: 186,
+  // semiColon
   Equal: 187,
   // equalSign
   Minus: 189,
@@ -1548,7 +1550,6 @@ for (var i in constants_map) {
 46, // delete
 144, // numLock
 145, // scrollLock
-186, // semiColon
 188, // comma
 190, // period
 220, // backSlash
@@ -2623,7 +2624,7 @@ function normalizeKey(e) {
   var key = KEYNAMES[e.code || e.keyCode];
   return {
     key: key || lcfirst(e.code) || e.key,
-    char: e.char || (e.key || '').length === 1 && e.key || e.charCode && String.fromCharCode(e.charCode) || '',
+    char: e.char || (e.key || '').length === 1 && e.key || e.charCode && String.fromCharCode(e.charCode) || (key === 'enter' ? '\r' : ''),
     meta: !!metaKeys[key]
   };
 }
@@ -2811,14 +2812,15 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
     triggerFocusEvent('focusin', elements.reverse(), null, source);
   }
 
-  if (path === focusPath && !suppressFocus && path[0] !== env_document.activeElement) {
-    path[0].focus(); // ensure previously focused element is properly blurred
-    // in case the new element is not focusable
+  if (path === focusPath && !suppressFocus) {
+    var activeElement = any(focusPath, function (v) {
+      return matchSelector(v, SELECTOR_FOCUSABLE);
+    });
 
-    var activeElement = env_document.activeElement;
-
-    if (activeElement && !containsOrEquals(activeElement, path[0])) {
-      activeElement.blur();
+    if (activeElement) {
+      activeElement.focus();
+    } else {
+      env_document.activeElement.blur();
     }
   }
 }
@@ -3138,7 +3140,7 @@ domReady.then(function () {
   var modifierCount;
   var modifiedKeyCode;
   var mouseInitialPoint;
-  var mousedownFocus;
+  var preventClick;
   var pressTimeout;
   var hasBeforeInput;
   var hasCompositionUpdate;
@@ -3219,7 +3221,7 @@ domReady.then(function () {
       target: event.target,
       metakey: getEventName(event) || ''
     };
-    return triggerUIEvent(eventName, data, true, mouseInitialPoint || event);
+    return triggerUIEvent(eventName, data, true, event);
   }
 
   function triggerGestureEvent(gesture) {
@@ -3465,14 +3467,13 @@ domReady.then(function () {
       clearTimeout(pressTimeout);
     },
     mousedown: function mousedown(e) {
+      mouseInitialPoint = e;
+      preventClick = false;
       setFocus(e.target);
 
       if (isMouseDown(e)) {
         triggerMouseEvent('mousedown');
       }
-
-      mouseInitialPoint = e;
-      mousedownFocus = env_document.activeElement;
     },
     mousemove: function mousemove(e) {
       if (mouseInitialPoint && measureLine(e, mouseInitialPoint).length > 5) {
@@ -3483,11 +3484,7 @@ domReady.then(function () {
         }
 
         mouseInitialPoint = null;
-      }
-    },
-    mouseup: function mouseup() {
-      if (mousedownFocus && env_document.activeElement !== mousedownFocus) {
-        mousedownFocus.focus();
+        preventClick = true;
       }
     },
     wheel: function wheel(e) {
@@ -3498,9 +3495,12 @@ domReady.then(function () {
       }
     },
     click: function click(e) {
-      if (mouseInitialPoint) {
+      if (!preventClick) {
+        setFocus(e.target);
         triggerMouseEvent(getEventName(e, 'click'));
       }
+
+      preventClick = false;
     },
     contextmenu: function contextmenu(e) {
       triggerMouseEvent('rightClick');
@@ -3517,14 +3517,14 @@ domReady.then(function () {
   });
   bind(root, {
     focusin: function focusin(e) {
+      var target = e.target;
       windowFocusedOut = false;
 
-      if (focusable(e.target)) {
-        setFocus(e.target, lastEventSource);
-        scrollIntoView(e.target, 10);
-      } else {
-        // @ts-ignore: e.target is Element
-        e.target.blur();
+      if (!focusable(target)) {
+        target.blur();
+      } else if (focusPath.indexOf(target) < 0) {
+        setFocus(target, lastEventSource);
+        scrollIntoView(target, 10);
       }
     },
     focusout: function focusout(e) {
@@ -3587,7 +3587,9 @@ domReady.then(function () {
     }
   });
   listenDOMEvent('escape', function () {
-    setFocus(getModalElement() || env_document.body);
+    dom_blur(any(focusPath, function (v, i) {
+      return matchSelector(v, SELECTOR_FOCUSABLE) || !containsOrEquals(focusPath[i + 1] || root, v);
+    }));
   });
   setFocus(env_document.activeElement);
   lock(root);
@@ -4294,10 +4296,6 @@ var elementsFromPoint = env_document.msElementsFromPoint || env_document.element
 var compareDocumentPositionImpl = env_document.compareDocumentPosition;
 var visualViewport = env_window.visualViewport;
 var domUtil_parseFloat = env_window.parseFloat;
-var OFFSET_ZERO = Object.freeze({
-  x: 0,
-  y: 0
-});
 var helperDiv = jquery('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;--sai:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)">')[0];
 var scrollbarWidth;
 var safeAreaInset;
@@ -4713,39 +4711,57 @@ function scrollBy(element, x, y) {
     return result;
   }
 
-  var winOrElm = element === root || element === env_document.body ? env_window : element;
+  element = element === env_window || element === env_document.body ? root : element;
+  var style = getComputedStyle(element);
 
-  if (element !== env_window) {
-    var style = getComputedStyle(element);
-
-    if (style.overflowX !== 'scroll' && style.overflowX !== 'auto') {
-      x = 0;
-    } // include special case for root or body where scrolling is enabled when overflowY is visible
+  if (style.overflowX !== 'scroll' && style.overflowX !== 'auto') {
+    x = 0;
+  } // include special case for root or body where scrolling is enabled when overflowY is visible
 
 
-    if (style.overflowY !== 'scroll' && style.overflowY !== 'auto' && (winOrElm !== env_window || style.overflowY !== 'visible')) {
-      y = 0;
-    }
+  if (style.overflowY !== 'scroll' && style.overflowY !== 'auto' && (element !== root || style.overflowY !== 'visible')) {
+    y = 0;
   }
 
   if (!x && !y) {
-    return OFFSET_ZERO;
+    return {
+      x: x,
+      y: y
+    };
   }
 
-  var orig = getScrollOffset(winOrElm);
+  var orig = getScrollOffset(element);
 
-  if (winOrElm.scrollBy) {
-    winOrElm.scrollBy(x, y);
-  } else {
-    winOrElm.scrollLeft = orig.x + x;
-    winOrElm.scrollTop = orig.y + y;
-  }
-
-  var cur = getScrollOffset(winOrElm);
-  return {
-    x: cur.x - orig.x,
-    y: cur.y - orig.y
+  var getResult = function getResult() {
+    var cur = getScrollOffset(element);
+    return {
+      x: cur.x - orig.x,
+      y: cur.y - orig.y
+    };
   };
+
+  if (element.scrollBy) {
+    element.scrollBy({
+      left: x,
+      top: y,
+      behavior: 'instant'
+    });
+
+    if (style.scrollBehavior === 'smooth') {
+      result = getResult();
+      element.scrollTo({
+        left: orig.x,
+        top: orig.y,
+        behavior: 'instant'
+      });
+      element.scrollBy(x, y);
+    }
+  } else {
+    element.scrollLeft = orig.x + x;
+    element.scrollTop = orig.y + y;
+  }
+
+  return result || getResult();
 }
 
 function getContentRect(element) {
