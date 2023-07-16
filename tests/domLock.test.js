@@ -1,5 +1,5 @@
 import { after, body, combineFn, delay, ErrorCode, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
-import { cancelLock, lock, locked, notifyAsync, preventLeave } from "../src/domLock";
+import { cancelLock, lock, locked, notifyAsync, preventLeave, subscribeAsync } from "../src/domLock";
 import { noop } from "../src/util";
 import { removeNode } from "../src/domUtil";
 import dom from "../src/dom";
@@ -60,6 +60,25 @@ describe('lock', () => {
         await promise1;
         await promise2;
         expect(cb).not.toBeCalled();
+        unregister();
+    });
+});
+
+describe('subscribeAsync', () => {
+    it('should invoke callback at asyncStart and asyncEnd event', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = subscribeAsync(div, cb);
+        const promise = delay();
+        notifyAsync(div, promise);
+
+        await promise;
+        verifyCalls(cb, [
+            [true],
+            [false],
+        ]);
         unregister();
     });
 });

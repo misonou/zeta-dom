@@ -1,9 +1,9 @@
 import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
-import { always, any, catchAsync, definePrototype, each, errorWithCode, executeOnce, makeArray, noop, reject, resolve, retryable, setImmediate } from "./util.js";
+import { always, any, catchAsync, definePrototype, each, errorWithCode, executeOnce, isFunction, makeArray, noop, reject, resolve, retryable, setImmediate } from "./util.js";
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
-import { emitDOMEvent } from "./events.js";
+import { emitDOMEvent, listenDOMEvent } from "./events.js";
 import { TraversableNode, TraversableNodeTree } from "./tree.js";
 
 const handledErrors = new WeakMap();
@@ -30,8 +30,18 @@ function lock(element, promise, oncancel) {
     return promise && lock.wait(promise, oncancel, false);
 }
 
-function subscribeAsync(element) {
+function subscribeAsync(element, callback) {
     ensureLock(element);
+    if (isFunction(callback)) {
+        return listenDOMEvent(element, {
+            asyncStart: function () {
+                callback.call(element, true);
+            },
+            asyncEnd: function () {
+                callback.call(element, false);
+            }
+        });
+    }
 }
 
 function notifyAsync(element, promise, oncancel) {

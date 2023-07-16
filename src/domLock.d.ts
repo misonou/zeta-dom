@@ -75,6 +75,13 @@ export declare function notifyAsync(element: Element, promise: Promise<any>, onc
 export declare function subscribeAsync(element: Element): void;
 
 /**
+ * Listens and invokes supplied callback at `asyncStart` and `asyncEnd` events.
+ * @param element A DOM element.
+ * @param callback A callback that will be invoked with a boolean indicating if there is asynchronous operation in progress.
+ */
+export declare function subscribeAsync<T extends Element>(element: T, callback: (this: T, loading: boolean) => void): Zeta.UnregisterCallback;
+
+/**
  * Prompts user before leaving the page within the lifetime of the promise.
  * @param promise A promise object.
  */
