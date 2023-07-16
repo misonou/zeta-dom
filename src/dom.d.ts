@@ -8,6 +8,7 @@ declare const methods = {
     textInputAllowed,
     focusable,
     focused,
+    setTabRoot,
     setModal,
     releaseModal,
     retainFocus,
@@ -119,6 +120,14 @@ export function focus(element: Element, focusInput?: boolean): boolean;
  * @return Whether the given element is not focused after operation.
  */
 export function blur(element: Element): boolean;
+
+/**
+ * Marks an element to be a tab root, such that when the element is focused,
+ * only its descendant elements can be focused by pressing tab/shift-tab key,
+ * or previous/next button in virtual keyboard.
+ * @param element A DOM element.
+ */
+export function setTabRoot(element: Element): void;
 
 /**
  * Sets the given element as modal element.

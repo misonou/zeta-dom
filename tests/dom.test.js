@@ -5,6 +5,7 @@ import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
 import { after, body, initBody, mockFn, objectContaining, root, verifyCalls, _, bindEvent } from "./testUtil";
+import { delay, makeArray } from "../src/util";
 
 /** @type {import("@testing-library/user-event/dist/types/setup/setup").UserEvent} */
 const { keyboard } = userEvent.default;
@@ -239,6 +240,65 @@ describe('setFocus', () => {
         dom.focus(inner);
         expect(dom.activeElement).toBe(inner);
         expect(document.activeElement).toBe(button);
+    });
+});
+
+describe('setTabRoot', () => {
+    it('should set tabIndex to -1 for focusable elements other than those contained', async () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1"></div>
+            <div id="node2">
+                <input type="text"/>
+                <textarea></textarea>
+                <button></button>
+                <a href="#"></a>
+            </div>
+        `);
+        dom.setTabRoot(node1);
+        dom.focus(node1);
+        await delay(10);
+        for (let elm of makeArray(node2.children)) {
+            expect(elm.tabIndex).toBe(-1);
+        }
+
+        const textarea = document.createElement('textarea');
+        node2.appendChild(textarea);
+        await delay(0);
+        expect(textarea.tabIndex).toBe(-1);
+    });
+
+    it('should reset tabIndex to original value', async () => {
+        const { node1, input1, input2 } = initBody(`
+            <div id="node1"></div>
+            <div id="node2">
+                <input id="input1" type="text"/>
+                <input id="input2" type="text" tabindex="1"/>
+            </div>
+        `);
+        dom.setTabRoot(node1);
+        dom.focus(node1);
+        await delay(10);
+
+        dom.blur(node1);
+        await delay(10);
+        expect(input1.getAttribute('tabindex')).toBe(null);
+        expect(input2.getAttribute('tabindex')).toBe('1');
+    });
+
+    it('should be automatically effective for modal element', async () => {
+        const { node1, input } = initBody(`
+            <div id="node1"></div>
+            <div id="node2">
+                <input id="input" type="text"/>
+            </div>
+        `);
+        dom.setModal(node1);
+        await delay(10);
+        expect(input.tabIndex).toBe(-1);
+
+        dom.releaseModal(node1);
+        await delay(10);
+        expect(input.tabIndex).toBe(0);
     });
 });
 

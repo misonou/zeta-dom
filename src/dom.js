@@ -3,7 +3,7 @@ import { IS_MAC, window, document, root, getSelection, getComputedStyle, domRead
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setAdd, setImmediate, setImmediateOnce, ucfirst } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
@@ -15,6 +15,8 @@ const focusPath = [root];
 const focusFriends = new WeakMap();
 const focusElements = new Set([root]);
 const modalElements = createAutoCleanupMap(releaseModal);
+const tabIndex = new WeakMap();
+const tabRoots = new WeakSet();
 const shortcuts = {};
 const metaKeys = {
     alt: true,
@@ -25,6 +27,7 @@ const metaKeys = {
 var windowFocusedOut;
 var currentEvent;
 var currentMetaKey = '';
+var currentTabRoot = root;
 var trackPromise;
 var trackCallbacks;
 
@@ -176,6 +179,29 @@ function triggerModalChangeEvent() {
     });
 }
 
+function updateTabRoot() {
+    var tabRoot = any(focusPath, function (v) {
+        return tabRoots.has(v);
+    }) || getModalElement() || root;
+    if (tabRoot !== currentTabRoot) {
+        currentTabRoot = tabRoot;
+        updateTabIndex();
+    }
+}
+
+function updateTabIndex(newNodes) {
+    $(newNodes || SELECTOR_FOCUSABLE).each(function (i, v) {
+        if (!containsOrEquals(currentTabRoot, v)) {
+            if (v.tabIndex !== -1) {
+                tabIndex.set(v, $(v).attr('tabindex') || null);
+                v.tabIndex = -1;
+            }
+        } else if (tabIndex.has(v)) {
+            $(v).attr('tabindex', mapRemove(tabIndex, v));
+        }
+    });
+}
+
 function setFocus(element, source, suppressFocus, suppressFocusChange) {
     if (element === root) {
         element = document.body;
@@ -240,6 +266,7 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
         } else {
             document.activeElement.blur();
         }
+        setTimeoutOnce(updateTabRoot);
     }
 }
 
@@ -305,6 +332,12 @@ function releaseModal(element, modalPath) {
                 return false;
             }
         });
+    }
+}
+
+function setTabRoot(a) {
+    if (a !== root && a !== document.body && setAdd(tabRoots, a)) {
+        setTimeoutOnce(updateTabRoot);
     }
 }
 
@@ -925,6 +958,7 @@ domReady.then(function () {
     });
     setFocus(document.activeElement);
     lock(root);
+    watchElements(root, SELECTOR_FOCUSABLE, updateTabIndex);
 });
 
 setShortcut({
@@ -979,6 +1013,7 @@ export default {
     textInputAllowed,
     focusable,
     focused,
+    setTabRoot,
     setModal,
     releaseModal,
     retainFocus,
@@ -1022,6 +1057,7 @@ export {
     setShortcut,
     focusable,
     focused,
+    setTabRoot,
     setModal,
     releaseModal,
     retainFocus,
