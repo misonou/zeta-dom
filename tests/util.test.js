@@ -1,4 +1,4 @@
-import { any, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
+import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
 import { after, delay, mockFn, objectContaining, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
@@ -342,6 +342,12 @@ describe('mapGet', () => {
         }).not.toThrow();
         expect(returnValue).toBe('bar');
         expect(map.get('foo')).toBe('bar');
+    });
+});
+
+describe('arrRemove', () => {
+    it('should return the removed value', () => {
+        expect(arrRemove([1, 2, 3], 2)).toBe(2);
     });
 });
 

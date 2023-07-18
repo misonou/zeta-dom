@@ -308,7 +308,7 @@ function mapRemove(map, key) {
 function arrRemove(arr, obj) {
     var index = arr.indexOf(obj);
     if (index >= 0) {
-        return arr.splice(index, 1);
+        return arr.splice(index, 1)[0];
     }
 }
 
