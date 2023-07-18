@@ -30,7 +30,7 @@ const compareFn = [
 ];
 
 var setImmediateStore = new Map();
-var matchWordCache;
+var matchWordCache = {};
 var watchStore = createPrivateStore();
 
 /* --------------------------------------
@@ -489,8 +489,7 @@ function trim(v) {
 }
 
 function matchWord(haystack, needle) {
-    var cache = matchWordCache || (matchWordCache = {});
-    var re = cache[needle] || (cache[needle] = new RegExp('(?:^|\\s)(' + needle.replace(/\s+/g, '|') + ')(?=$|\\s)'));
+    var re = matchWordCache[needle] || (matchWordCache[needle] = new RegExp('(?:^|\\s)(' + needle.replace(/\s+/g, '|') + ')(?=$|\\s)'));
     return re.test(String(haystack || '')) && RegExp.$1;
 }
 
@@ -610,8 +609,12 @@ function getOwnPropertyDescriptors(obj) {
 }
 
 function define(o, p) {
-    o = extend(function () { }, { prototype: o });
-    definePrototype(o, p);
+    each(getOwnPropertyDescriptors(p), function (i, v) {
+        if (isFunction(v.value)) {
+            v.enumerable = false;
+        }
+        defineProperty(o, i, v);
+    });
 }
 
 function defineOwnProperty(obj, name, value, readonly) {
@@ -643,23 +646,17 @@ function defineHiddenProperty(obj, name, value, readonly) {
 
 function definePrototype(fn, prototype, props) {
     if (isFunction(prototype)) {
-        props = props || {};
         fn.prototype = inherit(prototype, props);
         defineHiddenProperty(fn.prototype, 'constructor', fn);
         Object.setPrototypeOf(fn, prototype);
     } else {
-        each(getOwnPropertyDescriptors(prototype), function (i, v) {
-            if (isFunction(v.value)) {
-                v.enumerable = false;
-            }
-            defineProperty(fn.prototype, i, v);
-        });
+        define(fn.prototype, prototype);
     }
 }
 
 function inherit(proto, props) {
     var obj = Object.create(isFunction(proto) ? proto.prototype : proto || objectProto);
-    define(obj, props);
+    define(obj, props || {});
     return obj;
 }
 

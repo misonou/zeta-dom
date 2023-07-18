@@ -465,7 +465,7 @@ function trackPointer(callback) {
         mouseup: resolve,
         touchend: resolve,
         keydown: function (e) {
-            if (e.which === 27) {
+            if (normalizeKey(e).key === 'escape') {
                 reject(errorWithCode(ErrorCode.cancelled));
             }
         },
@@ -957,7 +957,7 @@ domReady.then(function () {
         }));
     });
     setFocus(document.activeElement);
-    lock(root);
+    subscribeAsync(root);
     watchElements(root, SELECTOR_FOCUSABLE, updateTabIndex);
 });
 

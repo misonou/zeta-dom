@@ -1,5 +1,5 @@
 import Promise from "./include/promise-polyfill.js";
-import { root, domReady } from "./env.js";
+import { root } from "./env.js";
 import { combineFn, each, extend, grep, is, isFunction, makeArray, map, mapGet, mapRemove, noop, throwNotFunction } from "./util.js";
 import { containsOrEquals, selectIncludeSelf } from "./domUtil.js";
 
@@ -8,8 +8,9 @@ const optionsForChildList = {
     subtree: true,
     childList: true
 };
-
-let globalCleanups;
+const globalCleanups = createAutoCleanupMap(function (element, arr) {
+    combineFn(arr)();
+});
 
 function DetachHandlerState() {
     this.handlers = []
@@ -51,10 +52,7 @@ function registerCleanup(element, callback) {
         var state = initDetachWatcher(root);
         state.handlers.push(element);
     } else {
-        var map = globalCleanups || (globalCleanups = createAutoCleanupMap(function (element, arr) {
-            combineFn(arr)();
-        }));
-        mapGet(map, element, Set).add(callback);
+        mapGet(globalCleanups, element, Set).add(callback);
     }
 }
 
