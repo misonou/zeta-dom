@@ -157,9 +157,10 @@ function each(obj, callback) {
             obj = obj.entries();
             while (!(cur = obj.next()).done && callback(cur.value[0], cur.value[1]) !== false);
         } else if (isFunction(obj.forEach)) {
-            var value;
             obj.forEach(function (v, i) {
-                value = value === false || callback(i, v);
+                if (cur !== false) {
+                    cur = callback(i, v);
+                }
             });
         } else if (isFunction(obj.next)) {
             while (!(cur = obj.next()).done && callback(i++, cur.value) !== false);

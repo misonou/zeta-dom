@@ -112,6 +112,17 @@ describe('makeArray', () => {
 });
 
 describe('each', () => {
+    it('should stop invocating callback after false is returned - forEach', () => {
+        const cb = mockFn();
+        cb.mockReturnValueOnce(false);
+        each({
+            forEach(callback) {
+                [2, 4, 6, 8].forEach(callback);
+            }
+        }, cb);
+        verifyCalls(cb, [[0, 2]]);
+    });
+
     it('should not invoke callback with element removed in set during invocation', () => {
         const set = new Set([1, 2, 3]);
         const cb = mockFn((i, v) => {
