@@ -584,13 +584,13 @@ domReady.then(function () {
             if (imeNode && imeNode.nodeType === 1) {
                 // IE puts selection at element level
                 // however it will insert text in the previous text node
-                var child = imeNode.childNodes[imeOffset - 1];
+                var child = imeNode.childNodes[imeOffset[1] - 1];
                 if (child && child.nodeType === 3) {
                     imeNode = child;
                     // @ts-ignore: child is Text
                     imeOffset = [child.length, child.length];
                 } else {
-                    imeNode = imeNode.childNodes[imeOffset];
+                    imeNode = imeNode.childNodes[imeOffset[1]];
                     imeOffset = [0, 0];
                 }
             }
