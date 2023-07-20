@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.1 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.2 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -252,7 +252,7 @@ var compareFn = [function (b, v, i) {
   return !b.has(v);
 }];
 var setImmediateStore = new Map();
-var matchWordCache;
+var matchWordCache = {};
 var watchStore = createPrivateStore();
 /* --------------------------------------
  * Miscellaneous
@@ -395,9 +395,10 @@ function each(obj, callback) {
         ;
       }
     } else if (isFunction(obj.forEach)) {
-      var value;
       obj.forEach(function (v, i) {
-        value = value === false || callback(i, v);
+        if (cur !== false) {
+          cur = callback(i, v);
+        }
       });
     } else if (isFunction(obj.next)) {
       while (!(cur = obj.next()).done && callback(i++, cur.value) !== false) {
@@ -560,7 +561,7 @@ function arrRemove(arr, obj) {
   var index = arr.indexOf(obj);
 
   if (index >= 0) {
-    return arr.splice(index, 1);
+    return arr.splice(index, 1)[0];
   }
 }
 
@@ -747,8 +748,7 @@ function trim(v) {
 }
 
 function matchWord(haystack, needle) {
-  var cache = matchWordCache || (matchWordCache = {});
-  var re = cache[needle] || (cache[needle] = new RegExp('(?:^|\\s)(' + needle.replace(/\s+/g, '|') + ')(?=$|\\s)'));
+  var re = matchWordCache[needle] || (matchWordCache[needle] = new RegExp('(?:^|\\s)(' + needle.replace(/\s+/g, '|') + ')(?=$|\\s)'));
   return re.test(String(haystack || '')) && RegExp.$1;
 }
 
@@ -868,10 +868,13 @@ function getOwnPropertyDescriptors(obj) {
 }
 
 function define(o, p) {
-  o = extend(function () {}, {
-    prototype: o
+  each(getOwnPropertyDescriptors(p), function (i, v) {
+    if (isFunction(v.value)) {
+      v.enumerable = false;
+    }
+
+    defineProperty(o, i, v);
   });
-  definePrototype(o, p);
 }
 
 function defineOwnProperty(obj, name, value, readonly) {
@@ -903,24 +906,17 @@ function defineHiddenProperty(obj, name, value, readonly) {
 
 function definePrototype(fn, prototype, props) {
   if (isFunction(prototype)) {
-    props = props || {};
     fn.prototype = inherit(prototype, props);
     defineHiddenProperty(fn.prototype, 'constructor', fn);
     Object.setPrototypeOf(fn, prototype);
   } else {
-    each(getOwnPropertyDescriptors(prototype), function (i, v) {
-      if (isFunction(v.value)) {
-        v.enumerable = false;
-      }
-
-      defineProperty(fn.prototype, i, v);
-    });
+    define(fn.prototype, prototype);
   }
 }
 
 function inherit(proto, props) {
   var obj = Object.create(isFunction(proto) ? proto.prototype : proto || objectProto);
-  define(obj, props);
+  define(obj, props || {});
   return obj;
 }
 
@@ -1164,7 +1160,9 @@ var optionsForChildList = {
   subtree: true,
   childList: true
 };
-var globalCleanups;
+var globalCleanups = createAutoCleanupMap(function (element, arr) {
+  combineFn(arr)();
+});
 
 function DetachHandlerState() {
   this.handlers = [];
@@ -1213,10 +1211,7 @@ function registerCleanup(element, callback) {
     var state = initDetachWatcher(root);
     state.handlers.push(element);
   } else {
-    var map = globalCleanups || (globalCleanups = createAutoCleanupMap(function (element, arr) {
-      combineFn(arr)();
-    }));
-    mapGet(map, element, Set).add(callback);
+    mapGet(globalCleanups, element, Set).add(callback);
   }
 }
 
@@ -2387,8 +2382,19 @@ function lock(element, promise, oncancel) {
   return promise && lock.wait(promise, oncancel, false);
 }
 
-function subscribeAsync(element) {
+function subscribeAsync(element, callback) {
   ensureLock(element);
+
+  if (isFunction(callback)) {
+    return listenDOMEvent(element, {
+      asyncStart: function asyncStart() {
+        callback.call(element, true);
+      },
+      asyncEnd: function asyncEnd() {
+        callback.call(element, false);
+      }
+    });
+  }
 }
 
 function notifyAsync(element, promise, oncancel) {
@@ -2582,6 +2588,8 @@ var focusPath = [root];
 var focusFriends = new WeakMap();
 var focusElements = new Set([root]);
 var modalElements = createAutoCleanupMap(releaseModal);
+var tabIndex = new WeakMap();
+var tabRoots = new WeakSet();
 var shortcuts = {};
 var metaKeys = {
   alt: true,
@@ -2591,6 +2599,7 @@ var metaKeys = {
 var windowFocusedOut;
 var currentEvent;
 var currentMetaKey = '';
+var currentTabRoot = root;
 var trackPromise;
 var trackCallbacks;
 /* --------------------------------------
@@ -2748,6 +2757,30 @@ function triggerModalChangeEvent() {
   });
 }
 
+function updateTabRoot() {
+  var tabRoot = any(focusPath, function (v) {
+    return tabRoots.has(v);
+  }) || getModalElement() || root;
+
+  if (tabRoot !== currentTabRoot) {
+    currentTabRoot = tabRoot;
+    updateTabIndex();
+  }
+}
+
+function updateTabIndex(newNodes) {
+  jquery(newNodes || SELECTOR_FOCUSABLE).each(function (i, v) {
+    if (!containsOrEquals(currentTabRoot, v)) {
+      if (v.tabIndex !== -1) {
+        tabIndex.set(v, jquery(v).attr('tabindex') || null);
+        v.tabIndex = -1;
+      }
+    } else if (tabIndex.has(v)) {
+      jquery(v).attr('tabindex', mapRemove(tabIndex, v));
+    }
+  });
+}
+
 function setFocus(element, source, suppressFocus, suppressFocusChange) {
   if (element === root) {
     element = env_document.body;
@@ -2822,6 +2855,8 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
     } else {
       env_document.activeElement.blur();
     }
+
+    setTimeoutOnce(updateTabRoot);
   }
 }
 
@@ -2898,6 +2933,12 @@ function releaseModal(element, modalPath) {
         return false;
       }
     });
+  }
+}
+
+function setTabRoot(a) {
+  if (a !== root && a !== env_document.body && setAdd(tabRoots, a)) {
+    setTimeoutOnce(updateTabRoot);
   }
 }
 
@@ -3041,7 +3082,7 @@ function trackPointer(callback) {
     mouseup: resolve,
     touchend: resolve,
     keydown: function keydown(e) {
-      if (e.which === 27) {
+      if (normalizeKey(e).key === 'escape') {
         reject(errorWithCode(errorCode_cancelled));
       }
     },
@@ -3175,14 +3216,14 @@ domReady.then(function () {
       if (imeNode && imeNode.nodeType === 1) {
         // IE puts selection at element level
         // however it will insert text in the previous text node
-        var child = imeNode.childNodes[imeOffset - 1];
+        var child = imeNode.childNodes[imeOffset[1] - 1];
 
         if (child && child.nodeType === 3) {
           imeNode = child; // @ts-ignore: child is Text
 
           imeOffset = [child.length, child.length];
         } else {
-          imeNode = imeNode.childNodes[imeOffset];
+          imeNode = imeNode.childNodes[imeOffset[1]];
           imeOffset = [0, 0];
         }
       }
@@ -3592,7 +3633,8 @@ domReady.then(function () {
     }));
   });
   setFocus(env_document.activeElement);
-  lock(root);
+  subscribeAsync(root);
+  watchElements(root, SELECTOR_FOCUSABLE, updateTabIndex);
 });
 setShortcut({
   undo: 'ctrlZ',
@@ -3652,6 +3694,7 @@ function dom_blur(element) {
   textInputAllowed: textInputAllowed,
   focusable: focusable,
   focused: focused,
+  setTabRoot: setTabRoot,
   setModal: setModal,
   releaseModal: releaseModal,
   retainFocus: retainFocus,
