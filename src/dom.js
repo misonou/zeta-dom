@@ -891,8 +891,10 @@ domReady.then(function () {
             windowFocusedOut = false;
             if (!focusable(target)) {
                 target.blur();
-            } else if (focusPath.indexOf(target) < 0) {
-                setFocus(target, lastEventSource);
+            } else {
+                if (focusPath.indexOf(target) < 0) {
+                    setFocus(target, lastEventSource);
+                }
                 scrollIntoView(target, 10);
             }
         },
