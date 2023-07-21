@@ -293,27 +293,27 @@ declare namespace Zeta {
 
     type ZetaDOMEventName = HintedString<keyof ZetaDOMEventMap>;
 
-    type ZetaDOMEventMap = { [P in ClickName]: ZetaMouseEvent } & { [P in KeyNameSpecial]: ZetaNativeUIEvent } & { [P in GestureName]: ZetaNativeUIEvent } & {
-        asyncStart: ZetaEvent;
-        asyncEnd: ZetaEvent;
-        cancelled: ZetaEvent;
-        focusin: ZetaFocusEvent;
-        focusout: ZetaFocusEvent;
-        focuschange: ZetaEvent;
-        focusreturn: ZetaEvent;
-        modalchange: ZetaModalChangeEvent;
-        drag: ZetaMouseEvent;
-        longPress: ZetaMouseEvent;
-        touchstart: ZetaMouseEvent;
-        mousedown: ZetaMouseEvent;
-        mousewheel: ZetaWheelEvent;
-        metakeychange: ZetaKeystrokeEvent;
-        keystroke: ZetaKeystrokeEvent;
-        gesture: ZetaGestureEvent;
-        textInput: ZetaTextInputEvent;
+    type ZetaDOMEventMap<T = Element> = { [P in ClickName]: ZetaMouseEvent<T> } & { [P in KeyNameSpecial]: ZetaNativeUIEvent<T> } & { [P in GestureName]: ZetaNativeUIEvent<T> } & {
+        asyncStart: ZetaDOMEvent<T>;
+        asyncEnd: ZetaDOMEvent<T>;
+        cancelled: ZetaDOMEvent<T>;
+        focusin: ZetaFocusEvent<T>;
+        focusout: ZetaFocusEvent<T>;
+        focuschange: ZetaDOMEvent<T>;
+        focusreturn: ZetaDOMEvent<T>;
+        modalchange: ZetaModalChangeEvent<T>;
+        drag: ZetaDragEvent<T>;
+        longPress: ZetaTouchEvent<T>;
+        touchstart: ZetaTouchEvent<T>;
+        mousedown: ZetaMouseEvent<T>;
+        mousewheel: ZetaWheelEvent<T>;
+        metakeychange: ZetaKeystrokeEvent<T>;
+        keystroke: ZetaKeystrokeEvent<T>;
+        gesture: ZetaGestureEvent<T>;
+        textInput: ZetaTextInputEvent<T>;
         error: ZetaErrorEvent;
-        scrollBy: ZetaScrollByEvent;
-        getContentRect: ZetaGetContentRectEvent;
+        scrollBy: ZetaScrollByEvent<T>;
+        getContentRect: ZetaGetContentRectEvent<T>;
     };
 
     type ZetaEventType<E extends string, M, T = Element> = (M & { [s: string]: ZetaEvent })[E] & ZetaEventContext<T>;
@@ -328,9 +328,13 @@ declare namespace Zeta {
         ZetaEventType<E, M> extends ZetaHandleableEvent<infer R> ? R | undefined | void :
         ZetaEventType<E, M> extends ZetaAsyncHandleableEvent<infer R> ? Promise<R> | R | undefined | void : any;
 
-    type ZetaEventHandler<E extends string, M, T = Element> = (this: T, e: ZetaEventType<E, M, T>, self: T) => ZetaEventHandlerReturnType<E, M>;
+    type ZetaEventHandler<E extends string, M, T = Element> = { bivarianceHack(this: T, e: ZetaEventType<E, M, T>, self: T): ZetaEventHandlerReturnType<E, M> }['bivarianceHack'];
 
     type ZetaEventHandlers<M, T = Element> = { [P in HintedString<keyof M>]?: P extends keyof M ? ZetaEventHandler<P, M, T> : Zeta.AnyFunction };
+
+    type ZetaDOMEventHandler<E extends string, T = Element> = ZetaEventHandler<E, ZetaDOMEventMap<T>, T>;
+
+    type ZetaDOMEventHandlers<T = Element> = ZetaEventHandlers<ZetaDOMEventMap<T>, T>;
 
     type ZetaEventContext<T> = T extends ZetaEventContextBase<any> ? T : ZetaEventContextBase<T>;
 
@@ -466,49 +470,62 @@ declare namespace Zeta {
     interface ZetaEvent extends ZetaAsyncHandleableEvent {
     }
 
-    interface ZetaNativeUIEvent extends ZetaAsyncHandleableEvent {
+    interface ZetaErrorEvent extends ZetaAsyncHandleableEvent {
+        readonly error: any;
     }
 
-    interface ZetaFocusEvent extends ZetaEventBase {
+    interface ZetaDOMEvent<T = Element> extends ZetaAsyncHandleableEvent, ZetaEventContextBase<T> {
+    }
+
+    interface ZetaNativeUIEvent<T = Element, E extends UIEvent = UIEvent> extends ZetaAsyncHandleableEvent, ZetaEventContextBase<T> {
+        readonly originalEvent: E;
+    }
+
+    interface ZetaFocusEvent<T = Element> extends ZetaEventBase, ZetaEventContextBase<T> {
         readonly relatedTarget: HTMLElement;
     }
 
-    interface ZetaModalChangeEvent extends ZetaEventBase {
+    interface ZetaModalChangeEvent<T = Element> extends ZetaEventBase, ZetaEventContextBase<T> {
         readonly modalElement: Element;
     }
 
-    interface ZetaMouseEvent extends ZetaNativeUIEvent {
+    interface ZetaPointerEvent<T = Element, E = UIEvent> extends ZetaNativeUIEvent<T, E> {
         readonly clientX: number;
         readonly clientY: number;
         readonly metakey: string;
     }
 
-    interface ZetaWheelEvent extends ZetaNativeUIEvent {
+    interface ZetaMouseEvent<T = Element> extends ZetaPointerEvent<T, MouseEvent> {
+    }
+
+    interface ZetaTouchEvent<T = Element> extends ZetaPointerEvent<T, TouchEvent> {
+    }
+
+    interface ZetaDragEvent<T = Element> extends ZetaPointerEvent<T, UIEvent> {
+    }
+
+    interface ZetaWheelEvent<T = Element> extends ZetaNativeUIEvent<T, WheelEvent> {
         readonly data: -1 | 1;
     }
 
-    interface ZetaKeystrokeEvent extends ZetaNativeUIEvent {
+    interface ZetaKeystrokeEvent<T = Element> extends ZetaNativeUIEvent<T, KeyboardEvent> {
         readonly data: string;
     }
 
-    interface ZetaGestureEvent extends ZetaNativeUIEvent {
+    interface ZetaGestureEvent<T = Element> extends ZetaNativeUIEvent<T, TouchEvent> {
         readonly data: string;
     }
 
-    interface ZetaTextInputEvent extends ZetaNativeUIEvent {
+    interface ZetaTextInputEvent<T = Element> extends ZetaNativeUIEvent<T, KeyboardEvent | CompositionEvent | InputEvent> {
         readonly data: string;
     }
 
-    interface ZetaErrorEvent extends ZetaAsyncHandleableEvent {
-        readonly error: any;
-    }
-
-    interface ZetaScrollByEvent extends ZetaHandleableEvent<{ x: number, y: number } | false> {
+    interface ZetaScrollByEvent<T = Element> extends ZetaHandleableEvent<{ x: number, y: number } | false>, ZetaEventContextBase<T> {
         readonly x: number;
         readonly y: number;
     }
 
-    interface ZetaGetContentRectEvent extends ZetaHandleableEvent<RectLike> {
+    interface ZetaGetContentRectEvent<T = Element> extends ZetaHandleableEvent<RectLike>, ZetaEventContextBase<T> {
     }
 
     declare class ZetaEventSource {

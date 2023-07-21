@@ -33,7 +33,7 @@ export declare function emitDOMEvent<E extends Zeta.ZetaDOMEventName>(eventName:
  * @param handlers An object which each entry represent the handler to be registered on the event.
  * @returns A function that will unregister the handler when called.
  */
-export declare function listenDOMEvent(handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventMap, HTMLHtmlElement>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent(handlers: Zeta.ZetaDOMEventHandlers<HTMLHtmlElement>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to the root element.
@@ -41,7 +41,7 @@ export declare function listenDOMEvent(handlers: Zeta.ZetaEventHandlers<Zeta.Zet
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName>(event: E, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, HTMLHtmlElement>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName>(event: E, handler: Zeta.ZetaDOMEventHandler<E, HTMLHtmlElement>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to the root element, where the handler is fired only when there exists an ancestor of the event target matches the specified selector.
@@ -50,7 +50,7 @@ export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName>(event: E
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName, K extends string>(event: E, selector: K, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, Zeta.ElementType<K>>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName, K extends string>(event: E, selector: K, handler: Zeta.ZetaDOMEventHandler<E, Zeta.ElementType<K>>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to a DOM element.
@@ -58,7 +58,7 @@ export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName, K extend
  * @param handlers An object which each entry represent the handler to be registered on the event.
  * @returns A function that will unregister the handler when called.
  */
-export declare function listenDOMEvent<T extends Element>(element: T, handlers: Zeta.ZetaEventHandlers<Zeta.ZetaDOMEventMap, T>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<T extends Element>(element: T, handlers: Zeta.ZetaDOMEventHandlers<T>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to a DOM element.
@@ -67,7 +67,7 @@ export declare function listenDOMEvent<T extends Element>(element: T, handlers: 
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOMEventName>(element: T, event: E, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, T>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOMEventName>(element: T, event: E, handler: Zeta.ZetaDOMEventHandler<E, T>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to a DOM element, where the handler is fired only when there exists an ancestor of the event target matches the specified selector.
@@ -77,4 +77,4 @@ export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOM
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOMEventName, K extends string>(element: T, event: E, selector: K, handler: Zeta.ZetaEventHandler<E, Zeta.ZetaDOMEventMap, Zeta.ElementType<K>>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOMEventName, K extends string>(element: T, event: E, selector: K, handler: Zeta.ZetaDOMEventHandler<E, Zeta.ElementType<K>>): Zeta.UnregisterCallback;
