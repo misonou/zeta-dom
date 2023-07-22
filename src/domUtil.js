@@ -349,11 +349,12 @@ function getScrollOffset(winOrElm) {
     };
 }
 
-function getScrollParent(element, skipSelf) {
-    for (var target = element; element; element = element.parentNode) {
+function getScrollParent(element, skipSelf, target) {
+    target = target || element;
+    for (; element; element = element.parentNode) {
         var s = getComputedStyle(element);
         if (skipSelf) {
-            return element === root || s.position === 'fixed' ? null : getScrollParent(element.parentNode);
+            return element === root || s.position === 'fixed' ? null : getScrollParent(element.parentNode, false, target);
         }
         if (element === root || s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, { target }, { asyncResult: false })) {
             break;
@@ -481,7 +482,7 @@ function scrollIntoView(element, align, rect, within) {
             result.x += parentResult.x;
             result.y += parentResult.y;
         }
-        parent = getScrollParent(parent, true);
+        parent = getScrollParent(parent, true, element);
     }
     return (result.x || result.y) ? result : false;
 }
