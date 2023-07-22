@@ -226,7 +226,7 @@ function setFocus(element, source, suppressFocus, suppressFocusChange) {
         }
         var within = focusable(element);
         if (within) {
-            removeFocusUnsafe(focusPath, within, source, element, suppressFocus);
+            removeFocusUnsafe(focusPath, within, source, element, true);
             len = Math.min(len, focusPath.length);
             // check whether the element is still attached in ROM
             // which can be detached while dispatching focusout event above
@@ -238,8 +238,10 @@ function setFocus(element, source, suppressFocus, suppressFocusChange) {
                         });
                     }
                 });
-                setFocusUnsafe(focusPath, added, source, suppressFocus);
+            } else {
+                added = [];
             }
+            setFocusUnsafe(focusPath, added, source, suppressFocus);
         }
     }
     if (!suppressFocusChange) {
