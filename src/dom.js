@@ -427,11 +427,12 @@ function trackPointer(callback) {
         }
         return trackPromise;
     }
+    var target = currentEvent.target;
     var lastPoint = currentEvent;
     var scrollWithin = grep(focusPath, function (v) {
-        return containsOrEquals(v, currentEvent.target);
+        return containsOrEquals(v, target);
     }).slice(-1)[0];
-    var scrollParent = getScrollParent(currentEvent.target);
+    var scrollParent = getScrollParent(target);
     var scrollTimeout;
     var resolve, reject;
 
@@ -456,7 +457,7 @@ function trackPointer(callback) {
             var r = getRect(scrollParent);
             var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
             var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
-            if ((dx || dy) && scrollIntoView(scrollParent, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
+            if ((dx || dy) && scrollIntoView(target, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
                 callback(lastPoint);
             } else {
                 stopScroll();
