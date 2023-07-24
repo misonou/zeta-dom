@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.2 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.3 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -2781,7 +2781,7 @@ function updateTabIndex(newNodes) {
   });
 }
 
-function setFocus(element, source, suppressFocus, suppressFocusChange) {
+function setFocus(element, source, suppressFocusChange) {
   if (element === root) {
     element = env_document.body;
   }
@@ -2790,12 +2790,12 @@ function setFocus(element, source, suppressFocus, suppressFocusChange) {
   var index = focusPath.indexOf(element);
 
   if (index === 0) {
-    setFocusUnsafe(focusPath, [], source, suppressFocus);
+    setFocusUnsafe(focusPath, [], source);
     return len;
   }
 
   if (index > 0) {
-    removeFocusUnsafe(focusPath, element, source, element, suppressFocus);
+    removeFocusUnsafe(focusPath, element, source, element);
     len = len - index;
   } else {
     var added = [];
@@ -2805,13 +2805,13 @@ function setFocus(element, source, suppressFocus, suppressFocusChange) {
     });
 
     if (friend && added.indexOf(friend) < 0 && focusPath.indexOf(friend) < 0) {
-      len = setFocus(friend, source, suppressFocus, true);
+      len = setFocus(friend, source, true);
     }
 
     var within = focusable(element);
 
     if (within) {
-      removeFocusUnsafe(focusPath, within, source, element, suppressFocus);
+      removeFocusUnsafe(focusPath, within, source, element, true);
       len = Math.min(len, focusPath.length); // check whether the element is still attached in ROM
       // which can be detached while dispatching focusout event above
 
@@ -2823,8 +2823,11 @@ function setFocus(element, source, suppressFocus, suppressFocusChange) {
             });
           }
         });
-        setFocusUnsafe(focusPath, added, source, suppressFocus);
+      } else {
+        added = [];
       }
+
+      setFocusUnsafe(focusPath, added, source);
     }
   }
 
@@ -3039,11 +3042,12 @@ function trackPointer(callback) {
     return trackPromise;
   }
 
+  var target = currentEvent.target;
   var lastPoint = currentEvent;
   var scrollWithin = grep(focusPath, function (v) {
-    return containsOrEquals(v, currentEvent.target);
+    return containsOrEquals(v, target);
   }).slice(-1)[0];
-  var scrollParent = getScrollParent(currentEvent.target);
+  var scrollParent = getScrollParent(target);
   var scrollTimeout;
   var resolve, reject;
   trackCallbacks = callback ? [callback] : [];
@@ -3070,7 +3074,7 @@ function trackPointer(callback) {
       var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
       var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
 
-      if ((dx || dy) && scrollIntoView(scrollParent, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
+      if ((dx || dy) && scrollIntoView(target, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
         callback(lastPoint);
       } else {
         stopScroll();
@@ -3262,7 +3266,7 @@ domReady.then(function () {
       target: event.target,
       metakey: getEventName(event) || ''
     };
-    return triggerUIEvent(eventName, data, true, event);
+    return triggerUIEvent(eventName, data, true, event, data.target);
   }
 
   function triggerGestureEvent(gesture) {
@@ -3468,7 +3472,6 @@ domReady.then(function () {
     },
     touchstart: function touchstart(e) {
       mouseInitialPoint = extend({}, e.touches[0]);
-      setFocus(e.target, null, true);
       triggerMouseEvent('touchstart');
 
       if (!e.touches[1]) {
@@ -3510,7 +3513,6 @@ domReady.then(function () {
     mousedown: function mousedown(e) {
       mouseInitialPoint = e;
       preventClick = false;
-      setFocus(e.target);
 
       if (isMouseDown(e)) {
         triggerMouseEvent('mousedown');
@@ -3563,8 +3565,11 @@ domReady.then(function () {
 
       if (!focusable(target)) {
         target.blur();
-      } else if (focusPath.indexOf(target) < 0) {
-        setFocus(target, lastEventSource);
+      } else {
+        if (focusPath.indexOf(target) < 0) {
+          setFocus(target, lastEventSource);
+        }
+
         scrollIntoView(target, 10);
       }
     },
@@ -4722,12 +4727,14 @@ function getScrollOffset(winOrElm) {
   };
 }
 
-function getScrollParent(element, skipSelf) {
-  for (var target = element; element; element = element.parentNode) {
+function getScrollParent(element, skipSelf, target) {
+  target = target || element;
+
+  for (; element; element = element.parentNode) {
     var s = getComputedStyle(element);
 
     if (skipSelf) {
-      return element === root || s.position === 'fixed' ? null : getScrollParent(element.parentNode);
+      return element === root || s.position === 'fixed' ? null : getScrollParent(element.parentNode, false, target);
     }
 
     if (element === root || s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, {
@@ -4898,7 +4905,7 @@ function scrollIntoView(element, align, rect, within) {
       result.y += parentResult.y;
     }
 
-    parent = getScrollParent(parent, true);
+    parent = getScrollParent(parent, true, element);
   }
 
   return result.x || result.y ? result : false;
