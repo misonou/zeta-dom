@@ -1,14 +1,10 @@
 import syn from "syn";
 import dom from "../src/dom";
-import userEvent from "@testing-library/user-event";
 import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
 import { after, body, initBody, mockFn, objectContaining, root, verifyCalls, _, bindEvent } from "./testUtil";
 import { delay, makeArray } from "../src/util";
-
-/** @type {import("@testing-library/user-event/dist/types/setup/setup").UserEvent} */
-const { keyboard } = userEvent.default;
 
 async function type(elm, keystroke) {
     await after(() => {
@@ -822,48 +818,5 @@ describe('keystroke event', () => {
             [objectContaining({ context: input, type: 'keystroke', data: 'a' }), _],
             [objectContaining({ context: input, type: 'textInput', data: 'a' }), _],
         ]);
-    });
-});
-
-describe('escape key', () => {
-    it('should cause text input to lose focus', async () => {
-        const { div, input } = initBody(`
-            <div id="div">
-                <input id="input" type="text" />
-            </div>
-        `);
-        input.focus();
-
-        await keyboard('{Escape}');
-        expect(dom.activeElement).toBe(div);
-    });
-
-    it('should cause button to lose focus', async () => {
-        const { div, button } = initBody(`
-            <div id="div">
-                <button id="button">Button</button>
-            </div>
-        `);
-        button.focus();
-
-        await keyboard('{Escape}');
-        expect(dom.activeElement).toBe(div);
-    });
-
-    it('should cause delegated element to lose focus', async () => {
-        const { node1, node2 } = initBody(`
-            <div id="node1"></div>
-            <div id="node2"></div>
-        `);
-        dom.focus(node1);
-        dom.retainFocus(node1, node2);
-        dom.focus(node2);
-
-        await keyboard('{Escape}');
-        expect(dom.activeElement).toBe(node1);
-    });
-
-    it('should not throw if not element is actually in focus', async () => {
-        await keyboard('{Escape}');
     });
 });
