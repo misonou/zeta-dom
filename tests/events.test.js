@@ -1,4 +1,4 @@
-import { after, body, combineFn, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
+import { after, body, combineFn, initBody, mockFn, objectContaining, root, verifyCalls, _, bindEvent } from "./testUtil";
 import { emitDOMEvent, getEventContext, listenDOMEvent, ZetaEventContainer } from "../src/events";
 import { domReady } from "../src/env";
 import dom from "../src/dom";
@@ -611,6 +611,46 @@ describe('ZetaEvent.preventDefault', () => {
         expect(body.dispatchEvent(event)).toBe(false);
         expect(cb).toBeCalledTimes(1);
         unregister();
+    });
+});
+
+describe('ZetaEvent.source', () => {
+    it('should return mouse in mousedown event', async () => {
+        await domReady;
+        const { node1, node2 } = initBody(`
+            <div id="node1"></div>
+            <div id="node2"></div>
+        `);
+        const event = new MouseEvent('mousedown', {
+            button: 1,
+            buttons: 1,
+            cancelable: true
+        });
+        const cb = mockFn();
+        dom.focus(node1);
+        bindEvent(body, 'mousedown', cb);
+        node2.dispatchEvent(event);
+        verifyCalls(cb, [
+            [objectContaining({ source: 'mouse', target: node2 }), _]
+        ]);
+    });
+
+    it('should return touch in touchstart event', async () => {
+        await domReady;
+        const { node1, node2 } = initBody(`
+            <div id="node1"></div>
+            <div id="node2"></div>
+        `);
+        const event = new TouchEvent('touchstart', {
+            cancelable: true
+        });
+        const cb = mockFn();
+        dom.focus(node1);
+        bindEvent(body, 'touchstart', cb);
+        node2.dispatchEvent(event);
+        verifyCalls(cb, [
+            [objectContaining({ source: 'touch', target: node2 }), _]
+        ]);
     });
 });
 
