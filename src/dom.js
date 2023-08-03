@@ -5,7 +5,7 @@ import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
 import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, elementFromPoint, getContentRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
-import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
+import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
 
@@ -443,10 +443,10 @@ function trackPointer(callback) {
     var resolve, reject;
 
     trackCallbacks = callback ? [callback] : [];
-    trackPromise = prepEventSource(new Promise(function (res, rej) {
+    trackPromise = new Promise(function (res, rej) {
         resolve = res.bind(0, undefined);
         reject = rej;
-    }));
+    });
     callback = combineFn(trackCallbacks);
     if (root.setCapture) {
         root.setCapture();
