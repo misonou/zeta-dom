@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.3 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.4 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -3633,9 +3633,7 @@ domReady.then(function () {
     }
   });
   listenDOMEvent('escape', function () {
-    dom_blur(any(focusPath, function (v, i) {
-      return matchSelector(v, SELECTOR_FOCUSABLE) || !containsOrEquals(focusPath[i + 1] || root, v);
-    }));
+    setFocus(getModalElement() || env_document.body);
   });
   setFocus(env_document.activeElement);
   subscribeAsync(root);
@@ -3799,10 +3797,20 @@ definePrototype(CustomPromise, promise_polyfill, {
 
 function ZetaEventSource(target, path) {
   var self = this;
-  path = path || (eventSource ? eventSource.path : dom.focusedElements);
-  target = (target || '').element || target;
+  var source = getEventSourceName();
+
+  if (!path) {
+    if (eventSource) {
+      path = eventSource.path;
+    } else if (source === 'mouse' || source === 'touch') {
+      path = grep(parentsAndSelf(target), focusable);
+    } else {
+      path = dom.focusedElements;
+    }
+  }
+
   self.path = path;
-  self.source = !target || containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0 ? getEventSourceName() : 'script';
+  self.source = !target || containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0 ? source : 'script';
   self.sourceKeyName = self.source !== 'keyboard' ? null : (eventSource || lastEventSource || '').sourceKeyName;
 }
 
@@ -3983,7 +3991,8 @@ function emitAsyncEvents(container) {
 function ZetaEventEmitter(eventName, container, target, data, options, async) {
   target = target || container.element;
   var self = this;
-  var source = options.source || new ZetaEventSource(target);
+  var element = is(target.element, Node) || target;
+  var source = options.source || new ZetaEventSource(element);
   var properties = {
     source: source.source,
     sourceKeyName: source.sourceKeyName,
@@ -3996,7 +4005,7 @@ function ZetaEventEmitter(eventName, container, target, data, options, async) {
     container: container,
     eventName: eventName,
     target: target,
-    element: is(target.element, Node) || target,
+    element: element,
     source: source,
     data: data,
     properties: properties,
