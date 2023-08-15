@@ -9,6 +9,7 @@ declare const methods = {
     focusable,
     focused,
     setTabRoot,
+    unsetTabRoot,
     setModal,
     releaseModal,
     retainFocus,
@@ -128,6 +129,12 @@ export function blur(element: Element): boolean;
  * @param element A DOM element.
  */
 export function setTabRoot(element: Element): void;
+
+/**
+ * Unmarks an element to be a tab root, so that effect by {@link setTabRoot} is reverted.
+ * @param element A DOM element.
+ */
+export function unsetTabRoot(element: Element): void;
 
 /**
  * Sets the given element as modal element.

@@ -343,6 +343,12 @@ function setTabRoot(a) {
     }
 }
 
+function unsetTabRoot(a) {
+    if (tabRoots.delete(a)) {
+        setTimeoutOnce(updateTabRoot);
+    }
+}
+
 function retainFocus(a, b) {
     if (a !== root && a !== document.body) {
         focusFriends.set(b, a);
@@ -1015,6 +1021,7 @@ export default {
     focusable,
     focused,
     setTabRoot,
+    unsetTabRoot,
     setModal,
     releaseModal,
     retainFocus,
@@ -1059,6 +1066,7 @@ export {
     focusable,
     focused,
     setTabRoot,
+    unsetTabRoot,
     setModal,
     releaseModal,
     retainFocus,

@@ -298,6 +298,23 @@ describe('setTabRoot', () => {
     });
 });
 
+describe('unsetTabRoot', () => {
+    it('should revert behavior by setTabRoot', async () => {
+        const { node, input } = initBody(`
+            <div id="node"></div>
+            <input id="input" type="text"/>
+        `);
+        dom.setTabRoot(node);
+        dom.focus(node);
+        await delay(10);
+        expect(input.getAttribute('tabindex')).toBe('-1');
+
+        dom.unsetTabRoot(node);
+        await delay(10);
+        expect(input.getAttribute('tabindex')).toBe(null);
+    });
+});
+
 describe('setModal', () => {
     it('should focus modal element', () => {
         const { modal } = initBody(`
