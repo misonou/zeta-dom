@@ -911,7 +911,7 @@ domReady.then(function () {
                     if (cur) {
                         setFocus(cur, lastEventSource);
                     }
-                } else {
+                } else if (!currentEvent) {
                     setTimeout(function () {
                         if (!windowFocusedOut && focusPath[0] === e.target) {
                             setFocus(e.target.parentNode, lastEventSource);
