@@ -369,19 +369,6 @@ declare namespace Zeta {
          * @param handler A callback function to be fired when the specified event is triggered.
          */
         on<E extends HintedString<keyof M>>(event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
-
-        /**
-         * Adds event handlers to multiple events on the given target.
-         * @param handlers A dictionary which the keys are event names and values are the callback for each event.
-         */
-        on(target: T, handlers: ZetaEventHandlers<M, T>): UnregisterCallback;
-
-        /**
-         * Adds an event handler to a specific event on the given target.
-         * @param event Name of the event.
-         * @param handler A callback function to be fired when the specified event is triggered.
-         */
-        on<E extends HintedString<keyof M>>(target: T, event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
     }
 
     interface ZetaEventBase {
@@ -719,6 +706,7 @@ declare namespace Zeta {
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
+         * @deprecated
          */
         emitAsync<E extends keyof M, V = any>(eventName: E, target?: T, data?: V, options?: boolean | EventEmitOptions, mergeData?: (v: V, a: V) => V): void;
 
@@ -729,6 +717,7 @@ declare namespace Zeta {
          * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
+         * @deprecated
          */
         emitAsync<V = any>(eventName: string, target?: T, data?: V, options?: boolean | EventEmitOptions, mergeData?: (v: V, a: V) => V): void;
 
@@ -740,6 +729,7 @@ declare namespace Zeta {
 
         /**
          * Fire scheduled asynchronous events immediately.
+         * @deprecated
          */
         flushEvents(): void;
     }
@@ -805,8 +795,6 @@ declare namespace Zeta {
         removeNode(node: T): void;
         update(): void;
 
-        on(tree: NodeTree<T>, handlers: ZetaEventHandlers<NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
-        on<E extends keyof NodeTreeEventMap<T>>(tree: NodeTree<T>, event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
         on(handlers: ZetaEventHandlers<NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
         on<E extends keyof NodeTreeEventMap<T>>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
     }

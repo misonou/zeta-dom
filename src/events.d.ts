@@ -4,6 +4,9 @@ export declare var ZetaEventSource: typeof Zeta.ZetaEventSource;
 export declare var ZetaEventContainer: typeof Zeta.ZetaEventContainer;
 export declare var lastEventSource: Zeta.ZetaEventSource;
 
+/**
+ * @deprecated
+ */
 export declare function prepEventSource<T>(promise: Promise<T>): Promise<T>;
 export declare function getEventSource(element?: Element): Zeta.ZetaEventSourceName;
 export declare function getEventContext(element: Element): Zeta.EventContainerOptions & { element: Element; context: any };
