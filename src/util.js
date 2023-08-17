@@ -293,9 +293,9 @@ function mapObject(obj, callback) {
     return result;
 }
 
-function mapGet(map, key, fn) {
+function mapGet(map, key, fn, passKey) {
     if (!map.has(key) && fn) {
-        map.set(key, hasOwnProperty(fn, 'prototype') ? new fn() : fn());
+        map.set(key, hasOwnProperty(fn, 'prototype') ? (passKey ? new fn(key) : new fn()) : (passKey ? fn(key) : fn()));
     }
     return map.get(key);
 }

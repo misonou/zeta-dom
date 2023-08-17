@@ -10,12 +10,16 @@ declare namespace Zeta {
     type ArrayMember<T> = { [P in Extract<keyof T, number>]: T[P] }[Extract<keyof T, number>];
     type KeyOf<T> = T extends (any[] | ArrayLike<any>) ? number :
         T extends Map<infer K, any> ? K :
+        T extends WeakMap<infer K, any> ? K :
         T extends Set<infer V> ? V :
+        T extends WeakSet<infer V> ? V :
         T extends object ? Exclude<keyof T, symbol> :
         T extends undefined | null ? never : any;
     type ValueOf<T> = T extends (any[] | ArrayLike<any>) ? ArrayMember<T> :
         T extends Map<any, infer V> ? V :
+        T extends WeakMap<any, infer V> ? V :
         T extends Set<infer V> ? V :
+        T extends WeakSet<infer V> ? V :
         T extends object ? T[Exclude<keyof T, symbol>] :
         T extends undefined | null ? never : any;
     type HintedString<T extends string> = string & {} | T;

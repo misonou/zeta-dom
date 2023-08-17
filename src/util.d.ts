@@ -351,7 +351,17 @@ export function mapGet<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> 
  * @param fn A constructor function, object of this type will be created if the key does not exist in the map.
  * @returns The item associated with the key.
  */
-export function mapGet<K, T extends Zeta.AnyConstructor>(map: Map<K, InstanceType<T>> | (K extends object ? WeakMap<K, InstanceType<T>> : never), key: K, fn: T): InstanceType<T>;
+export function mapGet<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> : never), key: K, fn: new () => V): V;
+
+/**
+ * Gets item associated with the specified key in the given map, and create one if the key does not exist.
+ * @param map A map or weak map object.
+ * @param key A value or object as the key.
+ * @param fn A constructor function, object of this type will be created if the key does not exist in the map.
+ * @param passKey Pass the specified key to the constructor function.
+ * @returns The item associated with the key.
+ */
+export function mapGet<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> : never), key: K, fn: new (key: K) => V, passKey: true): V;
 
 /**
  * Gets item associated with the specified key in the given map, and create one if the key does not exist.
@@ -361,6 +371,16 @@ export function mapGet<K, T extends Zeta.AnyConstructor>(map: Map<K, InstanceTyp
  * @returns The item associated with the key.
  */
 export function mapGet<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> : never), key: K, fn: () => V): V;
+
+/**
+ * Gets item associated with the specified key in the given map, and create one if the key does not exist.
+ * @param map A map or weak map object.
+ * @param key A value or object as the key.
+ * @param fn A function that returns the item to be stored in the map when called if the key does not exist in the map.
+ * @param passKey Pass the specified key to the function.
+ * @returns The item associated with the key.
+ */
+export function mapGet<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> : never), key: K, fn: (key: K) => V, passKey: true): V;
 
 export function mapRemove<K, V>(map: Map<K, V> | (K extends object ? WeakMap<K, V> : never), key: K): V;
 
