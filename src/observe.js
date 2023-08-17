@@ -140,7 +140,9 @@ function watchAttributes(element, attributes, callback, fireInit) {
         });
         arr[0] = all;
         arr[3] = makeArray(set);
-        callback.apply(this, arr);
+        if (arr[0][0]) {
+            callback.apply(this, arr);
+        }
     });
     collect(fireInit && function (added) {
         callback(added, added, [], []);

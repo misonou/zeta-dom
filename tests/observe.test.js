@@ -294,6 +294,21 @@ describe('watchAttributes', () => {
             [[div2, div3], [], [div2, div3], []]
         ]);
     });
+
+    it('should not fire callback when there is no change', async () => {
+        const cb = mockFn();
+        const { root } = initBody(`
+            <div id="root">
+                <div attr="value"></div>
+            </div>
+        `);
+        watchAttributes(root, ['attr'], cb);
+
+        await after(() => {
+            root.appendChild(document.createElement('div'));
+        });
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('watchOwnAttributes', () => {
