@@ -210,6 +210,22 @@ describe('watchElements', () => {
             [[div1, div2], []]
         ]);
     });
+
+    it('should disconnect observer when dispose callback is called', async () => {
+        const cb = mockFn();
+        const { root, div } = await after(() => initBody(`
+            <div id="root">
+                <div id="div"></div>
+            </div>
+        `));
+        const observer = watchElements(root, 'div', cb);
+        observer.dispose();
+
+        await after(() => {
+            root.removeChild(div);
+        });
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('watchAttributes', () => {
@@ -309,6 +325,28 @@ describe('watchAttributes', () => {
         });
         expect(cb).not.toBeCalled();
     });
+
+    it('should disconnect observer when dispose callback is called', async () => {
+        const cb = mockFn();
+        const { root, div1, div2, div3 } = initBody(`
+            <div id="root">
+                <div id="div1">
+                    <div id="div2" attr="value"></div>
+                    <div id="div3" attr="value"></div>
+                </div>
+            </div>
+        `);
+        const observer = watchAttributes(root, ['attr', 'attr-two'], cb);
+        observer.dispose();
+
+        await after(() => {
+            div1.setAttribute('attr', 'newValue');
+            div2.setAttribute('attr', 'newValue');
+            div2.setAttribute('attr-two', 'newValue');
+            div3.removeAttribute('attr');
+        });
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('watchOwnAttributes', () => {
@@ -337,6 +375,21 @@ describe('watchOwnAttributes', () => {
 
         await after(() => {
             child.setAttribute('attr', 'value');
+        });
+        expect(cb).not.toBeCalled();
+    });
+
+    it('should disconnect observer when dispose callback is called', async () => {
+        const cb = mockFn();
+        const { root } = initBody(`
+            <div id="root"></div>
+        `);
+        const observer = watchOwnAttributes(root, ['attr', 'attr2'], cb);
+        observer.dispose();
+
+        await after(() => {
+            root.setAttribute('attr', 'value');
+            root.setAttribute('attr2', 'value');
         });
         expect(cb).not.toBeCalled();
     });

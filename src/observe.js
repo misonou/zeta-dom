@@ -37,14 +37,16 @@ function observe(element, options, callback) {
     }
     var observer = new MutationObserver(processRecords);
     observer.observe(element, options);
-    if (element !== root) {
-        registerCleanup(element, function () {
-            observer.disconnect();
-        });
-    }
-    return function () {
+    var collect = function () {
         processRecords(observer.takeRecords());
     };
+    var dispose = function () {
+        observer.disconnect();
+    };
+    if (element !== root) {
+        registerCleanup(element, dispose);
+    }
+    return extend(collect, { dispose });
 }
 
 function registerCleanup(element, callback) {

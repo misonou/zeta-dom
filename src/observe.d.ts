@@ -1,12 +1,24 @@
 /// <reference path="types.d.ts" />
 
+interface ObserveCallback {
+    /**
+     * Collect mutations immediately and fires mutation handler if there is any mutations.
+     */
+    (): void;
+
+    /**
+     * Disconnects mutation observer.
+     */
+    dispose(): void;
+}
+
 /**
  * Observe DOM child list mutations from the specified element.
  * @param element A DOM element from which mutations are observed.
  * @param callback A callback to be fired when mutation occurs.
  * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function observe(element: Node, callback: (records: MutationRecord[]) => any): () => void;
+export function observe(element: Node, callback: (records: MutationRecord[]) => any): ObserveCallback;
 
 /**
  * Observe DOM mutations with specified options from the specified element.
@@ -15,7 +27,7 @@ export function observe(element: Node, callback: (records: MutationRecord[]) => 
  * @param callback A callback to be fired when mutation occurs.
  * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function observe(element: Node, options: MutationObserverInit, callback: (records: MutationRecord[]) => any): () => void;
+export function observe(element: Node, options: MutationObserverInit, callback: (records: MutationRecord[]) => any): ObserveCallback;
 
 /**
  * Registers a callback to be fired when descandent elements matching the selector is added or removed from the element.
@@ -25,7 +37,7 @@ export function observe(element: Node, options: MutationObserverInit, callback: 
  * @param fireInit Optionally fired when DOM content is ready.
  * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function watchElements<K extends string>(element: Element, selector: K, callback: (addedNodes: Zeta.ElementType<K>[], removedNodes: Zeta.ElementType<K>[]) => any, fireInit?: boolean): () => void;
+export function watchElements<K extends string>(element: Element, selector: K, callback: (addedNodes: Zeta.ElementType<K>[], removedNodes: Zeta.ElementType<K>[]) => any, fireInit?: boolean): ObserveCallback;
 
 /**
  * Registers a callback to be fired when specified attributes of descandent elements are changed.
@@ -35,7 +47,7 @@ export function watchElements<K extends string>(element: Element, selector: K, c
  * @param fireInit Optionally fired when DOM content is ready.
  * @returns A callback which collects mutation immediately and fires mutation handler if there is any mutations.
  */
-export function watchAttributes(element: Element, attributes: string | readonly string[], callback: (nodes: Element[], addedNodes: Element[], removedNodes: Element[], changedNodes: Element[]) => any, fireInit?: boolean): () => void;
+export function watchAttributes(element: Element, attributes: string | readonly string[], callback: (nodes: Element[], addedNodes: Element[], removedNodes: Element[], changedNodes: Element[]) => any, fireInit?: boolean): ObserveCallback
 
 /**
  * Registers a callback to be fired when specified attributes of the givne element has changed.
@@ -43,7 +55,7 @@ export function watchAttributes(element: Element, attributes: string | readonly 
  * @param attributes A string or a list of string specifying attributes to observe.
  * @param callback A callback to be fired when mutation occurs.
  */
-export function watchOwnAttributes(element: Element, attributes: string | readonly string[], callback: () => any): void;
+export function watchOwnAttributes(element: Element, attributes: string | readonly string[], callback: () => any): ObserveCallback;
 
 /**
  * Registers a callback to be fired whenever there are elements detached from document.
