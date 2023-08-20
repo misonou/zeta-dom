@@ -208,11 +208,16 @@ function parentsAndSelf(element) {
 
 function selectIncludeSelf(selector, container) {
     container = container || root;
-    var matched = $.uniqueSort($(container).find(selector).add($(container).filter(selector)).get());
-    if (matched[0] || container === root) {
-        return matched;
+    try {
+        var matched = makeArray(container.querySelectorAll(selector));
+        return matchSelector(container, selector) ? [container].concat(matched) : matched;
+    } catch (e) {
+        var matched = $(container).filter(selector).add($(container).find(selector)).get();
+        if (matched[0] || container === root) {
+            return matched;
+        }
+        return $(container).find($(selector)).get();
     }
-    return $(container).find($(selector)).get();
 }
 
 function selectClosestRelative(selector, container) {
