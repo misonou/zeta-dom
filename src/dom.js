@@ -9,7 +9,7 @@ import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, 
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
 
-const SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
+const SELECTOR_FOCUSABLE = 'input,select,button,textarea,[contenteditable],a[href],area[href],iframe';
 
 const focusPath = [root];
 const focusFriends = new WeakMap();
