@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.4 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.5 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -543,9 +543,9 @@ function mapObject(obj, callback) {
   return result;
 }
 
-function mapGet(map, key, fn) {
+function mapGet(map, key, fn, passKey) {
   if (!map.has(key) && fn) {
-    map.set(key, util_hasOwnProperty(fn, 'prototype') ? new fn() : fn());
+    map.set(key, util_hasOwnProperty(fn, 'prototype') ? passKey ? new fn(key) : new fn() : passKey ? fn(key) : fn());
   }
 
   return map.get(key);
@@ -1195,15 +1195,21 @@ function observe(element, options, callback) {
   var observer = new MutationObserver(processRecords);
   observer.observe(element, options);
 
-  if (element !== root) {
-    registerCleanup(element, function () {
-      observer.disconnect();
-    });
-  }
-
-  return function () {
+  var collect = function collect() {
     processRecords(observer.takeRecords());
   };
+
+  var dispose = function dispose() {
+    observer.disconnect();
+  };
+
+  if (element !== root) {
+    registerCleanup(element, dispose);
+  }
+
+  return extend(collect, {
+    dispose: dispose
+  });
 }
 
 function registerCleanup(element, callback) {
@@ -1306,7 +1312,10 @@ function watchAttributes(element, attributes, callback, fireInit) {
     });
     arr[0] = all;
     arr[3] = makeArray(set);
-    callback.apply(this, arr);
+
+    if (arr[0][0]) {
+      callback.apply(this, arr);
+    }
   });
   collect(fireInit && function (added) {
     callback(added, added, [], []);
@@ -2583,7 +2592,7 @@ bind(env_window, 'beforeunload', function (e) {
 
 
 
-var SELECTOR_FOCUSABLE = ':input,[contenteditable],a[href],area[href],iframe';
+var SELECTOR_FOCUSABLE = 'input,select,button,textarea,[contenteditable],a[href],area[href],iframe';
 var focusPath = [root];
 var focusFriends = new WeakMap();
 var focusElements = new Set([root]);
@@ -2941,6 +2950,12 @@ function releaseModal(element, modalPath) {
 
 function setTabRoot(a) {
   if (a !== root && a !== env_document.body && setAdd(tabRoots, a)) {
+    setTimeoutOnce(updateTabRoot);
+  }
+}
+
+function unsetTabRoot(a) {
+  if (tabRoots.delete(a)) {
     setTimeoutOnce(updateTabRoot);
   }
 }
@@ -3587,7 +3602,7 @@ domReady.then(function () {
           if (cur) {
             setFocus(cur, lastEventSource);
           }
-        } else {
+        } else if (!currentEvent) {
           setTimeout(function () {
             if (!windowFocusedOut && focusPath[0] === e.target) {
               setFocus(e.target.parentNode, lastEventSource);
@@ -3698,6 +3713,7 @@ function dom_blur(element) {
   focusable: focusable,
   focused: focused,
   setTabRoot: setTabRoot,
+  unsetTabRoot: unsetTabRoot,
   setModal: setModal,
   releaseModal: releaseModal,
   retainFocus: retainFocus,
@@ -4588,13 +4604,19 @@ function parentsAndSelf(element) {
 
 function selectIncludeSelf(selector, container) {
   container = container || root;
-  var matched = jquery.uniqueSort(jquery(container).find(selector).add(jquery(container).filter(selector)).get());
 
-  if (matched[0] || container === root) {
-    return matched;
+  try {
+    var matched = makeArray(container.querySelectorAll(selector));
+    return matchSelector(container, selector) ? [container].concat(matched) : matched;
+  } catch (e) {
+    var matched = jquery(container).filter(selector).add(jquery(container).find(selector)).get();
+
+    if (matched[0] || container === root) {
+      return matched;
+    }
+
+    return jquery(container).find(jquery(selector)).get();
   }
-
-  return jquery(container).find(jquery(selector)).get();
 }
 
 function selectClosestRelative(selector, container) {
