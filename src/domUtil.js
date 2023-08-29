@@ -361,7 +361,7 @@ function getScrollParent(element, skipSelf, target) {
         if (skipSelf) {
             return element === root || s.position === 'fixed' ? null : getScrollParent(element.parentNode, false, target);
         }
-        if (element === root || s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, { target }, { asyncResult: false })) {
+        if (element === root || s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || getContentRectCustom(element, target)) {
             break;
         }
     }
@@ -416,10 +416,14 @@ function scrollBy(element, x, y) {
     return result || getResult();
 }
 
-function getContentRect(element) {
+function getContentRectCustom(element, target) {
+    var result = emitDOMEvent('getContentRect', element, { target }, { asyncResult: false });
+    return result && toPlainRect(result);
+}
+
+function getContentRectNative(element) {
     var isRoot = element === root || element === document.body;
-    var result = emitDOMEvent('getContentRect', element, null, { asyncResult: false });
-    var parentRect = result ? toPlainRect(result) : getRect(isRoot ? window : element, getBoxValues(element, 'scrollPadding', -1));
+    var parentRect = getRect(isRoot ? window : element, getBoxValues(element, 'scrollPadding', -1));
     if (isRoot) {
         var inset = getSafeAreaInset();
         var winRect = getRect();
@@ -438,7 +442,7 @@ function getContentRect(element) {
         scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
         removeNode(dummy);
     }
-    if (scrollbarWidth && !result) {
+    if (scrollbarWidth) {
         var style = getComputedStyle(element);
         if (style.overflowY === 'scroll' || (style.overflowY === 'auto' && element.offsetHeight < element.scrollHeight)) {
             parentRect.right -= scrollbarWidth;
@@ -448,6 +452,10 @@ function getContentRect(element) {
         }
     }
     return parentRect;
+}
+
+function getContentRect(element) {
+    return getContentRectCustom(element, element) || getContentRectNative(element);
 }
 
 function scrollIntoView(element, align, rect, within) {
@@ -478,7 +486,7 @@ function scrollIntoView(element, align, rect, within) {
     var parent = getScrollParent(element);
     var result = { x: 0, y: 0 };
     while (containsOrEquals(within, parent)) {
-        var parentRect = getContentRect(parent);
+        var parentRect = getContentRectCustom(parent, element) || getContentRectNative(parent);
         var deltaX = getDelta(rect, parentRect, dirX, 'left', 'right', 'centerX');
         var deltaY = getDelta(rect, parentRect, dirY, 'top', 'bottom', 'centerY');
         if (deltaX || deltaY) {
