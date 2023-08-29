@@ -4,7 +4,7 @@ import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
 import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
-import { bind, bindUntil, containsOrEquals, elementFromPoint, getRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
+import { bind, bindUntil, containsOrEquals, elementFromPoint, getContentRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent, prepEventSource } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
@@ -460,7 +460,7 @@ function trackPointer(callback) {
         scrollTimeout = scrollTimeout || setInterval(function () {
             var x = lastPoint.clientX;
             var y = lastPoint.clientY;
-            var r = getRect(scrollParent);
+            var r = getContentRect(scrollParent);
             var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
             var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
             if ((dx || dy) && scrollIntoView(target, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
