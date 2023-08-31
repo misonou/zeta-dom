@@ -151,27 +151,41 @@ describe('watchElements', () => {
     it('should fire callback when the set of matching elements changed', async () => {
         const cb1 = mockFn();
         const cb2 = mockFn();
-        const { root, div1, div2, p } = await after(() => initBody(`
+        const cb3 = mockFn();
+        const cb4 = mockFn();
+        const { root, div1, div2, div3, p, input } = await after(() => initBody(`
             <div id="root">
                 <div id="div1">
                     <div id="div2" attr="value"></div>
+                    <div id="div3" class="class"></div>
                     <p id="p" attr="value"></p>
+                    <input id="input" />
                 </div>
             </div>
         `));
         watchElements(root, 'div', cb1);
         watchElements(root, '[attr]', cb2);
+        watchElements(root, '.class', cb3);
+        watchElements(root, 'input:enabled', cb4);
 
         await after(() => {
             p.removeAttribute('attr');
             div1.setAttribute('attr', 'value');
             div1.removeChild(div2);
+            div3.classList.remove('class');
+            input.disabled = true;
         });
         verifyCalls(cb1, [
             [[], [div2]]
         ]);
         verifyCalls(cb2, [
             [[div1], [div2, p]]
+        ]);
+        verifyCalls(cb3, [
+            [[], [div3]]
+        ]);
+        verifyCalls(cb4, [
+            [[], [input]]
         ]);
     });
 

@@ -115,7 +115,7 @@ function trackElements(element, selector) {
 function watchElements(element, selector, callback, fireInit) {
     var collect = trackElements(element, selector);
     var options = extend({}, optionsForChildList, {
-        attributes: selector.indexOf('[') >= 0
+        attributes: /[[.:]/.test(selector)
     });
     var fn = observe(element, options, function () {
         collect(callback);
