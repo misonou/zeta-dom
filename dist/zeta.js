@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.5 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.6 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -1284,7 +1284,7 @@ function trackElements(element, selector) {
 function watchElements(element, selector, callback, fireInit) {
   var collect = trackElements(element, selector);
   var options = extend({}, optionsForChildList, {
-    attributes: selector.indexOf('[') >= 0
+    attributes: /[[.:]/.test(selector)
   });
   var fn = observe(element, options, function () {
     collect(callback);
@@ -3085,7 +3085,7 @@ function trackPointer(callback) {
     scrollTimeout = scrollTimeout || setInterval(function () {
       var x = lastPoint.clientX;
       var y = lastPoint.clientY;
-      var r = getRect(scrollParent);
+      var r = getContentRect(scrollParent);
       var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
       var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
 
@@ -4768,11 +4768,7 @@ function getScrollParent(element, skipSelf, target) {
       return element === root || s.position === 'fixed' ? null : getScrollParent(element.parentNode, false, target);
     }
 
-    if (element === root || s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || emitDOMEvent('getContentRect', element, {
-      target: target
-    }, {
-      asyncResult: false
-    })) {
+    if (element === root || s.overflow !== 'visible' || !matchWord(s.position, 'static relative') || getContentRectCustom(element, target)) {
       break;
     }
   }
@@ -4845,12 +4841,18 @@ function scrollBy(element, x, y) {
   return result || getResult();
 }
 
-function getContentRect(element) {
-  var isRoot = element === root || element === env_document.body;
-  var result = emitDOMEvent('getContentRect', element, null, {
+function getContentRectCustom(element, target) {
+  var result = emitDOMEvent('getContentRect', element, {
+    target: target
+  }, {
     asyncResult: false
   });
-  var parentRect = result ? toPlainRect(result) : getRect(isRoot ? env_window : element, getBoxValues(element, 'scrollPadding', -1));
+  return result && toPlainRect(result);
+}
+
+function getContentRectNative(element) {
+  var isRoot = element === root || element === env_document.body;
+  var parentRect = getRect(isRoot ? env_window : element, getBoxValues(element, 'scrollPadding', -1));
 
   if (isRoot) {
     var inset = getSafeAreaInset();
@@ -4872,7 +4874,7 @@ function getContentRect(element) {
     domUtil_removeNode(dummy);
   }
 
-  if (scrollbarWidth && !result) {
+  if (scrollbarWidth) {
     var style = getComputedStyle(element);
 
     if (style.overflowY === 'scroll' || style.overflowY === 'auto' && element.offsetHeight < element.scrollHeight) {
@@ -4885,6 +4887,10 @@ function getContentRect(element) {
   }
 
   return parentRect;
+}
+
+function getContentRect(element) {
+  return getContentRectCustom(element, element) || getContentRectNative(element);
 }
 
 function scrollIntoView(element, align, rect, within) {
@@ -4925,7 +4931,7 @@ function scrollIntoView(element, align, rect, within) {
   };
 
   while (containsOrEquals(within, parent)) {
-    var parentRect = getContentRect(parent);
+    var parentRect = getContentRectCustom(parent, element) || getContentRectNative(parent);
     var deltaX = getDelta(rect, parentRect, dirX, 'left', 'right', 'centerX');
     var deltaY = getDelta(rect, parentRect, dirY, 'top', 'bottom', 'centerY');
 
