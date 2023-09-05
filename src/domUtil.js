@@ -1,4 +1,4 @@
-import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep, freeze, isArray } from "./util.js";
+import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep, freeze, isArray, matchWordMulti } from "./util.js";
 import $ from "./include/jquery.js";
 import { window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { emitDOMEvent } from "./events.js";
@@ -471,8 +471,14 @@ function scrollIntoView(element, align, rect, within) {
     if (!rect || rect.top === undefined) {
         rect = getRect(element, typeof rect === 'number' ? rect : getBoxValues(element, 'scrollMargin'));
     }
-    var dirX = matchWord(align, 'left right') || matchWord(align, 'center');
-    var dirY = matchWord(align, 'top bottom') || matchWord(align, 'center');
+    var dirX = matchWord(align, 'left right');
+    var dirY = matchWord(align, 'top bottom');
+    if (!dirX || !dirY) {
+        var iter = matchWordMulti(align, 'auto center');
+        var iterValue = iter();
+        dirX = dirX || iterValue;
+        dirY = dirY || iter() || iterValue;
+    }
     var getDelta = function (a, b, dir, dStart, dEnd, dCenter) {
         if (dir === dStart || dir === dEnd) {
             return a[dir] - b[dir];

@@ -129,10 +129,15 @@ declare namespace Zeta {
     type DOMEventType<T extends EventTarget, K extends string> = T extends DOMEventIDLProp<K, infer E> ? E : never;
     type DOMEventsOf<T extends EventTarget> = ({ [K in DOMEventNames]: T extends DOMEventIDLProp<K, any> ? K : never })[DOMEventNames];
 
-    type Direction = 'left' | 'top' | 'right' | 'bottom';
-    type BoxAlign = Direction
-        | 'left bottom' | 'left top' | 'right bottom' | 'right top'
-        | 'left center' | 'top center' | 'right center' | 'bottom center' | 'center' | 'auto';
+    type BoxSide = 'left' | 'top' | 'right' | 'bottom';
+    type BoxCorner = 'left bottom' | 'left top' | 'right bottom' | 'right top';
+    type BoxAlign = BoxSide | BoxCorner
+        | 'left center' | 'top center' | 'right center' | 'bottom center'
+        | 'center auto' | 'auto center' | 'center' | 'auto';
+    type Direction = BoxSide;
+    /**
+     * @deprecated
+     */
     type Direction2D = Direction
         | 'left bottom' | 'left top' | 'right bottom' | 'right top'
         | 'left bottom inset-x' | 'left top inset-x' | 'right bottom inset-x' | 'right top inset-x'
@@ -217,7 +222,7 @@ declare namespace Zeta {
          * @param side A string referring one of the four side of a rect.
          * @returns A new rect object.
          */
-        collapse(side: Direction, offset?: number): Rect;
+        collapse(side: BoxSide, offset?: number): Rect;
 
         /**
          * Returns a new rect that has the same size but at a different position.
