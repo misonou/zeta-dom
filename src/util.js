@@ -30,7 +30,7 @@ const compareFn = [
 ];
 
 var setImmediateStore = new Map();
-var matchWordCache = {};
+var matchWordCache = Object.create(null);
 var watchStore = createPrivateStore();
 
 /* --------------------------------------
@@ -488,9 +488,24 @@ function trim(v) {
     return String(v || '').replace(/^(?:\u200b|[^\S\u00a0])+|(?:\u200b|[^\S\u00a0])+$/g, '');
 }
 
+function getMatchWordRegex(needle) {
+    return matchWordCache[needle] || (matchWordCache[needle] = new RegExp('(?:^|\\s)(' + needle.replace(/\s+/g, '|') + ')(?=$|\\s)'));
+}
+
+function execFirstParen(re, haystack) {
+    return re.test(haystack) && RegExp.$1;
+}
+
 function matchWord(haystack, needle) {
-    var re = matchWordCache[needle] || (matchWordCache[needle] = new RegExp('(?:^|\\s)(' + needle.replace(/\s+/g, '|') + ')(?=$|\\s)'));
-    return re.test(String(haystack || '')) && RegExp.$1;
+    return haystack ? execFirstParen(getMatchWordRegex(needle), String(haystack)) : false;
+}
+
+function matchWordMulti(haystack, needle) {
+    if (!haystack) {
+        return pipe.bind(0, false);
+    }
+    var re = new RegExp(getMatchWordRegex(needle).source, 'g');
+    return execFirstParen.bind(0, re, String(haystack));
 }
 
 function htmlDecode(input) {
@@ -935,6 +950,7 @@ export {
     lcfirst,
     trim,
     matchWord,
+    matchWordMulti,
     htmlDecode,
 
     // promise

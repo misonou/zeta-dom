@@ -550,6 +550,14 @@ export function trim(str: string): string;
 export function matchWord<T extends string>(needle: string, haystack: T): Zeta.WhitespaceDelimited<T> | false;
 
 /**
+ * Extracts words contained in a whitespace-separated list of words.
+ * @param needle A whitespace-separated list of words.
+ * @param haystack A whitespace-separated list of words to match.
+ * @returns A callback that returns the next appeared word; or `false` if there is no more matches.
+ */
+export function matchWordMulti<T extends string>(needle: string, haystack: T): () => Zeta.WhitespaceDelimited<T> | false;
+
+/**
  * Decodes HTML character entities to its represented characters, such as `&lt;` to `<`.
  * @param input A string to be decoded.
  */
