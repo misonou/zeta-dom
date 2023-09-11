@@ -56,7 +56,7 @@ function textInputAllowed(v) {
 }
 
 function isMouseDown(e) {
-    return (e.buttons || e.which) === 1;
+    return (isUndefinedOrNull(e.buttons) ? e.which : e.buttons) === 1;
 }
 
 function normalizeKey(e) {
