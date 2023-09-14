@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.6 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.7 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -103,6 +103,7 @@ __webpack_require__.d(util_namespaceObject, {
   "mapObject": function() { return mapObject; },
   "mapRemove": function() { return mapRemove; },
   "matchWord": function() { return matchWord; },
+  "matchWordMulti": function() { return matchWordMulti; },
   "noop": function() { return noop; },
   "pick": function() { return pick; },
   "pipe": function() { return pipe; },
@@ -252,7 +253,7 @@ var compareFn = [function (b, v, i) {
   return !b.has(v);
 }];
 var setImmediateStore = new Map();
-var matchWordCache = {};
+var matchWordCache = Object.create(null);
 var watchStore = createPrivateStore();
 /* --------------------------------------
  * Miscellaneous
@@ -394,12 +395,6 @@ function each(obj, callback) {
       while (!(cur = obj.next()).done && callback(cur.value[0], cur.value[1]) !== false) {
         ;
       }
-    } else if (isFunction(obj.forEach)) {
-      obj.forEach(function (v, i) {
-        if (cur !== false) {
-          cur = callback(i, v);
-        }
-      });
     } else if (isFunction(obj.next)) {
       while (!(cur = obj.next()).done && callback(i++, cur.value) !== false) {
         ;
@@ -408,6 +403,12 @@ function each(obj, callback) {
       while ((cur = obj.nextNode()) && callback(i++, cur) !== false) {
         ;
       }
+    } else if (isFunction(obj.forEach)) {
+      obj.forEach(function (v, i) {
+        if (cur !== false) {
+          cur = callback(i, v);
+        }
+      });
     } else {
       // @ts-ignore: i is unused elsewhere thus can be assigned string
       for (i in obj) {
@@ -747,9 +748,25 @@ function trim(v) {
   return String(v || '').replace(/^(?:\u200b|[^\S\u00a0])+|(?:\u200b|[^\S\u00a0])+$/g, '');
 }
 
+function getMatchWordRegex(needle) {
+  return matchWordCache[needle] || (matchWordCache[needle] = new RegExp('(?:^|\\s)(' + needle.replace(/\s+/g, '|') + ')(?=$|\\s)'));
+}
+
+function execFirstParen(re, haystack) {
+  return re.test(haystack) && RegExp.$1;
+}
+
 function matchWord(haystack, needle) {
-  var re = matchWordCache[needle] || (matchWordCache[needle] = new RegExp('(?:^|\\s)(' + needle.replace(/\s+/g, '|') + ')(?=$|\\s)'));
-  return re.test(String(haystack || '')) && RegExp.$1;
+  return haystack ? execFirstParen(getMatchWordRegex(needle), String(haystack)) : false;
+}
+
+function matchWordMulti(haystack, needle) {
+  if (!haystack) {
+    return pipe.bind(0, false);
+  }
+
+  var re = new RegExp(getMatchWordRegex(needle).source, 'g');
+  return execFirstParen.bind(0, re, String(haystack));
 }
 
 function htmlDecode(input) {
@@ -2635,7 +2652,7 @@ function textInputAllowed(v) {
 }
 
 function isMouseDown(e) {
-  return (e.buttons || e.which) === 1;
+  return (isUndefinedOrNull(e.buttons) ? e.which : e.buttons) === 1;
 }
 
 function normalizeKey(e) {
@@ -4910,8 +4927,15 @@ function scrollIntoView(element, align, rect, within) {
     rect = getRect(element, typeof rect === 'number' ? rect : getBoxValues(element, 'scrollMargin'));
   }
 
-  var dirX = matchWord(align, 'left right') || matchWord(align, 'center');
-  var dirY = matchWord(align, 'top bottom') || matchWord(align, 'center');
+  var dirX = matchWord(align, 'left right');
+  var dirY = matchWord(align, 'top bottom');
+
+  if (!dirX || !dirY) {
+    var iter = matchWordMulti(align, 'auto center');
+    var iterValue = iter();
+    dirX = dirX || iterValue;
+    dirY = dirY || iter() || iterValue;
+  }
 
   var getDelta = function getDelta(a, b, dir, dStart, dEnd, dCenter) {
     if (dir === dStart || dir === dEnd) {
