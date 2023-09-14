@@ -156,16 +156,16 @@ function each(obj, callback) {
         } else if (isFunction(obj.entries)) {
             obj = obj.entries();
             while (!(cur = obj.next()).done && callback(cur.value[0], cur.value[1]) !== false);
+        } else if (isFunction(obj.next)) {
+            while (!(cur = obj.next()).done && callback(i++, cur.value) !== false);
+        } else if (isFunction(obj.nextNode)) {
+            while ((cur = obj.nextNode()) && callback(i++, cur) !== false);
         } else if (isFunction(obj.forEach)) {
             obj.forEach(function (v, i) {
                 if (cur !== false) {
                     cur = callback(i, v);
                 }
             });
-        } else if (isFunction(obj.next)) {
-            while (!(cur = obj.next()).done && callback(i++, cur.value) !== false);
-        } else if (isFunction(obj.nextNode)) {
-            while ((cur = obj.nextNode()) && callback(i++, cur) !== false);
         } else {
             // @ts-ignore: i is unused elsewhere thus can be assigned string
             for (i in obj) {
