@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.7 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.8 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
