@@ -817,7 +817,7 @@ domReady.then(function () {
         },
         touchstart: function (e) {
             mouseInitialPoint = extend({}, e.touches[0]);
-            triggerMouseEvent('touchstart');
+            triggerMouseEvent('touchstart', mouseInitialPoint);
             if (!e.touches[1]) {
                 pressTimeout = setTimeout(function () {
                     if (mouseInitialPoint) {

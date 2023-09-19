@@ -642,7 +642,8 @@ describe('ZetaEvent.source', () => {
             <div id="node2"></div>
         `);
         const event = new TouchEvent('touchstart', {
-            cancelable: true
+            cancelable: true,
+            touches: [{ clientX: 0, clientY: 0, identifier: 1, target: node2 }]
         });
         const cb = mockFn();
         dom.focus(node1);
