@@ -1,6 +1,6 @@
 import { after, body, combineFn, delay, ErrorCode, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
 import { cancelLock, lock, locked, notifyAsync, preventLeave, subscribeAsync } from "../src/domLock";
-import { noop } from "../src/util";
+import { catchAsync, noop } from "../src/util";
 import { removeNode } from "../src/domUtil";
 import dom from "../src/dom";
 
@@ -14,6 +14,12 @@ describe('lock', () => {
         expect(locked(body)).toBe(true);
         await promise;
         expect(locked(body)).toBe(false);
+    });
+
+    it('should accept boolean for cancellable lock', async () => {
+        const promise = lock(body, delay(), true);
+        await expect(cancelLock()).resolves.toBeUndefined();
+        await expect(promise).rejects.toBeErrorWithCode(ErrorCode.cancelled);
     });
 
     it('should be cancelled automatically when element is detached', async () => {
@@ -75,6 +81,7 @@ describe('subscribeAsync', () => {
         notifyAsync(div, promise);
 
         await promise;
+        await delay();
         verifyCalls(cb, [
             [true],
             [false],
@@ -206,6 +213,32 @@ describe('notifyAsync', () => {
         await after(() => cancelLock(div));
         expect(cb).toBeCalledTimes(1);
     });
+
+    it('should not invoke oncancel callback when cancelLock is rejected', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        var promise = new Promise(() => { });
+        catchAsync(lock(div, new Promise(() => { })));
+        notifyAsync(div, promise, cb);
+
+        await expect(cancelLock(div)).rejects.toBeErrorWithCode(ErrorCode.cancellationRejected);
+        expect(cb).toBeCalledTimes(0);
+    });
+
+    it('should not invoke oncancel callback when promise settled before cancellation', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        var promise = delay();
+        notifyAsync(div, promise, cb);
+
+        await promise;
+        await after(() => cancelLock(div));
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('preventLeave', () => {
@@ -214,6 +247,7 @@ describe('preventLeave', () => {
         preventLeave(body, promise);
         expect(locked(body)).toBe(true);
         await promise;
+        await delay();
         expect(locked(body)).toBe(false);
     });
 
@@ -327,10 +361,10 @@ describe('cancelLock', () => {
 
         const cancelResult = cancelLock(div);
         await expect(cancelResult).resolves.toBeUndefined();
+        expect(locked(div)).toBe(false);
 
         await expect(lockResult).rejects.toBeErrorWithCode(ErrorCode.cancelled);
         expect(cb).toBeCalledTimes(1);
-        expect(locked(div)).toBe(false);
     });
 
     it('should call oncancel again if cancellation was previously rejected', async () => {
@@ -345,10 +379,10 @@ describe('cancelLock', () => {
 
         const cancelResult2 = cancelLock(div);
         await expect(cancelResult2).resolves.toBeUndefined();
+        expect(locked(div)).toBe(false);
 
         await expect(lockResult).rejects.toBeErrorWithCode(ErrorCode.cancelled);
         expect(cb).toBeCalledTimes(2);
-        expect(locked(div)).toBe(false);
     });
 
     it('should return resolved promise if element is not locked', async () => {
