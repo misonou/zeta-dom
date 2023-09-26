@@ -147,6 +147,43 @@ describe('notifyAsync', () => {
         unregister();
     });
 
+    it('should emit asyncStart and asyncEnd event to elements from where focus is delegated', async () => {
+        const { div, other } = initBody(`
+            <div id="other"></div>
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = combineFn(
+            dom.on(div, 'asyncStart', cb),
+            dom.on(div, 'asyncEnd', cb),
+            dom.on(other, 'asyncStart', cb),
+            dom.on(other, 'asyncEnd', cb),
+        );
+        dom.retainFocus(other, div);
+        dom.focus(other);
+        dom.focus(div);
+
+        const promise = delay();
+        subscribeAsync(div);
+        subscribeAsync(other);
+        notifyAsync(div, promise);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'asyncStart', currentTarget: div }), _],
+            [objectContaining({ type: 'asyncStart', currentTarget: other }), _],
+        ]);
+
+        cb.mockClear();
+        dom.focus(document.body);
+        dom.releaseFocus(div);
+        await promise;
+        await delay();
+        verifyCalls(cb, [
+            [objectContaining({ type: 'asyncEnd', currentTarget: div }), _],
+            [objectContaining({ type: 'asyncEnd', currentTarget: other }), _],
+        ]);
+        unregister();
+    });
+
     it('should emit error event when given promise rejects', async () => {
         const { div } = initBody(`
             <div id="div"></div>

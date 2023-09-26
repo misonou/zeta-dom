@@ -5,6 +5,7 @@ import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep,
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent, listenDOMEvent } from "./events.js";
 import { createAutoCleanupMap } from "./observe.js";
+import { iterateFocusPath } from "./dom.js";
 
 const handledErrors = new WeakMap();
 const subscribers = new WeakMap();
@@ -93,7 +94,7 @@ function subscribeAsync(element, callback) {
 function notifyAsync(element, promise, oncancel) {
     promise = handlePromise(promise, element, oncancel);
     subscribeAsync(element);
-    each(parentsAndSelf(element), function (i, v) {
+    each(iterateFocusPath(element), function (i, v) {
         var promises = subscribers.get(v);
         if (promises) {
             // ensure oncancel is called when cancelLock is called
