@@ -71,8 +71,9 @@ export declare function notifyAsync(element: Element, promise: Promise<any>, onc
 /**
  * Enables listening of `asyncStart` and `asyncEnd` events that is triggered by descedant elements.
  * @param element A DOM element.
+ * @param stopPropagation Optionally prevents `asyncStart` and `asyncEnd` events being bubbled up.
  */
-export declare function subscribeAsync(element: Element): void;
+export declare function subscribeAsync(element: Element, stopPropagation?: true): void;
 
 /**
  * Listens and invokes supplied callback at `asyncStart` and `asyncEnd` events.

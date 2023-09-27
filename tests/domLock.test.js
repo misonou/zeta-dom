@@ -88,6 +88,36 @@ describe('subscribeAsync', () => {
         ]);
         unregister();
     });
+
+    it('should stop propagating notification to parent elements if called with true flag', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn().mockReturnValueOnce(true);
+        const unregister = combineFn(
+            dom.on(div, 'asyncStart', cb),
+            dom.on(div, 'asyncEnd', cb),
+            dom.on(root, 'asyncStart', cb),
+            dom.on(root, 'asyncEnd', cb),
+        );
+        const promise1 = delay();
+        const promise2 = delay();
+        subscribeAsync(div, true);
+        notifyAsync(div, promise1);
+        notifyAsync(div, promise2);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'asyncStart', currentTarget: div }), _]
+        ]);
+
+        cb.mockClear();
+        await promise1;
+        await promise2;
+        await delay();
+        verifyCalls(cb, [
+            [objectContaining({ type: 'asyncEnd', currentTarget: div }), _]
+        ]);
+        unregister();
+    });
 });
 
 describe('notifyAsync', () => {

@@ -78,8 +78,10 @@ function lock(element, promise, oncancel) {
 }
 
 function subscribeAsync(element, callback) {
-    mapGet(subscribers, element, Map);
-    if (isFunction(callback)) {
+    var promises = mapGet(subscribers, element, Map);
+    if (callback === true) {
+        promises.handled = true;
+    } else if (isFunction(callback)) {
         return listenDOMEvent(element, {
             asyncStart: function () {
                 callback.call(element, true);
@@ -108,6 +110,7 @@ function notifyAsync(element, promise, oncancel) {
             if (promises.size === 1) {
                 emitDOMEvent('asyncStart', v);
             }
+            return !promises.handled;
         }
     });
 }
