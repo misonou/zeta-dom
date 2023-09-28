@@ -5,7 +5,7 @@
  * @param element A DOM element.
  * @deprecated Use {@link subscribeAsync} instead.
  */
-export declare function lock(element: Element): Promise<void>;
+export declare function lock(element: Element): void;
 
 /**
  * Equivalent to calling with third argument with `Promise.resolve()` when `cancellable` is `true`; and `Promise.reject()` otherwise.
@@ -28,7 +28,7 @@ export declare function lock<T>(element: Element, promise: Promise<T>, cancellab
  * @param oncancel A handler which handles request of cancellation by {@link cancelLock}.
  * @returns A promise which, when the operation was not cancelled, forwards the result of the given promise; or rejects if the operation was cancelled; or the DOM element was detached before the operation completed.
  */
-export declare function lock<T>(element: Element, promise: Promise<T>, oncancel?: () => Promise<any>): Promise<T>;
+export declare function lock<T>(element: Element, promise: Promise<T>, oncancel?: () => any): Promise<T>;
 
 /**
  * Gets whether there are any pending operations associated, i.e. being locked.
