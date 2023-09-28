@@ -964,7 +964,6 @@ domReady.then(function () {
         setFocus(getModalElement() || document.body);
     });
     setFocus(document.activeElement);
-    subscribeAsync(root);
     watchElements(root, SELECTOR_FOCUSABLE, updateTabIndex);
 });
 

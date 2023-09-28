@@ -154,6 +154,7 @@ bind(window, 'beforeunload', function (e) {
         e.preventDefault();
     }
 });
+subscribeAsync(root);
 
 export {
     lock,
