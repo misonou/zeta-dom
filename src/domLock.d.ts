@@ -24,6 +24,19 @@ export declare function lock<T>(element: Element, promise: Promise<T>, cancellab
  * To reject the cancellation from the handler, return a rejected promise.
  *
  * @param element A DOM element.
+ * @param oncancel A handler which handles request of cancellation by {@link cancelLock}.
+ * @returns A callback that remove the lock.
+ */
+export declare function lock<T>(element: Element, oncancel: () => any): Zeta.UnregisterCallback;
+
+/**
+ * Associates an asynchronous operation with the specified element.
+ * Requests of cancellation can be raised by calling {@link cancelLock} on any parent elements.
+ *
+ * When the `oncancel` handler is supplied, it will be invoked upon request of cancellation; otherwise the cancellation request will be always rejected.
+ * To reject the cancellation from the handler, return a rejected promise.
+ *
+ * @param element A DOM element.
  * @param promise A promise which resolves or rejects when operation is completed.
  * @param oncancel A handler which handles request of cancellation by {@link cancelLock}.
  * @returns A promise which, when the operation was not cancelled, forwards the result of the given promise; or rejects if the operation was cancelled; or the DOM element was detached before the operation completed.
@@ -81,6 +94,12 @@ export declare function subscribeAsync(element: Element, stopPropagation?: true)
  * @param callback A callback that will be invoked with a boolean indicating if there is asynchronous operation in progress.
  */
 export declare function subscribeAsync<T extends Element>(element: T, callback: (this: T, loading: boolean) => void): Zeta.UnregisterCallback;
+
+/**
+ * Prompts user before leaving the page.
+ * @returns A callback that cancels the prompt.
+ */
+export declare function preventLeave(): Zeta.UnregisterCallback;
 
 /**
  * Prompts user before leaving the page within the lifetime of the promise.

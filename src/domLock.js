@@ -65,6 +65,10 @@ function lock(element, promise, oncancel) {
     if (!promise) {
         return subscribeAsync(element);
     }
+    if (isFunction(promise)) {
+        promise = lock(element, new Promise(noop), promise);
+        return promise.cancel;
+    }
     var promises = ensureLock(element);
     promise = handlePromise(promise, element);
     oncancel = isFunction(oncancel) ? retryable(oncancel) : oncancel ? noop : reject;
@@ -116,13 +120,13 @@ function notifyAsync(element, promise, oncancel) {
 }
 
 function preventLeave(element, promise, oncancel) {
-    if (promise) {
-        element = lock(element, promise, oncancel);
+    if (!element) {
+        leaveCounter++;
+        return executeOnce(function () {
+            leaveCounter--;
+        });
     }
-    leaveCounter++;
-    always(element, function () {
-        leaveCounter--;
-    });
+    always(promise ? lock(element, promise, oncancel) : element, preventLeave());
 }
 
 function locked(element, parents) {

@@ -68,6 +68,17 @@ describe('lock', () => {
         expect(cb).not.toBeCalled();
         unregister();
     });
+
+    it('should return callback that remove the lock if no promise is provided', async () => {
+        const cb = mockFn();
+        const dispose = lock(root, cb);
+        expect(locked(root)).toBe(true);
+
+        dispose();
+        await delay();
+        expect(locked(root)).toBe(false);
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('subscribeAsync', () => {
@@ -354,6 +365,13 @@ describe('preventLeave', () => {
         await promise2;
         expect(cb).not.toBeCalled();
         unregister();
+    });
+
+    it('should return callback if no argument is provided', async () => {
+        const dispose = preventLeave();
+        expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(false);
+        dispose();
+        expect(window.dispatchEvent(new Event('beforeunload', { cancelable: true }))).toBe(true);
     });
 });
 
