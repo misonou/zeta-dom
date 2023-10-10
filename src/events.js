@@ -247,7 +247,7 @@ function emitterGetElements(emitter, bubbles) {
         return bubbles ? parentsAndSelf(target) : [target];
     }
     var originalEvent = emitter.originalEvent;
-    var focusedElements = emitter.source.path;
+    var focusedElements = dom.focusedElements;
     var index = focusedElements.indexOf(target);
     if (!originalEvent || originalEvent !== dom.event || index < 0) {
         return bubbles ? iterateFocusPath(target) : [target];
