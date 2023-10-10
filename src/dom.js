@@ -4,7 +4,7 @@ import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
 import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
-import { bind, bindUntil, containsOrEquals, elementFromPoint, getContentRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, toPlainRect } from "./domUtil.js";
+import { bind, bindUntil, containsOrEquals, elementFromPoint, getContentRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, tagName, toPlainRect } from "./domUtil.js";
 import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
@@ -52,7 +52,13 @@ function measureLine(p1, p2) {
 }
 
 function textInputAllowed(v) {
-    return v.isContentEditable || matchSelector(v, 'input,textarea,select');
+    if (v.isContentEditable) {
+        return true;
+    }
+    if (tagName(v) === 'input') {
+        return !matchWord(v.type, 'button checkbox color file image radio range reset submit');
+    }
+    return matchSelector(v, 'textarea,select');
 }
 
 function isMouseDown(e) {
