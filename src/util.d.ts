@@ -17,6 +17,8 @@ export function pipe<T>(value: T): T;
 
 export function either(x: any, b: any): boolean;
 
+export function sameValueZero(x: any, y: any): boolean;
+
 /**
  * Tests whether a given object is an instance of the specified function.
  * @param a An input object to test against.

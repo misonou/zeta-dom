@@ -367,6 +367,7 @@ describe('equal', () => {
 
     it('should return if two objects have the same keys and values', () => {
         expect(equal({ a: 1, b: obj }, { a: 1, b: obj })).toBe(true);
+        expect(equal({ a: NaN }, { a: NaN })).toBe(true);
         expect(equal({}, {})).toBe(true);
 
         expect(equal({ a: 1, b: obj }, { a: 1, b: {} })).toBe(false);
@@ -377,6 +378,7 @@ describe('equal', () => {
 
     it('should return if two arrays are sequentially equal', () => {
         expect(equal([1, obj], [1, obj])).toBe(true);
+        expect(equal([NaN], [NaN])).toBe(true);
         expect(equal([], [])).toBe(true);
 
         expect(equal([1, obj], [1, {}])).toBe(false);
@@ -387,6 +389,7 @@ describe('equal', () => {
 
     it('should return if two maps are have the same keys and values', () => {
         expect(equal(new Map([[1, 1], [obj, obj]]), new Map([[obj, obj], [1, 1]]))).toBe(true);
+        expect(equal(new Map([[NaN, NaN]]), new Map([[NaN, NaN]]))).toBe(true);
         expect(equal(new Map(), new Map())).toBe(true);
 
         // @ts-ignore
@@ -418,10 +421,11 @@ describe('equal', () => {
         expect(equal({}, Promise.resolve())).toBe(false);
     });
 
-    it('should perform strict equality comparison for primitive values', () => {
+    it('should perform same value zero comparison for primitive values', () => {
+        expect(equal(-0, 0)).toBe(true);
         expect(equal(1, 1)).toBe(true);
         expect(equal(1, 0)).toBe(false);
-        expect(equal(NaN, NaN)).toBe(false);
+        expect(equal(NaN, NaN)).toBe(true);
         expect(equal(true, true)).toBe(true);
         expect(equal(false, false)).toBe(true);
         expect(equal(true, false)).toBe(false);
@@ -793,6 +797,23 @@ describe('defineObservableProperty', () => {
         const alias = {};
         defineAliasProperty(alias, 'prop', source);
         expect(() => defineObservableProperty(alias, 'prop')).toThrow();
+    });
+
+    it('should not trigger callback when setting same value', async () => {
+        const cb = mockFn();
+        const obj = {
+            propNaN: NaN,
+            propZero: 0
+        };
+        for (var i in obj) {
+            defineObservableProperty(obj, i, obj[i]);
+            watch(obj, i, cb);
+        }
+        await after(() => {
+            obj.propNaN = NaN;
+            obj.propZero = -0;
+        });
+        expect(cb).not.toBeCalled();
     });
 });
 

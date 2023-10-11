@@ -24,8 +24,8 @@ const queueMicrotask = window.queueMicrotask || function (callback) {
 };
 
 const compareFn = [
-    function (b, v, i) { return b[i] !== v; },
-    function (b, v, i) { return b.get(i) !== v; },
+    function (b, v, i) { return !sameValueZero(b[i], v); },
+    function (b, v, i) { return !sameValueZero(b.get(i), v); },
     function (b, v, i) { return !b.has(v); }
 ];
 
@@ -45,6 +45,10 @@ function pipe(v) {
 
 function either(x, y) {
     return x ? !y : !!y;
+}
+
+function sameValueZero(x, y) {
+    return x === y || x !== x && y !== y;
 }
 
 function is(obj, fn) {
@@ -321,7 +325,7 @@ function setAdd(set, obj) {
 
 function equal(a, b) {
     if (typeof a !== 'object' || !b || a.constructor !== b.constructor) {
-        return a === b;
+        return sameValueZero(a, b);
     }
     var type = (a instanceof Map && 1) || (a instanceof Set && 2) || (isArray(a) && 3) || 0;
     if (a.length !== b.length || a.size !== b.size || (!type && keys(a).length !== keys(b).length)) {
@@ -782,7 +786,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
             if (isFunction(callback)) {
                 value = callback.call(this, value, oldValue);
             }
-            if (value !== oldValue) {
+            if (!sameValueZero(value, oldValue)) {
                 state.values[prop] = value;
                 if (state.handlers[0]) {
                     if (!(prop in state.oldValues)) {
@@ -880,6 +884,7 @@ export {
     noop,
     pipe,
     either,
+    sameValueZero,
     is,
     isUndefinedOrNull,
     isArray,
