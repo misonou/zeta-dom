@@ -23,7 +23,7 @@ function observe(element, options, callback) {
         options = optionsForChildList;
     }
     var processRecords = callback;
-    if (options.attributes) {
+    if (options.attributes && (options.attributeFilter || ['id']).indexOf('id') >= 0) {
         processRecords = function (records) {
             records = records.filter(function (v) {
                 // filter out changes due to sizzle engine
@@ -114,8 +114,19 @@ function trackElements(element, selector) {
 
 function watchElements(element, selector, callback, fireInit) {
     var collect = trackElements(element, selector);
+    var attributes;
+    var attributeFilter = [];
+    selector.replace(/\.|\[([^=~|^$*\]]+)|:(?!empty|is|has|not|where|(?:first|last|only|nth|nth-last)-(?:child|of-type))/g, function (v, a) {
+        attributes = true;
+        if (v[0] === ':') {
+            attributeFilter = undefined;
+        } else if (attributeFilter) {
+            attributeFilter.push(v[0] === '.' ? 'class' : a);
+        }
+    });
     var options = extend({}, optionsForChildList, {
-        attributes: /[[.:]/.test(selector)
+        attributes: attributes,
+        attributeFilter: attributes && attributeFilter
     });
     var fn = observe(element, options, function () {
         collect(callback);
