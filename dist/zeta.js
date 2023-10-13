@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.10 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.11 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -113,6 +113,7 @@ __webpack_require__.d(util_namespaceObject, {
   "resolve": function() { return util_resolve; },
   "resolveAll": function() { return resolveAll; },
   "retryable": function() { return retryable; },
+  "sameValueZero": function() { return sameValueZero; },
   "setAdd": function() { return setAdd; },
   "setImmediate": function() { return setImmediate; },
   "setImmediateOnce": function() { return setImmediateOnce; },
@@ -246,9 +247,9 @@ var queueMicrotask = env_window.queueMicrotask || function (callback) {
 };
 
 var compareFn = [function (b, v, i) {
-  return b[i] !== v;
+  return !sameValueZero(b[i], v);
 }, function (b, v, i) {
-  return b.get(i) !== v;
+  return !sameValueZero(b.get(i), v);
 }, function (b, v, i) {
   return !b.has(v);
 }];
@@ -267,6 +268,10 @@ function pipe(v) {
 
 function either(x, y) {
   return x ? !y : !!y;
+}
+
+function sameValueZero(x, y) {
+  return x === y || x !== x && y !== y;
 }
 
 function is(obj, fn) {
@@ -574,7 +579,7 @@ function setAdd(set, obj) {
 
 function equal(a, b) {
   if (_typeof(a) !== 'object' || !b || a.constructor !== b.constructor) {
-    return a === b;
+    return sameValueZero(a, b);
   }
 
   var type = a instanceof Map && 1 || a instanceof Set && 2 || isArray(a) && 3 || 0;
@@ -1058,7 +1063,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
         value = callback.call(this, value, oldValue);
       }
 
-      if (value !== oldValue) {
+      if (!sameValueZero(value, oldValue)) {
         state.values[prop] = value;
 
         if (state.handlers[0]) {
@@ -1195,7 +1200,7 @@ function observe(element, options, callback) {
 
   var processRecords = callback;
 
-  if (options.attributes) {
+  if (options.attributes && (options.attributeFilter || ['id']).indexOf('id') >= 0) {
     processRecords = function processRecords(records) {
       records = records.filter(function (v) {
         // filter out changes due to sizzle engine
@@ -1300,8 +1305,20 @@ function trackElements(element, selector) {
 
 function watchElements(element, selector, callback, fireInit) {
   var collect = trackElements(element, selector);
+  var attributes;
+  var attributeFilter = [];
+  selector.replace(/\.|\[([^=~|^$*\]]+)|:(?!empty|is|has|not|where|(?:first|last|only|nth|nth-last)-(?:child|of-type))/g, function (v, a) {
+    attributes = true;
+
+    if (v[0] === ':') {
+      attributeFilter = undefined;
+    } else if (attributeFilter) {
+      attributeFilter.push(v[0] === '.' ? 'class' : a);
+    }
+  });
   var options = extend({}, optionsForChildList, {
-    attributes: /[[.:]/.test(selector)
+    attributes: attributes,
+    attributeFilter: attributes && attributeFilter
   });
   var fn = observe(element, options, function () {
     collect(callback);
@@ -1823,7 +1840,15 @@ function measureLine(p1, p2) {
 }
 
 function textInputAllowed(v) {
-  return v.isContentEditable || matchSelector(v, 'input,textarea,select');
+  if (v.isContentEditable) {
+    return true;
+  }
+
+  if (tagName(v) === 'input') {
+    return !matchWord(v.type, 'button checkbox color file image radio range reset submit');
+  }
+
+  return matchSelector(v, 'textarea,select');
 }
 
 function isMouseDown(e) {
@@ -3215,7 +3240,7 @@ function emitterGetElements(emitter, bubbles) {
   }
 
   var originalEvent = emitter.originalEvent;
-  var focusedElements = emitter.source.path;
+  var focusedElements = dom.focusedElements;
   var index = focusedElements.indexOf(target);
 
   if (!originalEvent || originalEvent !== dom.event || index < 0) {
