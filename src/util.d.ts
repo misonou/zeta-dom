@@ -94,42 +94,42 @@ export function extend<T extends any[]>(deep: true, ...args: T): UnionAll<T>;
  * @param value A whitespace-deimited string.
  * @param callback Function that will be executed in the context of each item.
  */
-export function each<T extends string>(value: T, callback: (i: number, v: Zeta.WhitespaceDelimited<T>) => any): void;
+export function each<T extends string>(value: T, callback: (this: T, i: number, v: Zeta.WhitespaceDelimited<T>) => any): void;
 
 /**
  * Iterates through items of the given array or array-like object and performs action on each item.
  * @param obj An array or an array-like object.
  * @param callback Function that will be executed in the context of each item.
  */
-export function each<T>(obj: readonly T[] | ArrayLike<T>, callback: (i: number, v: T) => any): void;
+export function each<T extends readonly any[] | ArrayLike<any>>(obj: T, callback: (this: T, i: number, v: Zeta.ArrayMember<T>) => any): void;
 
 /**
  * Iterates through items of the given set and performs action on each item.
  * @param obj A set object.
  * @param callback  Function that will be executed in the context of each item. Unlike Set#forEach, an index for each item is supplied as the key argument of the callback.
  */
-export function each<T>(obj: Set<T>, callback: (i: number, v: T) => any): void;
+export function each<T>(obj: Set<T>, callback: (this: Set<T>, i: number, v: T) => any): void;
 
 /**
  * Iterates through items of the given map and performs action on each map entry.
  * @param obj A map object.
  * @param callback Function that will be executed in the context of each map entry.
  */
-export function each<K, V>(obj: Map<K, V>, callback: (i: K, v: V) => any): void;
+export function each<K, V>(obj: Map<K, V>, callback: (this: Map<K, V>, i: K, v: V) => any): void;
 
 /**
  * Iterates through properties of the given object and performs action on each property key-value pair.
  * @param obj An object.
  * @param callback Function that will be executed in the context of each key-value pair.
  */
-export function each<K, V>(obj: Record<K, V>, callback: (i: K, v: V) => any): void;
+export function each<K, V>(obj: Record<K, V>, callback: (this: Record<K, V>, i: K, v: V) => any): void;
 
 /**
  * Iterates through properties of the given object and performs action on each property key-value pair.
  * @param obj An object.
  * @param callback Function that will be executed in the context of each key-value pair.
  */
-export function each<T>(obj: T, callback: (i: Zeta.KeyOf<T>, v: Zeta.ValueOf<T>) => any): void;
+export function each<T>(obj: T, callback: (this: T, i: Zeta.KeyOf<T>, v: Zeta.ValueOf<T>) => any): void;
 
 /**
  * Creates an array containing items that is mapped from each item of the given array or array-like object.
@@ -137,7 +137,7 @@ export function each<T>(obj: T, callback: (i: Zeta.KeyOf<T>, v: Zeta.ValueOf<T>)
  * @param callback Function called for each original item which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
  * @returns An array containing resulting items from the callback.
  */
-export function map<T, R>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: number) => Zeta.MapResultValue<R>): R[];
+export function map<T extends readonly any[] | ArrayLike<any>, R>(obj: T, callback: (this: T, v: Zeta.ArrayMember<T>, i: number) => Zeta.MapResultValue<R>): R[];
 
 /**
  * Creates an array containing items that is mapped from each item of the given set.
@@ -145,7 +145,7 @@ export function map<T, R>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: 
  * @param callback Function called for each original item which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
  * @returns An array containing resulting items from the callback.
  */
-export function map<T, R>(obj: Set<T>, callback: (v: T, i: number) => Zeta.MapResultValue<R>): R[];
+export function map<T, R>(obj: Set<T>, callback: (this: Set<T>, v: T, i: number) => Zeta.MapResultValue<R>): R[];
 
 /**
  * Creates an array containing items that is mapped from each item of the given map.
@@ -153,7 +153,7 @@ export function map<T, R>(obj: Set<T>, callback: (v: T, i: number) => Zeta.MapRe
  * @param callback Function called for each original item which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
  * @returns An array containing resulting items from the callback.
  */
-export function map<K, V, R>(obj: Map<K, V>, callback: (v: V, i: K) => Zeta.MapResultValue<R>): R[];
+export function map<K, V, R>(obj: Map<K, V>, callback: (this: Map<K, V>, v: V, i: K) => Zeta.MapResultValue<R>): R[];
 
 /**
  * Creates an array containing items that is mapped from each property key-value pair of the given object.
@@ -161,7 +161,7 @@ export function map<K, V, R>(obj: Map<K, V>, callback: (v: V, i: K) => Zeta.MapR
  * @param callback Function called for each original item which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
  * @returns An array containing resulting items from the callback.
  */
-export function map<T, R>(obj: T, callback: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => Zeta.MapResultValue<R>): R[];
+export function map<T, R>(obj: T, callback: (this: T, v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => Zeta.MapResultValue<R>): R[];
 
 /**
  * Filters items from the given array or array-like object.
@@ -169,7 +169,7 @@ export function map<T, R>(obj: T, callback: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T
  * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function grep<T>(obj: readonly T[] | ArrayLike<T>, callback?: (v: T, i: number) => any): T[];
+export function grep<T extends readonly any[] | ArrayLike<any>>(obj: T, callback?: (this: T, v: Zeta.ArrayMember<T>, i: number) => any): T[];
 
 /**
  * Filters items from the given set.
@@ -177,7 +177,7 @@ export function grep<T>(obj: readonly T[] | ArrayLike<T>, callback?: (v: T, i: n
  * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function grep<T>(obj: Set<T>, callback?: (v: T, i: number) => any): T[];
+export function grep<T>(obj: Set<T>, callback?: (this: Set<T>, v: T, i: number) => any): T[];
 
 /**
  * Filters items from the given map.
@@ -185,7 +185,7 @@ export function grep<T>(obj: Set<T>, callback?: (v: T, i: number) => any): T[];
  * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function grep<K, V>(obj: Map<K, V>, callback?: (v: V, i: K) => any): V[];
+export function grep<K, V>(obj: Map<K, V>, callback?: (this: Map<K, V>, v: V, i: K) => any): V[];
 
 /**
  * Filters values from the given object.
@@ -193,7 +193,7 @@ export function grep<K, V>(obj: Map<K, V>, callback?: (v: V, i: K) => any): V[];
  * @param callback  Function called for each property which returns if the property value should be included. If omitted, truthy items will be included.
  * @returns An array containing property values for which the callback returned a truthy value.
  */
-export function grep<T>(obj: T, callback?: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T>[];
+export function grep<T>(obj: T, callback?: (this: T, v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T>[];
 
 /**
  * Removes items that satifies a condition from an array and returns them as a new array.
@@ -201,7 +201,7 @@ export function grep<T>(obj: T, callback?: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>
  * @param callback Function called for each item which returns if the item should be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function splice<T>(arr: T[], callback: (v: T, i: number) => any): T[];
+export function splice<T>(arr: T[], callback: (this: T[], v: T, i: number) => any): T[];
 
 /**
  * Extracts the first item in the given array or array-like object that satifies a condition.
@@ -209,7 +209,7 @@ export function splice<T>(arr: T[], callback: (v: T, i: number) => any): T[];
  * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<T>(obj: readonly T[] | ArrayLike<T>, callback?: (v: T, i: number) => any): T | false;
+export function any<T extends readonly any[] | ArrayLike<any>>(obj: T, callback?: (this: T, v: Zeta.ArrayMember<T>, i: number) => any): Zeta.ArrayMember<T> | false;
 
 /**
  * Extracts the first item in the given set that satifies a condition.
@@ -217,7 +217,7 @@ export function any<T>(obj: readonly T[] | ArrayLike<T>, callback?: (v: T, i: nu
  * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<T>(obj: Set<T>, callback?: (v: T, i: number) => any): T | false;
+export function any<T>(obj: Set<T>, callback?: (this: Set<T>, v: T, i: number) => any): T | false;
 
 /**
  * Extracts the first item in the given map that satifies a condition.
@@ -225,7 +225,7 @@ export function any<T>(obj: Set<T>, callback?: (v: T, i: number) => any): T | fa
  * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<K, V>(obj: Map<K, V>, callback?: (v: V, i: K) => any): V | false;
+export function any<K, V>(obj: Map<K, V>, callback?: (this: Map<K, V>, v: V, i: K) => any): V | false;
 
 /**
  * Extracts the first value in the properties of the given object that satifies a condition.
@@ -233,7 +233,7 @@ export function any<K, V>(obj: Map<K, V>, callback?: (v: V, i: K) => any): V | f
  * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<T>(obj: T, callback?: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T> | false;
+export function any<T>(obj: T, callback?: (this: T, v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T> | false;
 
 /**
  * Iterates the given array or array-like object until a non-falsy value is returned by the given callback.
@@ -241,7 +241,7 @@ export function any<T>(obj: T, callback?: (v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>)
  * @param callback Function called for each original item which either returns a non-falsy value to stop iteration or a falsy value to continue.
  * @returns The non-falsy value returned by the last invocation of the given callback.
  */
-export function single<T, R>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, i: number) => R): R | false;
+export function single<T extends readonly any[] | ArrayLike<any>, R>(obj: T, callback: (this: T, v: Zeta.ArrayMember<T>, i: number) => R): R | false;
 
 /**
  * Iterates the given set until a non-falsy value is returned by the given callback.
@@ -249,7 +249,7 @@ export function single<T, R>(obj: readonly T[] | ArrayLike<T>, callback: (v: T, 
  * @param callback Function called for each original item which either returns a non-falsy value to stop iteration or a falsy value to continue.
  * @returns The non-falsy value returned by the last invocation of the given callback.
  */
-export function single<T, R>(obj: Set<T>, callback: (v: T, i: number) => R): R | false;
+export function single<T, R>(obj: Set<T>, callback: (this: Set<T>, v: T, i: number) => R): R | false;
 
 /**
  * Iterates the given map until a non-falsy value is returned by the given callback.
@@ -257,7 +257,7 @@ export function single<T, R>(obj: Set<T>, callback: (v: T, i: number) => R): R |
  * @param callback Function called for each original item which either returns a non-falsy value to stop iteration or a falsy value to continue.
  * @returns The non-falsy value returned by the last invocation of the given callback.
  */
-export function single<K, V, R>(obj: Map<K, V>, callback: (v: V, i: K) => R): R | false;
+export function single<K, V, R>(obj: Map<K, V>, callback: (this: Map<K, V>, v: V, i: K) => R): R | false;
 
 /**
  * Iterates properties of the given object until a non-falsy value is returned by the given callback.
@@ -265,7 +265,7 @@ export function single<K, V, R>(obj: Map<K, V>, callback: (v: V, i: K) => R): R 
  * @param callback Function called for each original item which either returns a non-falsy value to stop iteration or a falsy value to continue.
  * @returns The non-falsy value returned by the last invocation of the given callback.
  */
-export function single<R>(obj: any, callback: (v: any, i: string) => R): R | false;
+export function single<T, R>(obj: T, callback: (this: T, v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => R): R | false;
 
 /**
  * Creates an object with a single property with the specified name and value.
@@ -320,7 +320,7 @@ export function fill<T extends object, K extends string, V>(obj: T, keys: K, val
  */
 export function pick<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Pick<T, Zeta.ArrayMember<K>>;
 
-export function pick<T>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => any): Partial<T>;
+export function pick<T>(obj: T, callback: (this: T, value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => any): Partial<T>;
 
 /**
  * Returns a new object that does not contain the specified properties
@@ -329,14 +329,14 @@ export function pick<T>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.Key
  */
 export function exclude<T, K extends readonly (keyof T)[]>(obj: T, keys: K): Omit<T, Zeta.ArrayMember<K>>;
 
-export function exclude<T>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => any): Partial<T>;
+export function exclude<T>(obj: T, callback: (this: T, value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => any): Partial<T>;
 
 /**
  * Returns a new object having properties from original object with values returned from the callback.
  * @param obj An object from which properties are enumerated.
  * @param callback A callback that returns value to be set on the new object for each property.
  */
-export function mapObject<T, V>(obj: T, callback: (value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => V): { [P in Zeta.KeyOf<T>]: V };
+export function mapObject<T, V>(obj: T, callback: (this: T, value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => V): { [P in Zeta.KeyOf<T>]: V };
 
 /**
  * Gets item associated with the specified key in the given map.

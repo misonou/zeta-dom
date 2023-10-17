@@ -148,6 +148,7 @@ function extend() {
 function each(obj, callback) {
     if (obj) {
         var cur, i = 0;
+        callback = callback.bind(obj);
         if (typeof obj === 'string') {
             obj = obj.split(' ');
         } else if (obj instanceof Set) {

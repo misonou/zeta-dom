@@ -1,4 +1,4 @@
-import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, splice, watch, watchable, watchOnce } from "../src/util";
+import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, map, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, single, splice, watch, watchable, watchOnce } from "../src/util";
 import { after, delay, mockFn, objectContaining, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
@@ -7,6 +7,13 @@ function createRejectPromise() {
     promise.catch(function () { });
     return promise;
 }
+
+const testObjs = [
+    { a: 1 },
+    [1, 2, 3],
+    new Map([[1, 1]]),
+    new Set([1]),
+];
 
 describe('isThenable', () => {
     it('should return same object for native Promise object', () => {
@@ -150,6 +157,15 @@ describe('each', () => {
             [3, 9],
         ]);
     });
+
+    it('should invoke callback with input object as this', () => {
+        const cb = mockFn();
+        for (let obj of testObjs) {
+            cb.mockClear();
+            each(obj, cb);
+            expect(cb.mock.instances[0]).toBe(obj);
+        }
+    });
 });
 
 describe('grep', () => {
@@ -214,6 +230,26 @@ describe('grep', () => {
             [expect.sameObject(obj), 2]
         ]);
     });
+
+    it('should invoke callback with input object as this', () => {
+        const cb = mockFn();
+        for (let obj of testObjs) {
+            cb.mockClear();
+            grep(obj, cb);
+            expect(cb.mock.instances[0]).toBe(obj);
+        }
+    });
+});
+
+describe('map', () => {
+    it('should invoke callback with input object as this', () => {
+        const cb = mockFn();
+        for (let obj of testObjs) {
+            cb.mockClear();
+            each(obj, cb);
+            expect(cb.mock.instances[0]).toBe(obj);
+        }
+    });
 });
 
 describe('splice', () => {
@@ -236,6 +272,13 @@ describe('splice', () => {
             [expect.sameObject(obj), 2]
         ]);
     });
+
+    it('should invoke callback with input object as this', () => {
+        const obj = [1, 2, 3];
+        const cb = mockFn();
+        splice(obj, cb);
+        expect(cb.mock.instances[0]).toBe(obj);
+    });
 });
 
 describe('any', () => {
@@ -243,6 +286,26 @@ describe('any', () => {
         // fix @ edd5936
         expect(any([0, 1], v => v === 0)).toBe(0);
         expect(any([null, 1], v => v === null)).toBeNull();
+    });
+
+    it('should invoke callback with input object as this', () => {
+        const cb = mockFn();
+        for (let obj of testObjs) {
+            cb.mockClear();
+            any(obj, cb);
+            expect(cb.mock.instances[0]).toBe(obj);
+        }
+    });
+});
+
+describe('single', () => {
+    it('should invoke callback with input object as this', () => {
+        const cb = mockFn();
+        for (let obj of testObjs) {
+            cb.mockClear();
+            single(obj, cb);
+            expect(cb.mock.instances[0]).toBe(obj);
+        }
     });
 });
 
@@ -296,6 +359,13 @@ describe('pick', () => {
         const cb = mockFn().mockReturnValueOnce(true).mockReturnValueOnce(false);
         expect(pick({ a: 0, b: 1 }, cb)).toEqual({ a: 0 });
     });
+
+    it('should invoke callback with input object as this', () => {
+        const obj = { a: 1 };
+        const cb = mockFn();
+        pick(obj, cb);
+        expect(cb.mock.instances[0]).toBe(obj);
+    });
 });
 
 describe('exclude', () => {
@@ -322,6 +392,13 @@ describe('exclude', () => {
         const cb = mockFn().mockReturnValueOnce(true).mockReturnValueOnce(false);
         expect(exclude({ a: 0, b: 1 }, cb)).toEqual({ b: 1 });
     });
+
+    it('should invoke callback with input object as this', () => {
+        const obj = { a: 1 };
+        const cb = mockFn();
+        exclude(obj, cb);
+        expect(cb.mock.instances[0]).toBe(obj);
+    });
 });
 
 describe('mapObject', () => {
@@ -340,6 +417,13 @@ describe('mapObject', () => {
             [2, 'b'],
             [3, 'c']
         ]);
+        expect(cb.mock.instances[0]).toBe(obj);
+    });
+
+    it('should invoke callback with input object as this', () => {
+        const obj = { a: 1 };
+        const cb = mockFn();
+        mapObject(obj, cb);
         expect(cb.mock.instances[0]).toBe(obj);
     });
 });
