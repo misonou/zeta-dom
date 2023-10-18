@@ -1,5 +1,25 @@
 /// <reference path="types.d.ts" />
 
+interface NodeIterator<T> {
+    nextNode(): T
+}
+
+interface HasEntries<K, V> {
+    entries(): Iterator<[K, V]>;
+}
+
+type EntryKey<T> = T extends HasEntries<infer K, any> ? K : never;
+type EntryValue<T> = T extends HasEntries<any, infer V> ? V : never;
+type CollectionKeyOf<T> =
+    T extends HasEntries<infer K, any> ? K :
+    T extends NodeIterator<any> ? number :
+    T extends Iterator<any> ? number :
+    Zeta.KeyOf<T>;
+type CollectionValueOf<T> =
+    T extends HasEntries<any, infer V> ? V :
+    T extends NodeIterator<infer V> ? V :
+    T extends Iterator<infer V> ? V :
+    Zeta.ValueOf<T>;
 type ExtractAny<T, U> = Zeta.IsAny<T> extends true ? U : Extract<T, U>;
 type Union<T, V> =
     Zeta.IsAny<T> extends true ? any :
@@ -118,18 +138,34 @@ export function each<T>(obj: Set<T>, callback: (this: Set<T>, i: number, v: T) =
 export function each<K, V>(obj: Map<K, V>, callback: (this: Map<K, V>, i: K, v: V) => any): void;
 
 /**
- * Iterates through properties of the given object and performs action on each property key-value pair.
- * @param obj An object.
+ * Iterates through key-value pairs and performs action on each key-value pair.
+ * @param obj A key-value pair provider object.
  * @param callback Function that will be executed in the context of each key-value pair.
  */
-export function each<K, V>(obj: Record<K, V>, callback: (this: Record<K, V>, i: K, v: V) => any): void;
+export function each<T extends HasEntries<any, any>>(obj: T, callback: (this: T, i: EntryKey<T>, v: EntryValue<T>) => any): void;
+
+/**
+ * Iterates through nodes from the node iterator and performs action on each node.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj A node iterator.
+ * @param callback Function that will be executed in the context of each node.
+ */
+export function each<T extends NodeIterator<any>>(obj: T, callback: (this: T, i: number, v: CollectionValueOf<T>) => any): void;
+
+/**
+ * Iterates through data from the iterator and performs action on each data.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj An iterator.
+ * @param callback Function that will be executed in the context of each data.
+ */
+export function each<T extends Iterator<any>>(obj: T, callback: (this: T, i: number, v: CollectionValueOf<T>) => any): void;
 
 /**
  * Iterates through properties of the given object and performs action on each property key-value pair.
  * @param obj An object.
  * @param callback Function that will be executed in the context of each key-value pair.
  */
-export function each<T>(obj: T, callback: (this: T, i: Zeta.KeyOf<T>, v: Zeta.ValueOf<T>) => any): void;
+export function each<T>(obj: T, callback: (this: T, i: CollectionKeyOf<T>, v: CollectionValueOf<T>) => any): void;
 
 /**
  * Creates an array containing items that is mapped from each item of the given array or array-like object.
@@ -156,12 +192,38 @@ export function map<T, R>(obj: Set<T>, callback: (this: Set<T>, v: T, i: number)
 export function map<K, V, R>(obj: Map<K, V>, callback: (this: Map<K, V>, v: V, i: K) => Zeta.MapResultValue<R>): R[];
 
 /**
+ * Creates an array containing items that is mapped from each key-value pair.
+ * @param obj A key-value pair provider object.
+ * @param callback Function called for each key-value pair which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
+ * @returns An array containing resulting items from the callback.
+ */
+export function map<T extends HasEntries<any, any>, R>(obj: T, callback: (this: T, v: EntryValue<T>, i: EntryKey<T>) => Zeta.MapResultValue<R>): R[];
+
+/**
+ * Creates an array containing items that is mapped from each iterated node.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj A node iterator.
+ * @param callback Function called for each node which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
+ * @returns An array containing resulting items from the callback.
+ */
+export function map<T extends NodeIterator<any>, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: number) => Zeta.MapResultValue<R>): R[];
+
+/**
+ * Creates an array containing items that is mapped from each iterated data.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj An iterator.
+ * @param callback Function called for each data which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
+ * @returns An array containing resulting items from the callback.
+ */
+export function map<T extends Iterator<any>, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: number) => Zeta.MapResultValue<R>): R[];
+
+/**
  * Creates an array containing items that is mapped from each property key-value pair of the given object.
  * @param obj An object.
  * @param callback Function called for each original item which returns one or more items to the result array. If null or undefined is returned, it will not be included in the result array.
  * @returns An array containing resulting items from the callback.
  */
-export function map<T, R>(obj: T, callback: (this: T, v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => Zeta.MapResultValue<R>): R[];
+export function map<T, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: CollectionKeyOf<T>) => Zeta.MapResultValue<R>): R[];
 
 /**
  * Filters items from the given array or array-like object.
@@ -188,12 +250,38 @@ export function grep<T>(obj: Set<T>, callback?: (this: Set<T>, v: T, i: number) 
 export function grep<K, V>(obj: Map<K, V>, callback?: (this: Map<K, V>, v: V, i: K) => any): V[];
 
 /**
+ * Filters items from the key-value pairs returned by the given object.
+ * @param obj A key-value pair provider object.
+ * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
+ * @returns An array containing values for which the callback returned a truthy value.
+ */
+export function grep<T extends HasEntries<any, any>>(obj: T, callback?: (this: T, v: EntryValue<T>, i: EntryKey<T>) => any): T[];
+
+/**
+ * Filters nodes iterated from the node iterator.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj A node iterator.
+ * @param callback Function called for each node which returns if the node should be included. If omitted, truthy items will be included.
+ * @returns An array containing nodes for which the callback returned a truthy value.
+ */
+export function grep<T extends NodeIterator<any>>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: number) => any): T[];
+
+/**
+ * Filters data iterated from the iterator.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj An iterator.
+ * @param callback Function called for each data which returns if the node should be included. If omitted, truthy items will be included.
+ * @returns An array containing nodes for which the callback returned a truthy value.
+ */
+export function grep<T extends Iterator<any>>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: number) => any): T[];
+
+/**
  * Filters values from the given object.
  * @param obj An object.
  * @param callback  Function called for each property which returns if the property value should be included. If omitted, truthy items will be included.
  * @returns An array containing property values for which the callback returned a truthy value.
  */
-export function grep<T>(obj: T, callback?: (this: T, v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T>[];
+export function grep<T>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: CollectionKeyOf<T>) => any): Zeta.ValueOf<T>[];
 
 /**
  * Removes items that satifies a condition from an array and returns them as a new array.
@@ -228,12 +316,38 @@ export function any<T>(obj: Set<T>, callback?: (this: Set<T>, v: T, i: number) =
 export function any<K, V>(obj: Map<K, V>, callback?: (this: Map<K, V>, v: V, i: K) => any): V | false;
 
 /**
+ * Extracts the first value from the iterated key-value pairs that satifies a condition.
+ * @param obj A key-value pair provider object.
+ * @param callback Function called for each key-value pair which determines if the item satifies a condition. If omitted, value from the key-value pair will be tested for truthiness.
+ * @returns The first value that satisfy the condition; or false if there is none.
+ */
+export function any<T extends HasEntries<any, any>>(obj: T, callback: (this: T, v: EntryValue<T>, i: EntryKey<T>) => any): EntryValue<T> | false;
+
+/**
+ * Extracts the first node iterated from the node iterator the that satifies a condition.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj A node iterator.
+ * @param callback Function called for each node which determines if the node satifies a condition. If omitted, the node will be tested for truthiness.
+ * @returns The first node that satisfy the condition; or false if there is none.
+ */
+export function any<T extends NodeIterator<any>>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: number) => any): CollectionValueOf<T> | false;
+
+/**
+ * Extracts the first data iterated from the iterator the that satifies a condition.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj An iterator.
+ * @param callback Function called for each data which determines if the node satifies a condition. If omitted, the data will be tested for truthiness.
+ * @returns The first data that satisfy the condition; or false if there is none.
+ */
+export function any<T extends Iterator<any>>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: number) => any): CollectionValueOf<T> | false;
+
+/**
  * Extracts the first value in the properties of the given object that satifies a condition.
  * @param obj An object.
  * @param callback Function called for each original item which determines if the item satifies a condition. If omitted, item will be tested for truthiness.
  * @returns The first item that satisfy the condition; or false if there is none.
  */
-export function any<T>(obj: T, callback?: (this: T, v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => any): Zeta.ValueOf<T> | false;
+export function any<T>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: CollectionKeyOf<T>) => any): Zeta.ValueOf<T> | false;
 
 /**
  * Iterates the given array or array-like object until a non-falsy value is returned by the given callback.
@@ -260,12 +374,38 @@ export function single<T, R>(obj: Set<T>, callback: (this: Set<T>, v: T, i: numb
 export function single<K, V, R>(obj: Map<K, V>, callback: (this: Map<K, V>, v: V, i: K) => R): R | false;
 
 /**
+ * Iterates the key-value pairs until a non-falsy value is returned by the given callback.
+ * @param obj A key-value pair provider object.
+ * @param callback Function called for each key-value pair which either returns a non-falsy value to stop iteration or a falsy value to continue.
+ * @returns The non-falsy value returned by the last invocation of the given callback.
+ */
+export function single<T extends HasEntries<any, any>, R>(obj: T, callback: (this: T, v: EntryValue<T>, i: EntryKey<T>) => R): R | false;
+
+/**
+ * Iterates the node iterator until a non-falsy value is returned by the given callback.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj A node iterator.
+ * @param callback Function called for each key-value pair which either returns a non-falsy value to stop iteration or a falsy value to continue.
+ * @returns The non-falsy value returned by the last invocation of the given callback.
+ */
+export function single<T extends NodeIterator<any>, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: number) => R): R | false;
+
+/**
+ * Iterates the iterator until a non-falsy value is returned by the given callback.
+ * Note that the iterator will be not reset after iteration.
+ * @param obj An iterator.
+ * @param callback Function called for each key-value pair which either returns a non-falsy value to stop iteration or a falsy value to continue.
+ * @returns The non-falsy value returned by the last invocation of the given callback.
+ */
+export function single<T extends Iterator<any>, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: number) => R): R | false;
+
+/**
  * Iterates properties of the given object until a non-falsy value is returned by the given callback.
  * @param obj An object.
  * @param callback Function called for each original item which either returns a non-falsy value to stop iteration or a falsy value to continue.
  * @returns The non-falsy value returned by the last invocation of the given callback.
  */
-export function single<T, R>(obj: T, callback: (this: T, v: Zeta.ValueOf<T>, i: Zeta.KeyOf<T>) => R): R | false;
+export function single<T, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: CollectionKeyOf<T>) => R): R | false;
 
 /**
  * Creates an object with a single property with the specified name and value.
