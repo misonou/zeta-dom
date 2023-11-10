@@ -375,7 +375,7 @@ function setImmediate(fn) {
 }
 
 function setImmediateOnceCallback(fn) {
-    mapRemove(setImmediateStore, fn)();
+    (mapRemove(setImmediateStore, fn) || noop)();
 }
 
 function setImmediateOnce(fn) {
@@ -388,6 +388,10 @@ function setTimeoutOnce(fn, ms) {
     mapGet(setImmediateStore, fn, function () {
         return setTimeout(setImmediateOnceCallback.bind(0, fn), ms || 0), fn;
     });
+}
+
+function clearImmediateOnce(fn) {
+    mapRemove(setImmediateStore, fn);
 }
 
 function setTimeout() {
@@ -920,6 +924,7 @@ export {
     setIntervalSafe,
     setImmediate,
     setImmediateOnce,
+    clearImmediateOnce,
 
     // throw
     throws,

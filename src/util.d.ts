@@ -599,6 +599,8 @@ export function setImmediateOnce(fn: () => any): void;
 
 export function setTimeoutOnce(fn: () => any, ms?: number): void;
 
+export function clearImmediateOnce(fn: () => any): void;
+
 /**
  * Equivalent to calling `window.setTimeout` except that a callback for cancelling timeout is returned.
  * @returns A callback that will cancel the timeout when invoked.
