@@ -462,22 +462,28 @@ function trackPointer(callback) {
     }
 
     var stopScroll = function () {
-        clearInterval(scrollTimeout);
+        cancelAnimationFrame(scrollTimeout);
         scrollTimeout = null;
     };
     var startScroll = function () {
-        scrollTimeout = scrollTimeout || setInterval(function () {
-            var x = lastPoint.clientX;
-            var y = lastPoint.clientY;
-            var r = getContentRect(scrollParent);
-            var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
-            var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
-            if ((dx || dy) && scrollIntoView(target, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
+        var last;
+        scrollTimeout = scrollTimeout || requestAnimationFrame(function next(ts) {
+            if (last) {
+                var f = ((ts - last) / 16) - 1;
+                var x = lastPoint.clientX;
+                var y = lastPoint.clientY;
+                var r = getContentRect(scrollParent);
+                var dx = Math.max(x - r.right + 5, 0) || Math.min(x - r.left - 5, 0);
+                var dy = Math.max(y - r.bottom + 5, 0) || Math.min(y - r.top - 5, 0);
+                if ((!dx && !dy) || !scrollIntoView(target, toPlainRect(x + dx * f, y + dy * f).expand(5), scrollWithin, 'instant')) {
+                    scrollTimeout = null;
+                    return;
+                }
                 callback(lastPoint);
-            } else {
-                stopScroll();
             }
-        }, 20);
+            last = ts;
+            scrollTimeout = requestAnimationFrame(next);
+        });
     };
     bindUntil(trackPromise, root, {
         mouseup: resolve,
