@@ -1,5 +1,5 @@
 import syn from "syn";
-import dom from "../src/dom";
+import dom, { textInputAllowed } from "../src/dom";
 import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
@@ -645,6 +645,26 @@ describe('insertText', () => {
             selectionStart: 6,
             selectionEnd: 6
         });
+    });
+});
+
+describe('textInputAllowed', () => {
+    it('should return false for disabled and read-only input', () => {
+        const { input, textarea } = initBody(`
+            <input id="input" disabled />
+            <textarea id="textarea" disabled></textarea>
+        `);
+        expect(textInputAllowed(input)).toBe(false);
+        expect(textInputAllowed(textarea)).toBe(false);
+    });
+
+    it('should return false for read-only input', () => {
+        const { input, textarea } = initBody(`
+            <input id="input" readonly />
+            <textarea id="textarea" readonly></textarea>
+        `);
+        expect(textInputAllowed(input)).toBe(false);
+        expect(textInputAllowed(textarea)).toBe(false);
     });
 });
 

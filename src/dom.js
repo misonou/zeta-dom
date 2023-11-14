@@ -52,6 +52,9 @@ function measureLine(p1, p2) {
 }
 
 function textInputAllowed(v) {
+    if (v.disabled || v.readOnly) {
+        return false;
+    }
     if (v.isContentEditable) {
         return true;
     }
