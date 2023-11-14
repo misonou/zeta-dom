@@ -526,6 +526,7 @@ declare namespace Zeta {
     interface ZetaScrollByEvent<T = Element> extends ZetaHandleableEvent<{ x: number, y: number } | false>, ZetaEventContextBase<T> {
         readonly x: number;
         readonly y: number;
+        readonly behavior: ScrollBehavior;
     }
 
     interface ZetaGetContentRectEvent<T = Element> extends ZetaHandleableEvent<RectLike>, ZetaEventContextBase<T> {

@@ -622,8 +622,15 @@ describe('scrollBy', () => {
         const result = { x: 0, y: 0 };
         const cb = mockFn().mockReturnValue(result);
         bindEvent(body, 'scrollBy', cb);
+
         expect(scrollBy(body, 10, 20)).toBe(result);
-        expect(cb).toBeCalledWith(objectContaining({ type: 'scrollBy', target: body, x: 10, y: 20 }), _);
+        expect(cb).toBeCalledWith(objectContaining({ type: 'scrollBy', target: body, x: 10, y: 20, behavior: 'auto' }), _);
+
+        expect(scrollBy(body, 10, 20, 'instant')).toBe(result);
+        expect(cb).toBeCalledWith(objectContaining({ type: 'scrollBy', target: body, x: 10, y: 20, behavior: 'instant' }), _);
+
+        expect(scrollBy(body, 10, 20, 'smooth')).toBe(result);
+        expect(cb).toBeCalledWith(objectContaining({ type: 'scrollBy', target: body, x: 10, y: 20, behavior: 'smooth' }), _);
     });
 
     it('should call scrollBy on root for window, root and body element', () => {

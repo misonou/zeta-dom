@@ -234,7 +234,7 @@ export function getScrollParent(element: Element): Element;
 
 export function getContentRect(element: Element): Zeta.Rect;
 
-export function scrollBy(element: Window | Element, x: number, y: number): { x: number; y: number } | false;
+export function scrollBy(element: Window | Element, x: number, y: number, behavior?: ScrollBehavior): { x: number; y: number } | false;
 
 /**
  * Scroll all ancestor container so that the specified element is in view.
@@ -242,10 +242,11 @@ export function scrollBy(element: Window | Element, x: number, y: number): { x: 
  * @param element Element to be scrolled into view.
  * @param rect A rect represent a region inside the element to be scrolled into view.
  * @param within When specified, only this element and its descendants will be scrolled.
+ * @param behavior Whether the scrolling should animate smoothly (`smooth`), happen instantly in a single jump (`instant`), or let the browser choose (`auto`, default).
  * @returns Number of pixels in x and y direction actually scrolled; or `false` if scrolling did not happened,
  * either because the element or the region is already in view, or parent elements cannot be further scrolled.
  */
-export function scrollIntoView(element: Element, rect?: Zeta.RectLike, within?: Element): { x: number; y: number } | false;
+export function scrollIntoView(element: Element, rect?: Zeta.RectLike, within?: Element, behavior?: ScrollBehavior): { x: number; y: number } | false;
 
 /**
  * Scroll all ancestor container so that the specified element is in view.
@@ -253,10 +254,11 @@ export function scrollIntoView(element: Element, rect?: Zeta.RectLike, within?: 
  * @param element Element to be scrolled into view.
  * @param margin Number of pixels away from the edge where element should be positioned.
  * @param within When specified, only this element and its descendants will be scrolled.
+ * @param behavior Whether the scrolling should animate smoothly (`smooth`), happen instantly in a single jump (`instant`), or let the browser choose (`auto`, default).
  * @returns Number of pixels in x and y direction actually scrolled; or `false` if scrolling did not happened,
  * either because the element or the region is already in view, or parent elements cannot be further scrolled.
  */
-export function scrollIntoView(element: Element, margin: number, within?: Element): { x: number; y: number } | false;
+export function scrollIntoView(element: Element, margin: number, within?: Element, behavior?: ScrollBehavior): { x: number; y: number } | false;
 
 /**
  * Scroll all ancestor container so that the specified element is in view.
@@ -264,10 +266,11 @@ export function scrollIntoView(element: Element, margin: number, within?: Elemen
  * @param align Alignment to viewport.
  * @param rect A rect represent a region inside the element to be scrolled into view.
  * @param within When specified, only this element and its descendants will be scrolled.
+ * @param behavior Whether the scrolling should animate smoothly (`smooth`), happen instantly in a single jump (`instant`), or let the browser choose (`auto`, default).
  * @returns Number of pixels in x and y direction actually scrolled; or `false` if scrolling did not happened,
  * either because the element or the region is already in view, or parent elements cannot be further scrolled.
  */
-export function scrollIntoView(element: Element, align: Zeta.BoxAlign, rect?: Zeta.RectLike, within?: Element): { x: number; y: number } | false;
+export function scrollIntoView(element: Element, align: Zeta.BoxAlign, rect?: Zeta.RectLike, within?: Element, behavior?: ScrollBehavior): { x: number; y: number } | false;
 
 /**
  * Scroll all ancestor container so that the specified element is in view.
@@ -275,10 +278,11 @@ export function scrollIntoView(element: Element, align: Zeta.BoxAlign, rect?: Ze
  * @param align Alignment to viewport.
  * @param margin Number of pixels away from the edge where element should be positioned.
  * @param within When specified, only this element and its descendants will be scrolled.
+ * @param behavior Whether the scrolling should animate smoothly (`smooth`), happen instantly in a single jump (`instant`), or let the browser choose (`auto`, default).
  * @returns Number of pixels in x and y direction actually scrolled; or `false` if scrolling did not happened,
  * either because the element or the region is already in view, or parent elements cannot be further scrolled.
  */
-export function scrollIntoView(element: Element, align: Zeta.BoxAlign, margin: number, within?: Element): { x: number; y: number } | false;
+export function scrollIntoView(element: Element, align: Zeta.BoxAlign, margin: number, within?: Element, behavior?: ScrollBehavior): { x: number; y: number } | false;
 
 
 /* --------------------------------------

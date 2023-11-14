@@ -372,8 +372,9 @@ function getScrollParent(element, skipSelf, target) {
     return element;
 }
 
-function scrollBy(element, x, y) {
-    var result = emitDOMEvent('scrollBy', element, { x, y }, { asyncResult: false });
+function scrollBy(element, x, y, behavior) {
+    behavior = behavior || 'auto';
+    var result = emitDOMEvent('scrollBy', element, { x, y, behavior }, { asyncResult: false });
     if (result) {
         return result;
     }
@@ -398,20 +399,15 @@ function scrollBy(element, x, y) {
             y: cur.y - orig.y
         };
     };
+    var getOptions = function (left, top, behavior) {
+        return { left, top, behavior };
+    };
     if (element.scrollBy) {
-        element.scrollBy({
-            left: x,
-            top: y,
-            behavior: 'instant'
-        });
-        if (style.scrollBehavior === 'smooth') {
+        element.scrollBy(getOptions(x, y, 'instant'));
+        if (behavior === 'smooth' || (behavior === 'auto' && style.scrollBehavior === 'smooth')) {
             result = getResult();
-            element.scrollTo({
-                left: orig.x,
-                top: orig.y,
-                behavior: 'instant'
-            });
-            element.scrollBy(x, y);
+            element.scrollTo(getOptions(orig.x, orig.y, 'instant'));
+            element.scrollBy(getOptions(x, y, behavior));
         }
     } else {
         element.scrollLeft = orig.x + x;
@@ -462,11 +458,12 @@ function getContentRect(element) {
     return getContentRectCustom(element, element) || getContentRectNative(element);
 }
 
-function scrollIntoView(element, align, rect, within) {
+function scrollIntoView(element, align, rect, within, behavior) {
     if (!isVisible(element)) {
         return false;
     }
     if (typeof align !== 'string') {
+        behavior = within;
         within = rect;
         rect = align;
         align = '';
@@ -500,7 +497,7 @@ function scrollIntoView(element, align, rect, within) {
         var deltaX = getDelta(rect, parentRect, dirX, 'left', 'right', 'centerX');
         var deltaY = getDelta(rect, parentRect, dirY, 'top', 'bottom', 'centerY');
         if (deltaX || deltaY) {
-            var parentResult = scrollBy(parent, deltaX, deltaY);
+            var parentResult = scrollBy(parent, deltaX, deltaY, behavior);
             rect = rect.translate(-parentResult.x, -parentResult.y);
             result.x += parentResult.x;
             result.y += parentResult.y;
