@@ -49,6 +49,10 @@ definePrototype(Rect, {
     },
     expand: function (l, t, r, b) {
         var self = this;
+        if (l && l.top !== undefined) {
+            t = t || 1;
+            return self.expand(l.left * t, l.top * t, l.right * t, l.bottom * t);
+        }
         switch (arguments.length) {
             case 1:
                 t = l;

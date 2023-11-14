@@ -240,6 +240,13 @@ declare namespace Zeta {
          * @param bottom Number of pixels to expand (contract for negative number) from the bottom edge. If not supplied, this will be equal to `top` parameter.
          */
         expand(left: number, top?: number, right?: number, bottom?: number): Rect;
+
+        /**
+         * Returns a new rect expanded or contracted by the specified pixels from each direction.
+         * @param amount An object containing number of pixels to expand (contract for negative number) for each direction.
+         * @param factor Optional factor multiplied to value for each direction, default is 1.
+         */
+        expand(amount: Inset, factor?: number): Rect;
     }
 
     interface HasRange {

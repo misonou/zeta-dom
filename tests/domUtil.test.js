@@ -937,6 +937,22 @@ describe('Rect.expand', () => {
         expect(rect.expand(-1, -2, -3, -4)).toEqual(toPlainRect(1, 12, 17, 26));
     });
 
+    it('should accept object as first argument', () => {
+        const rect = toPlainRect(0, 10, 20, 30);
+        expect(rect.expand({
+            left: 1,
+            top: 2,
+            right: 3,
+            bottom: 4
+        })).toEqual(toPlainRect(-1, 8, 23, 34));
+        expect(rect.expand({
+            left: 1,
+            top: 2,
+            right: 3,
+            bottom: 4
+        }, -1)).toEqual(toPlainRect(1, 12, 17, 26));
+    });
+
     it('should shrinked each side on pro rata when shrink amount is greater than the dimension', () => {
         const rect = toPlainRect(0, 0, 10, 10);
         expect(rect.expand(-10, -10)).toEqual(toPlainRect(5, 5, 5, 5));
