@@ -565,7 +565,7 @@ function getRect(elm, includeMargin) {
                 case 'content-box':
                     var a = getBoxValues(elm, 'border', -1);
                     var b = getBoxValues(elm, 'padding');
-                    includeMargin[a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
+                    includeMargin = [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
             }
         }
     }

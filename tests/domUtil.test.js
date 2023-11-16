@@ -782,6 +782,37 @@ describe('getRect', () => {
         expect(getRect(body, 10)).toEqual(toPlainRect(-10, -10, 10, 10));
         expect(getRect({ getRect: cb }, 10)).toEqual(toPlainRect(-10, -10, 10, 10));
     });
+
+    it('should return a rect representating the specified box of an element', () => {
+        const { node } = initBody(`<div id="node"></div>`);
+        for (let v of ['Top', 'Left', 'Right', 'Bottom']) {
+            Object.assign(node.style, {
+                [`margin${v}`]: '10px',
+                [`padding${v}`]: '10px',
+                [`border${v}Width`]: '10px',
+                [`border${v}Style`]: 'solid',
+            });
+        }
+        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
+        expect(getRect(node, 'border-box')).toEqual(toPlainRect(100, 100, 200, 200));
+
+        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
+        expect(getRect(node, 'padding-box')).toEqual(toPlainRect(110, 110, 190, 190));
+
+        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
+        expect(getRect(node, 'content-box')).toEqual(toPlainRect(120, 120, 180, 180));
+
+        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
+        expect(getRect(node, 'margin-box')).toEqual(toPlainRect(90, 90, 210, 210));
+
+        for (let v of ['Top', 'Left', 'Right', 'Bottom']) {
+            Object.assign(node.style, {
+                [`margin${v}`]: '-5px',
+            });
+        }
+        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
+        expect(getRect(node, 'margin-box')).toEqual(toPlainRect(105, 105, 195, 195));
+    });
 });
 
 describe('toPlainRect', () => {
