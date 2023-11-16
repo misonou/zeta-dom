@@ -306,14 +306,14 @@ function removeNode(node) {
 function getClass(element, className) {
     var re = new RegExp('(?:^|\\s+)' + className + '(?:-(\\S+)|\\b)', 'ig');
     var t = [false];
-    (element.className || '').replace(re, function (v, a) {
+    (element.getAttribute('class') || '').replace(re, function (v, a) {
         t[a ? t.length : 0] = a || true;
     });
     return t[1] ? t.slice(1) : t[0];
 }
 
 function setClass(element, className, values) {
-    var value = element.className || '';
+    var value = element.getAttribute('class') || '';
     each(isPlainObject(className) || kv(className, values), function (i, v) {
         var re = new RegExp('(^|\\s)\\s*' + i + '(?:-(\\S+)|\\b)|\\s*$', 'ig');
         var replaced = 0;
@@ -326,7 +326,7 @@ function setClass(element, className, values) {
             return replaced++ || !v || v.length === 0 ? '' : (' ' + i + (v[0] ? [''].concat(v).join(' ' + i + '-') : ''));
         });
     });
-    element.className = value;
+    element.setAttribute('class', value);
 }
 
 function getSafeAreaInset() {

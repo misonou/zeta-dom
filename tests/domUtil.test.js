@@ -521,6 +521,15 @@ describe('getClass', () => {
         expect(getClass(node4, 'test')).toEqual(['a', 'b', 'sub', 'sub-c']);
         expect(getClass(node4, 'test-sub')).toEqual(['c']);
     });
+
+    it('should work on svg elements', () => {
+        const { svg } = initBody(`
+            <svg id="svg" height="100" width="100" class="test">
+                <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+            </svg>
+        `);
+        expect(getClass(svg, 'test')).toEqual(true);
+    });
 });
 
 describe('setClass', () => {
@@ -567,6 +576,16 @@ describe('setClass', () => {
         expect(div.classList).toContain('test-c');
         expect(div.classList).not.toContain('test-b');
         expect(div.classList).not.toContain('test-d');
+    });
+
+    it('should work on svg elements', () => {
+        const { svg } = initBody(`
+            <svg id="svg" height="100" width="100">
+                <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+            </svg>
+        `);
+        setClass(svg, 'test', true);
+        expect(svg.classList.contains('test'));
     });
 });
 
