@@ -1,6 +1,6 @@
 {
   "name": "zeta-dom",
-  "version": "0.4.11",
+  "version": "0.4.12",
   "description": "",
   "type": "module",
   "main": "src/index.js",
@@ -14,7 +14,7 @@
   },
   "author": "misonou",
   "license": "ISC",
-  "homepage": "http://hackmd.io/@misonou/zeta-dom",
+  "homepage": "https://misonou.github.io",
   "repository": "github:misonou/zeta-dom",
   "dependencies": {
     "jquery": "^3.0.0"

@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.11 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.12 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jQuery"));
@@ -57,6 +57,7 @@ __webpack_require__.d(util_namespaceObject, {
   "arrRemove": function() { return arrRemove; },
   "camel": function() { return camel; },
   "catchAsync": function() { return catchAsync; },
+  "clearImmediateOnce": function() { return clearImmediateOnce; },
   "combineFn": function() { return combineFn; },
   "createPrivateStore": function() { return createPrivateStore; },
   "deepFreeze": function() { return deepFreeze; },
@@ -380,6 +381,7 @@ function each(obj, callback) {
   if (obj) {
     var cur,
         i = 0;
+    callback = callback.bind(obj);
 
     if (typeof obj === 'string') {
       obj = obj.split(' ');
@@ -633,7 +635,7 @@ function setImmediate(fn) {
 }
 
 function setImmediateOnceCallback(fn) {
-  mapRemove(setImmediateStore, fn)();
+  (mapRemove(setImmediateStore, fn) || noop)();
 }
 
 function setImmediateOnce(fn) {
@@ -646,6 +648,10 @@ function setTimeoutOnce(fn, ms) {
   mapGet(setImmediateStore, fn, function () {
     return util_setTimeout(setImmediateOnceCallback.bind(0, fn), ms || 0), fn;
   });
+}
+
+function clearImmediateOnce(fn) {
+  mapRemove(setImmediateStore, fn);
 }
 
 function util_setTimeout() {
@@ -1840,6 +1846,10 @@ function measureLine(p1, p2) {
 }
 
 function textInputAllowed(v) {
+  if (v.disabled || v.readOnly) {
+    return false;
+  }
+
   if (v.isContentEditable) {
     return true;
   }
@@ -2294,24 +2304,32 @@ function trackPointer(callback) {
   }
 
   var stopScroll = function stopScroll() {
-    clearInterval(scrollTimeout);
+    cancelAnimationFrame(scrollTimeout);
     scrollTimeout = null;
   };
 
   var startScroll = function startScroll() {
-    scrollTimeout = scrollTimeout || setInterval(function () {
-      var x = lastPoint.clientX;
-      var y = lastPoint.clientY;
-      var r = getContentRect(scrollParent);
-      var dx = Math.max(x - r.right + 5, r.left - x + 5, 0);
-      var dy = Math.max(y - r.bottom + 5, r.top - y + 5, 0);
+    var last;
+    scrollTimeout = scrollTimeout || requestAnimationFrame(function next(ts) {
+      if (last) {
+        var f = (ts - last) / 16 - 1;
+        var x = lastPoint.clientX;
+        var y = lastPoint.clientY;
+        var r = getContentRect(scrollParent);
+        var dx = Math.max(x - r.right + 5, 0) || Math.min(x - r.left - 5, 0);
+        var dy = Math.max(y - r.bottom + 5, 0) || Math.min(y - r.top - 5, 0);
 
-      if ((dx || dy) && scrollIntoView(target, toPlainRect(x, y).expand(dx, dy), scrollWithin)) {
+        if (!dx && !dy || !scrollIntoView(target, toPlainRect(x + dx * f, y + dy * f).expand(5), scrollWithin, 'instant')) {
+          scrollTimeout = null;
+          return;
+        }
+
         callback(lastPoint);
-      } else {
-        stopScroll();
       }
-    }, 20);
+
+      last = ts;
+      scrollTimeout = requestAnimationFrame(next);
+    });
   };
 
   bindUntil(trackPromise, root, {
@@ -3588,6 +3606,11 @@ definePrototype(Rect, {
   expand: function expand(l, t, r, b) {
     var self = this;
 
+    if (l && l.top !== undefined) {
+      t = t || 1;
+      return self.expand(l.left * t, l.top * t, l.right * t, l.bottom * t);
+    }
+
     switch (arguments.length) {
       case 1:
         t = l;
@@ -3878,14 +3901,14 @@ function removeNode(node) {
 function getClass(element, className) {
   var re = new RegExp('(?:^|\\s+)' + className + '(?:-(\\S+)|\\b)', 'ig');
   var t = [false];
-  (element.className || '').replace(re, function (v, a) {
+  (element.getAttribute('class') || '').replace(re, function (v, a) {
     t[a ? t.length : 0] = a || true;
   });
   return t[1] ? t.slice(1) : t[0];
 }
 
 function setClass(element, className, values) {
-  var value = element.className || '';
+  var value = element.getAttribute('class') || '';
   each(isPlainObject(className) || kv(className, values), function (i, v) {
     var re = new RegExp('(^|\\s)\\s*' + i + '(?:-(\\S+)|\\b)|\\s*$', 'ig');
     var replaced = 0;
@@ -3900,7 +3923,7 @@ function setClass(element, className, values) {
       return replaced++ || !v || v.length === 0 ? '' : ' ' + i + (v[0] ? [''].concat(v).join(' ' + i + '-') : '');
     });
   });
-  element.className = value;
+  element.setAttribute('class', value);
 }
 
 function getSafeAreaInset() {
@@ -3951,10 +3974,12 @@ function getScrollParent(element, skipSelf, target) {
   return element;
 }
 
-function scrollBy(element, x, y) {
+function scrollBy(element, x, y, behavior) {
+  behavior = behavior || 'auto';
   var result = emitDOMEvent('scrollBy', element, {
     x: x,
-    y: y
+    y: y,
+    behavior: behavior
   }, {
     asyncResult: false
   });
@@ -3992,21 +4017,21 @@ function scrollBy(element, x, y) {
     };
   };
 
-  if (element.scrollBy) {
-    element.scrollBy({
-      left: x,
-      top: y,
-      behavior: 'instant'
-    });
+  var getOptions = function getOptions(left, top, behavior) {
+    return {
+      left: left,
+      top: top,
+      behavior: behavior
+    };
+  };
 
-    if (style.scrollBehavior === 'smooth') {
+  if (element.scrollBy) {
+    element.scrollBy(getOptions(x, y, 'instant'));
+
+    if (behavior === 'smooth' || behavior === 'auto' && style.scrollBehavior === 'smooth') {
       result = getResult();
-      element.scrollTo({
-        left: orig.x,
-        top: orig.y,
-        behavior: 'instant'
-      });
-      element.scrollBy(x, y);
+      element.scrollTo(getOptions(orig.x, orig.y, 'instant'));
+      element.scrollBy(getOptions(x, y, behavior));
     }
   } else {
     element.scrollLeft = orig.x + x;
@@ -4068,12 +4093,13 @@ function getContentRect(element) {
   return getContentRectCustom(element, element) || getContentRectNative(element);
 }
 
-function scrollIntoView(element, align, rect, within) {
+function scrollIntoView(element, align, rect, within, behavior) {
   if (!isVisible(element)) {
     return false;
   }
 
   if (typeof align !== 'string') {
+    behavior = within;
     within = rect;
     rect = align;
     align = '';
@@ -4118,7 +4144,7 @@ function scrollIntoView(element, align, rect, within) {
     var deltaY = getDelta(rect, parentRect, dirY, 'top', 'bottom', 'centerY');
 
     if (deltaX || deltaY) {
-      var parentResult = scrollBy(parent, deltaX, deltaY);
+      var parentResult = scrollBy(parent, deltaX, deltaY, behavior);
       rect = rect.translate(-parentResult.x, -parentResult.y);
       result.x += parentResult.x;
       result.y += parentResult.y;
@@ -4196,7 +4222,7 @@ function getRect(elm, includeMargin) {
         case 'content-box':
           var a = getBoxValues(elm, 'border', -1);
           var b = getBoxValues(elm, 'padding');
-          includeMargin[(a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3])];
+          includeMargin = [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
       }
     }
   }
