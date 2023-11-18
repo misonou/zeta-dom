@@ -73,7 +73,9 @@ function runCSSTransition(element, className, callback) {
         }
         return resolveAll(anim.map(function (v) {
             return v.finished;
-        })).then(complete);
+        })).then(complete, function () {
+            return reject(errorWithCode(ErrorCode.cancelled));
+        });
     }
 
     var arr = [];
