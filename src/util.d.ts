@@ -231,7 +231,7 @@ export function map<T, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i
  * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
  * @returns An array containing items for which the callback returned a truthy value.
  */
-export function grep<T extends readonly any[] | ArrayLike<any>>(obj: T, callback?: (this: T, v: Zeta.ArrayMember<T>, i: number) => any): T[];
+export function grep<T extends readonly any[] | ArrayLike<any>>(obj: T, callback?: (this: T, v: Zeta.ArrayMember<T>, i: number) => any): Zeta.ArrayMember<T>[];
 
 /**
  * Filters items from the given set.
@@ -255,7 +255,7 @@ export function grep<K, V>(obj: Map<K, V>, callback?: (this: Map<K, V>, v: V, i:
  * @param callback Function called for each item which returns if the item should be included. If omitted, truthy items will be included.
  * @returns An array containing values for which the callback returned a truthy value.
  */
-export function grep<T extends HasEntries<any, any>>(obj: T, callback?: (this: T, v: EntryValue<T>, i: EntryKey<T>) => any): T[];
+export function grep<T extends HasEntries<any, any>>(obj: T, callback?: (this: T, v: EntryValue<T>, i: EntryKey<T>) => any): EntryValue<T>[];
 
 /**
  * Filters nodes iterated from the node iterator.
@@ -264,7 +264,7 @@ export function grep<T extends HasEntries<any, any>>(obj: T, callback?: (this: T
  * @param callback Function called for each node which returns if the node should be included. If omitted, truthy items will be included.
  * @returns An array containing nodes for which the callback returned a truthy value.
  */
-export function grep<T extends NodeIterator<any>>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: number) => any): T[];
+export function grep<T extends NodeIterator<any>>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: number) => any): CollectionValueOf<T>[];
 
 /**
  * Filters data iterated from the iterator.
@@ -273,7 +273,7 @@ export function grep<T extends NodeIterator<any>>(obj: T, callback?: (this: T, v
  * @param callback Function called for each data which returns if the node should be included. If omitted, truthy items will be included.
  * @returns An array containing nodes for which the callback returned a truthy value.
  */
-export function grep<T extends Iterator<any>>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: number) => any): T[];
+export function grep<T extends Iterator<any>>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: number) => any): CollectionValueOf<T>[];
 
 /**
  * Filters values from the given object.
@@ -281,7 +281,7 @@ export function grep<T extends Iterator<any>>(obj: T, callback?: (this: T, v: Co
  * @param callback  Function called for each property which returns if the property value should be included. If omitted, truthy items will be included.
  * @returns An array containing property values for which the callback returned a truthy value.
  */
-export function grep<T>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: CollectionKeyOf<T>) => any): Zeta.ValueOf<T>[];
+export function grep<T>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: CollectionKeyOf<T>) => any): CollectionValueOf<T>[];
 
 /**
  * Removes items that satifies a condition from an array and returns them as a new array.
