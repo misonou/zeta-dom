@@ -1,4 +1,4 @@
-import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, map, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, single, splice, watch, watchable, watchOnce } from "../src/util";
+import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, map, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, single, splice, watch, watchable, watchOnce, delay as util_delay } from "../src/util";
 import { after, delay, mockFn, objectContaining, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
@@ -608,6 +608,27 @@ describe('setPromiseTimeout', () => {
 
     it('should resolve promise if promise is not settled within a period if third argument is true', async () => {
         await expect(setPromiseTimeout(delay(2000), 500, true)).resolves.toBe('timeout');
+    });
+});
+
+describe('delay', () => {
+    it('should resolve after specific milliseconds', async () => {
+        const promise = util_delay(50);
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        const now = performance.now();
+        await promise;
+        expect(performance.now() - now).toBeLessThan(1);
+    });
+
+    it('should resolve with value returned from callback', async () => {
+        const obj = {};
+        await expect(util_delay(10, () => obj)).resolves.toBe(obj);
+    });
+
+    it('should reject with error thrown from callback', async () => {
+        const error = new Error();
+        await expect(util_delay(10, () => { throw error })).rejects.toBe(error);
     });
 });
 

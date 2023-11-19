@@ -768,7 +768,18 @@ export function catchAsync<T>(promise: T): Promise<Awaited<T>>;
  */
 export function setPromiseTimeout<T>(promise: PromiseLike<T>, milliseconds: number, resolveWhenTimeout?: boolean): Promise<T>;
 
+/**
+ * Returns a promise to be fulfilled after a specific amount of time.
+ * @param ms Number of milliseconds to delay.
+ */
 export function delay(ms: number): Promise<void>;
+
+/**
+ * Executes the callback after a specific amount of time, and fulfills the promise with the result.
+ * @param ms Number of milliseconds to delay.
+ * @param callback Callback to be invoked after specific amount of time.
+ */
+export function delay<T>(ms: number, callback: () => T): Promise<Awaited<T>>;
 
 export function makeAsync<T extends Zeta.AnyFunction>(callback: T): (...args: Parameters<T>) => Promise<ReturnType<T>>;
 

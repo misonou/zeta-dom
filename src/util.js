@@ -599,9 +599,11 @@ function setPromiseTimeout(promise, ms, resolveWhenTimeout) {
     });
 }
 
-function delay(ms) {
+function delay(ms, callback) {
     return new Promise(function (resolve) {
-        setTimeout(resolve, ms);
+        setTimeout(callback ? function () {
+            resolve(makeAsync(callback)());
+        } : resolve, ms);
     });
 }
 
