@@ -14,9 +14,15 @@ module.exports = {
     output: {
         path: path.join(process.cwd(), 'dist'),
         filename: '[name].js',
-        library: 'zeta',
-        libraryTarget: 'umd',
-        umdNamedDefine: true
+        library: {
+            name: {
+                commonjs: 'zeta-dom',
+                amd: 'zeta-dom',
+                root: 'zeta'
+            },
+            type: 'umd',
+            umdNamedDefine: true
+        }
     },
     module: {
         rules: [
@@ -53,6 +59,11 @@ module.exports = {
     },
     externals: {
         'promise-polyfill': 'promise-polyfill',
-        'jquery': 'jQuery'
+        'jquery': {
+            commonjs: 'jquery',
+            commonjs2: 'jquery',
+            amd: 'jquery',
+            root: 'jQuery'
+        }
     }
 };
