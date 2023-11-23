@@ -22,19 +22,19 @@ function observe(element, options, callback) {
     if (isFunction(options)) {
         options = optionsForChildList;
     }
-    var processRecords = callback;
-    if (options.attributes && (options.attributeFilter || ['id']).indexOf('id') >= 0) {
-        processRecords = function (records) {
+    var filterRecords = options.attributes && (options.attributeFilter || ['id']).indexOf('id') >= 0;
+    var processRecords = function (records) {
+        if (filterRecords) {
             records = records.filter(function (v) {
                 // filter out changes due to sizzle engine
                 // to prevent excessive invocation due to querying elements through jQuery
                 return v.attributeName !== 'id' || ((v.oldValue || '').slice(0, 6) !== 'sizzle' && (v.target.id !== (v.oldValue || '')));
             });
-            if (records[0]) {
-                callback(records);
-            }
-        };
-    }
+        }
+        if (records[0]) {
+            callback(records);
+        }
+    };
     var observer = new MutationObserver(processRecords);
     observer.observe(element, options);
     var collect = function (discard) {

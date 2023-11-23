@@ -161,6 +161,14 @@ describe('observe', () => {
         collect(true);
         expect(cb).toBeCalledTimes(1);
     });
+
+    it('should not fire callback when there is no mutation collected', async () => {
+        const cb = mockFn();
+        const { root } = initBody(`<div id="root"></div>`);
+        const collect = observe(root, { childList: true }, cb);
+        collect();
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('watchElements', () => {
