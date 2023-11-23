@@ -37,8 +37,8 @@ function observe(element, options, callback) {
     }
     var observer = new MutationObserver(processRecords);
     observer.observe(element, options);
-    var collect = function () {
-        processRecords(observer.takeRecords());
+    var collect = function (discard) {
+        (discard ? noop : processRecords)(observer.takeRecords());
     };
     var dispose = function () {
         observer.disconnect();

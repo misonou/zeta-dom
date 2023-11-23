@@ -1,5 +1,5 @@
 import { after, body, initBody, mockFn, verifyCalls } from "./testUtil";
-import { afterDetached, createAutoCleanupMap, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "../src/observe";
+import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "../src/observe";
 
 describe('registerCleanup', () => {
     it('should fire callback when element is removed from root', async () => {
@@ -144,6 +144,22 @@ describe('afterDetached', () => {
             body.appendChild(node3);
         });
         expect.assertions(2);
+    });
+});
+
+describe('observe', () => {
+    it('should allow discarding collected mutations', async () => {
+        const cb = mockFn();
+        const { root } = initBody(`<div id="root"></div>`);
+        const collect = observe(root, { childList: true }, cb);
+
+        root.appendChild(document.createElement('div'));
+        collect();
+        expect(cb).toBeCalledTimes(1);
+
+        root.appendChild(document.createElement('div'));
+        collect(true);
+        expect(cb).toBeCalledTimes(1);
     });
 });
 

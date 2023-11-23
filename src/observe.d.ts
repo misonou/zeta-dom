@@ -3,8 +3,9 @@
 interface ObserveCallback {
     /**
      * Collect mutations immediately and fires mutation handler if there is any mutations.
+     * @param discard Whether to suppress invocation of mutation handler if there is any mutations.
      */
-    (): void;
+    (discard?: boolean): void;
 
     /**
      * Disconnects mutation observer.
