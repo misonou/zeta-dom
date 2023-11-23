@@ -384,7 +384,7 @@ export function pointInRect(x: number, y: number, b: Zeta.RectLike, within?: num
  * @param b Rect objects that the resulting rect covers.
  * @returns A rect object.
  */
-export function mergeRect(a: Zeta.RectLike, b: Zeeta.RectLike): Zeta.Rect;
+export function mergeRect(a: Zeta.RectLike, b: Zeta.RectLike): Zeta.Rect;
 
 /**
  * Gets the topmost element that is visually painted, and reactable in the given coordinate relative to the top-left corner of the window.

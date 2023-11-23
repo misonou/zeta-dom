@@ -4,6 +4,7 @@ import { getEventContext, getEventSource, listenDOMEvent, emitDOMEvent } from ".
 import * as lock from "./domLock";
 import * as observe from "./observe";
 
+// @ts-ignore
 declare const methods = {
     textInputAllowed,
     focusable,
@@ -24,6 +25,7 @@ declare const methods = {
     setShortcut,
 };
 
+// @ts-ignore
 declare const events = {
     getEventContext,
     getEventSource,

@@ -9,6 +9,7 @@
   "scripts": {
     "build": "webpack",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test:dts": "npx check-dts tests/**/*.ts",
     "version": "npm run build && git add -A dist",
     "release": "node ./npm-publish.cjs"
   },
@@ -28,8 +29,10 @@
     "@jest/globals": "^26.6.2",
     "@testing-library/user-event": "^14.4.3",
     "@types/jest": "^26.0.15",
+    "@types/jquery": "^3.5.27",
     "babel-loader": "^8.2.1",
     "cross-env": "^7.0.2",
+    "expect-type": "^0.17.3",
     "jest": "^27.0.6",
     "ncp": "^2.0.0",
     "syn": "^0.15.0",

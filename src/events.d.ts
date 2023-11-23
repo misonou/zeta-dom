@@ -9,7 +9,7 @@ export declare var lastEventSource: Zeta.ZetaEventSource;
  */
 export declare function prepEventSource<T>(promise: Promise<T>): Promise<T>;
 export declare function getEventSource(element?: Element): Zeta.ZetaEventSourceName;
-export declare function getEventContext(element: Element): Zeta.EventContainerOptions & { element: Element; context: any };
+export declare function getEventContext(element: Element): Zeta.EventContainerOptions<any> & { element: Element; context: any };
 export declare function setLastEventSource(element: Element | EventTarget | null): void;
 
 /**

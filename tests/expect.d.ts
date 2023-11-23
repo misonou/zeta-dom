@@ -1,4 +1,4 @@
-namespace jest {
+declare namespace jest {
     interface Expect {
         sameObject(expected: object): any;
     }

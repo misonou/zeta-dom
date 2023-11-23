@@ -1,3 +1,5 @@
+/// <reference types="jquery" />
+
 declare namespace Zeta {
 
     type RangeLike = Range | Node | HasRange;
@@ -14,7 +16,7 @@ declare namespace Zeta {
         T extends Set<infer V> ? V :
         T extends WeakSet<infer V> ? V :
         T extends object ? Exclude<keyof T, symbol> :
-        T extends undefined | null ? never : any;
+        T extends undefined | null ? never : string | number;
     type ValueOf<T> = T extends (any[] | ArrayLike<any>) ? ArrayMember<T> :
         T extends Map<any, infer V> ? V :
         T extends WeakMap<any, infer V> ? V :
@@ -22,7 +24,11 @@ declare namespace Zeta {
         T extends WeakSet<infer V> ? V :
         T extends object ? T[Exclude<keyof T, symbol>] :
         T extends undefined | null ? never : any;
+    type PropertyTypeOrAny<T, P> = P extends keyof T ? T[P] : any;
     type HintedString<T extends string> = string & {} | T;
+    type HintedKeyOf<T> = string & {} | keyof T;
+    type HintedStringKeyOf<T> = string & {} | Extract<keyof T, string>;
+
     type WhitespaceDelimited<T extends string> = T extends `${infer L} ${infer R}` ? Exclude<L, ''> | WhitespaceDelimited<R> : Exclude<T, ''>;
     type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
     /** @deprecated Use the built-in {@link Awaited} instead */
@@ -35,9 +41,11 @@ declare namespace Zeta {
     type IterateCallbackOrNull<T, R> = null | ((node: T) => MapResultValue<R>);
 
     type IsAny<T> = (1 | 2) extends (T extends never ? 1 : 2) ? true : false;
-    type AnyFunction = (...args) => any;
-    type AnyConstructor = new (...args) => any;
-    type AdditionalMembers<T, U> = { [P in keyof U]: U[P] extends AnyFunction ? (this: T & U, ...args) => any : U[P] };
+    type IsAnyOrUnknown<T> = unknown extends T ? true : false;
+    type AnyFunction = (...args: any[]) => any;
+    type AnyConstructor = new (...args: any[]) => any;
+    type AnyConstructorOrClass = abstract new (...args: any[]) => any;
+    type AdditionalMembers<T, U> = { [P in keyof U]: U[P] extends AnyFunction ? (this: T & U, ...args: any[]) => any : U[P] };
 
     type UnregisterCallback = () => void;
 
@@ -67,7 +75,6 @@ declare namespace Zeta {
         keyof BaseAudioContextEventMap |
         keyof BroadcastChannelEventMap |
         keyof DocumentEventMap |
-        keyof DocumentAndElementEventHandlersEventMap |
         keyof ElementEventMap |
         keyof EventSourceEventMap |
         keyof FileReaderEventMap |
@@ -165,13 +172,13 @@ declare namespace Zeta {
          * @param handler Callback to be fired and the property is changed.
          * @param fireInit Optionally fire the handler immediately.
          */
-        watch<P extends K>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
+        watch<P extends K>(prop: P, handler?: (this: T, newValue: PropertyTypeOrAny<T, P>, oldValue: PropertyTypeOrAny<T, P>, prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
         /**
          * Watches a property and resolves when the property is changed.
          * @param prop Property name.
          * @param handler Callback to be fired when the property is changed.
          */
-        watchOnce<P extends K>(prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void): Promise<T[P]>;
+        watchOnce<P extends K>(prop: P, handler?: (this: T, newValue: PropertyTypeOrAny<T, P>, oldValue: PropertyTypeOrAny<T, P>, prop: P, obj: T) => void): Promise<PropertyTypeOrAny<T, P>>;
     }
 
     interface Deferrable {
@@ -346,7 +353,7 @@ declare namespace Zeta {
 
     type ZetaEventHandler<E extends string, M, T = Element> = { bivarianceHack(this: T, e: ZetaEventType<E, M, T>, self: T): ZetaEventHandlerReturnType<E, M> }['bivarianceHack'];
 
-    type ZetaEventHandlers<M, T = Element> = { [P in HintedString<keyof M>]?: P extends keyof M ? ZetaEventHandler<P, M, T> : Zeta.AnyFunction };
+    type ZetaEventHandlers<M, T = Element> = { [P in HintedStringKeyOf<M>]?: P extends keyof M ? ZetaEventHandler<P, M, T> : Zeta.AnyFunction };
 
     type ZetaDOMEventHandler<E extends string, T = Element> = ZetaEventHandler<E, ZetaDOMEventMap<T>, T>;
 
@@ -380,7 +387,7 @@ declare namespace Zeta {
          * @param event Name of the event.
          * @param handler A callback function to be fired when the specified event is triggered.
          */
-        on<E extends HintedString<keyof M>>(event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
+        on<E extends HintedStringKeyOf<M>>(event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
     }
 
     interface ZetaEventBase {
@@ -492,7 +499,7 @@ declare namespace Zeta {
         readonly modalElement: Element;
     }
 
-    interface ZetaPointerEvent<T = Element, E = UIEvent> extends ZetaNativeUIEvent<T, E> {
+    interface ZetaPointerEvent<T = Element, E extends UIEvent = UIEvent> extends ZetaNativeUIEvent<T, E> {
         readonly clientX: number;
         readonly clientY: number;
         readonly metakey: string;
@@ -532,7 +539,7 @@ declare namespace Zeta {
     interface ZetaGetContentRectEvent<T = Element> extends ZetaHandleableEvent<RectLike>, ZetaEventContextBase<T> {
     }
 
-    declare class ZetaEventSource {
+    class ZetaEventSource {
         constructor(target: Element, path?: Element[]);
 
         readonly path: string;
@@ -583,7 +590,7 @@ declare namespace Zeta {
          * Provides a native Event object the event is associated with.
          */
         originalEvent?: Event;
-    };
+    }
 
     interface EventContainerOptions<T> {
         /**
@@ -608,7 +615,7 @@ declare namespace Zeta {
         initEvent?: (e: ZetaEventBase & ZetaEventContext<T>) => void;
     }
 
-    declare class ZetaEventContainer<T = Element, M = ZetaDOMEventMap> implements HasElement {
+    class ZetaEventContainer<T = Element, M = ZetaDOMEventMap> implements HasElement {
         /**
          * Createa a new event container for listening or dispatching events.
          * @param root A DOM element of which DOM events fired on descedant elements will be captured.
@@ -668,7 +675,7 @@ declare namespace Zeta {
          * @param handler A callback function to be fired when the specified event is triggered.
          * @returns A function that will unregister the handlers when called.
          */
-        add<E extends HintedString<keyof M>>(target: T, event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
+        add<E extends HintedStringKeyOf<M>>(target: T, event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
 
         /**
          * Removes the DOM element or custom event target from the container.
@@ -700,7 +707,7 @@ declare namespace Zeta {
          * @param data Any data to be set on ZetaEvent#data property.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit<E extends HintedString<keyof M>>(eventName: E, target?: T, data?: Zeta.ZetaEventEmitDataType<E, M>, options?: boolean | EventEmitOptions): ZetaEventEmitReturnType<E, M>;
+        emit<E extends HintedStringKeyOf<M>>(eventName: E, target?: T, data?: Zeta.ZetaEventEmitDataType<E, M>, options?: boolean | EventEmitOptions): ZetaEventEmitReturnType<E, M>;
 
         /**
          * Emits an event to components synchronously.
@@ -710,7 +717,7 @@ declare namespace Zeta {
          * @param props Properties that will be copied to the ZetaEvent object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit<E extends HintedString<keyof M>>(eventName: E, target?: T, props?: Partial<ZetaEventType<E, M>>, options?: boolean | EventEmitOptions): ZetaEventEmitReturnType<E, M>;
+        emit<E extends HintedStringKeyOf<M>>(eventName: E, target?: T, props?: Partial<ZetaEventType<E, M>>, options?: boolean | EventEmitOptions): ZetaEventEmitReturnType<E, M>;
 
         /**
          * Emits an event to components asynchronously.
@@ -799,7 +806,7 @@ declare namespace Zeta {
         readonly nextSibling: T | null;
     }
 
-    declare abstract class NodeTree<T extends VirtualNode> implements ZetaEventDispatcher<NodeTreeEventMap<T>, NodeTree<T>>, HasElement {
+    abstract class NodeTree<T extends VirtualNode> implements ZetaEventDispatcher<NodeTreeEventMap<T>, NodeTree<T>>, HasElement<Element> {
         readonly element: Element;
         readonly rootNode: T;
 
@@ -812,27 +819,27 @@ declare namespace Zeta {
         on<E extends keyof NodeTreeEventMap<T>>(event: E, handler: ZetaEventHandler<E, NodeTreeEventMap<T>, NodeTree<T>>): Zeta.UnregisterCallback;
     }
 
-    declare class TraversableNodeTree<T extends TraversableNode> extends NodeTree<T> {
-        constructor(element: Element, constructor?: new (...args) => T, options?: TraversableNodeTreeOptions<T>);
+    class TraversableNodeTree<T extends TraversableNode> extends NodeTree<T> {
+        constructor(element: Element, constructor?: new (...args: any[]) => T, options?: TraversableNodeTreeOptions<T>);
         constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: TraversableNodeTreeOptions<T>);
 
         isNodeVisible(node: T, iterator: TreeWalker<T>): boolean;
         acceptNode(node: T, iterator: TreeWalker<T>): IteratorNodeFilterResult;
     }
 
-    declare class InheritedNodeTree<T extends InheritedNode> extends NodeTree<T> {
-        constructor(element: Element, constructor?: new (...args) => T, options?: InheritedNodeTreeOptions<T>);
+    class InheritedNodeTree<T extends InheritedNode> extends NodeTree<T> {
+        constructor(element: Element, constructor?: new (...args: any[]) => T, options?: InheritedNodeTreeOptions<T>);
         constructor(element: Element, constructor?: Zeta.AnyConstructor, options?: InheritedNodeTreeOptions<T>);
 
         descendants(node: T | Element): Iterator<T>;
     }
 
-    declare abstract class VirtualNode implements HasElement {
+    abstract class VirtualNode implements HasElement {
         readonly element: HTMLElement;
     }
 
-    declare class TraversableNode extends VirtualNode {
-        constructor(tree: NodeTree, element: Element);
+    class TraversableNode extends VirtualNode {
+        constructor(tree: NodeTree<TraversableNode>, element: Element);
 
         readonly parentNode: TraversableNode | null;
         readonly firstChild: TraversableNode | null;
@@ -842,11 +849,11 @@ declare namespace Zeta {
         readonly childNodes: TraversableNode[];
     }
 
-    declare class InheritedNode extends VirtualNode {
-        constructor(tree: NodeTree, element: Element);
+    class InheritedNode extends VirtualNode {
+        constructor(tree: NodeTree<InheritedNode>, element: Element);
     }
 
-    declare class TreeWalker<T extends TraversableNode> implements NodeIterator<T> {
+    class TreeWalker<T extends TraversableNode> implements NodeIterator<T> {
         constructor(root: T, whatToShow?: number, filter?: IteratorNodeFilter<T>);
 
         readonly root: T;

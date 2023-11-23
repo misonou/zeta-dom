@@ -17,21 +17,23 @@ type CollectionKeyOf<T> =
     Zeta.KeyOf<T>;
 type CollectionValueOf<T> =
     T extends HasEntries<any, infer V> ? V :
-    T extends NodeIterator<infer V> ? V :
+    T extends NodeIterator<infer V> ? Exclude<V, null> :
     T extends Iterator<infer V> ? V :
     Zeta.ValueOf<T>;
-type ExtractAny<T, U> = Zeta.IsAny<T> extends true ? U : Extract<T, U>;
+type ExtractAny<T, U> = Zeta.IsAnyOrUnknown<T> extends true ? U | false : T extends U ? T : false;
 type Union<T, V> =
-    Zeta.IsAny<T> extends true ? any :
+    Zeta.IsAnyOrUnknown<T> extends true ? any :
     T extends object ? (V extends T ? V : T extends V ? T : V extends object ? T & V : T) :
     V extends object ? V : any;
 type UnionAll<T> = T extends never[] ? {} : T extends [infer U, ...infer V] ? Union<U, UnionAll<V>> : {};
+type InstanceTypeOrObject<T> = T extends Zeta.AnyConstructorOrClass ? InstanceType<T> : object;
+type MaybeFunctionOrConstructor = Zeta.AnyFunction & Zeta.AnyConstructor;
 
 /* --------------------------------------
  * Miscellaneous
  * -------------------------------------- */
 
-export function noop(...args): void;
+export function noop(...args: any[]): void;
 
 export function pipe<T>(value: T): T;
 
@@ -45,7 +47,7 @@ export function sameValueZero(x: any, y: any): boolean;
  * @param b A function.
  * @returns Returns the same object if it is an instance of the function; otherwise false.
  */
-export function is<T extends Function>(a: any, b: T): InstanceType<T> | false;
+export function is<T extends Function>(a: any, b: T): InstanceTypeOrObject<T> | false;
 
 /**
  * Tests whether a given value is undefined or null.
@@ -58,30 +60,30 @@ export function isUndefinedOrNull(value: any): value is undefined | null;
  * @param obj An input value to be tested.
  * @returns The same instance of array if it is a simple object; otherwise false.
  */
-export function isArray<T>(obj: T): ExtractAny<T, any[]> | false;
+export function isArray<T>(obj: T): ExtractAny<T, any[]>;
 
 /**
  * Tests whether the value is a function.
  * @param obj An input value to be tested.
  * @returns The same instance of function if it is a function; otherwise false.
  */
-export function isFunction<T>(obj: T): ExtractAny<T, Function> | false;
+export function isFunction<T>(obj: T): Zeta.IsAnyOrUnknown<T> extends true ? MaybeFunctionOrConstructor | false : ExtractAny<T, Zeta.AnyFunction | Zeta.AnyConstructorOrClass>;
 
 /**
  * Tests whether the value is thenable, i.e. can be chained as a Promise.
  * @param obj An input value to be tested.
  * @returns The same instance of function if it is thenable; otherwise false.
  */
-export function isThenable<T>(obj: T): ExtractAny<T, PromiseLike<any>> | false;
+export function isThenable<T>(obj: T): ExtractAny<T, PromiseLike<any>>;
 
 /**
  * Tests whether the value is a simple object, i.e. created with object literal {}, or with no prototype chain.
  * @param obj An input value to be tested.
  * @returns The same instance of object if it is a simple object; otherwise false.
  */
-export function isPlainObject<T>(obj: T): ExtractAny<T, object> | false;
+export function isPlainObject<T>(obj: T): ExtractAny<T, object>;
 
-export function isArrayLike<T>(obj: T): ExtractAny<T, ArrayLike<any>> | false;
+export function isArrayLike<T>(obj: T): ExtractAny<T, ArrayLike<any>>;
 
 /**
  * Creates an array from input if it is not an array.
@@ -89,7 +91,7 @@ export function isArrayLike<T>(obj: T): ExtractAny<T, ArrayLike<any>> | false;
  * @returns A copy of array if the object is an array; or an array containing items in an array-like object or iterable collection like Map or Set;
  * or an array with exactly one item (the input object) if it does not equals to null or undefined; otherwise an empty array.
  */
-export function makeArray<T>(obj: T): Zeta.IsAny<T> extends true ? any[] : T extends (infer U)[] | ArrayLike<infer U> | Map<any, infer U> | Set<infer U> ? U[] : Exclude<T, null | undefined>[];
+export function makeArray<T>(obj: T): Zeta.IsAnyOrUnknown<T> extends true ? any[] : T extends (infer U)[] | ArrayLike<infer U> | Map<any, infer U> | Set<infer U> ? U[] : Exclude<T, null | undefined>[];
 
 /**
  * Copys all properties that is not with undefined value to the object supplied as the first argument.
@@ -476,7 +478,7 @@ export function exclude<T>(obj: T, callback: (this: T, value: Zeta.ValueOf<T>, k
  * @param obj An object from which properties are enumerated.
  * @param callback A callback that returns value to be set on the new object for each property.
  */
-export function mapObject<T, V>(obj: T, callback: (this: T, value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => V): { [P in Zeta.KeyOf<T>]: V };
+export function mapObject<T, V>(obj: T, callback: (this: T, value: Zeta.ValueOf<T>, key: Zeta.KeyOf<T>) => V): { [P in Extract<Zeta.KeyOf<T>, string | number | symbol>]: V };
 
 /**
  * Gets item associated with the specified key in the given map.
@@ -539,7 +541,7 @@ export function arrRemove<T>(arr: T[], obj: T): T | undefined;
  * @param set A set or weak set object.
  * @param obj An item to be added.
  */
-export function setAdd<T>(set: Set<T> | WeakSet<T>, obj: T): boolean;
+export function setAdd<T extends Set<any> | WeakSet<any>>(set: T, obj: Zeta.ValueOf<T>): boolean;
 
 /**
  * Determines whether two maps contains the same keys and each key associates the same value.
@@ -627,7 +629,7 @@ export function setIntervalSafe<T extends Zeta.AnyFunction>(callback: T, ms?: nu
 
 export function throws(error: string | Error): never;
 
-export function throwNotFunction<T>(obj: T): ExtractAny<T, Function>;
+export function throwNotFunction<T>(obj: T): Zeta.IsAnyOrUnknown<T> extends true ? MaybeFunctionOrConstructor : Extract<T, Zeta.AnyFunction | Zeta.AnyConstructorOrClass>;
 
 export function errorWithCode(code: string, message?: string, props?: Zeta.Dictionary<any>): Error;
 
@@ -723,9 +725,9 @@ export function reject(reason?: any): Promise<never>;
  * @param promise A promise object.
  * @param callback A callback function that receives the promise state and the fulfillment value or rejection reason.
  */
-export function always<T, R>(promise: PromiseLike<T>, callback: (resolved: boolean, value: any) => R): Promise<Awaited<R>>;
+export function always<T, R>(promise: T, callback: (...args: [resolved: true, value: Awaited<T>] | [resolved: false, error: any]) => R): Promise<Awaited<R>>;
 
-export function always<T, R>(promise: T, callback: (resolved: boolean, value: any) => R): Promise<Awaited<R>>;
+export function always<T, R>(promise: T, callback: (resolved: boolean) => R): Promise<Awaited<R>>;
 
 /**
  * Creates a promise object that, waits until all promises are fulfilled or rejected,
@@ -737,9 +739,13 @@ export function resolveAll<T extends readonly unknown[] | []>(promises: T): Prom
 
 export function resolveAll<T extends readonly unknown[] | [], R>(promises: T, callback: (result: { -readonly [P in keyof T]: Awaited<T[P]> }) => R): Promise<Awaited<R>>;
 
-export function resolveAll<T extends object>(promises: T): Promise<{ [P in keyof T]: Awaited<T[P]> }>;
+export function resolveAll<T extends PromiseLike<any>>(promises: T): Promise<Awaited<T>>;
 
-export function resolveAll<T extends object, R>(promises: T, callback: (result: { [P in keyof T]: Awaited<T[P]> }) => R): Promise<Awaited<R>>;
+export function resolveAll<T extends PromiseLike<any>, R>(promises: T, callback: (result: Awaited<T>) => R): Promise<Awaited<R>>;
+
+export function resolveAll<T extends object>(promises: T): Promise<{ -readonly [P in keyof T]: Awaited<T[P]> }>;
+
+export function resolveAll<T extends object, R>(promises: T, callback: (result: { -readonly [P in keyof T]: Awaited<T[P]> }) => R): Promise<Awaited<R>>;
 
 export function resolveAll<T>(promises: T): Promise<T>;
 
@@ -752,7 +758,7 @@ export function resolveAll<T, R>(promises: T, callback: (result: Awaited<T>) => 
  */
 export function retryable<T>(fn: () => PromiseLike<T>): () => Promise<Awaited<T>>;
 
-export function retryable<T>(fn: () => PromiseLike<T>, callback: (result: Awaited<T>) => R): () => Promise<Awaited<R>>;
+export function retryable<T, R>(fn: () => PromiseLike<T>, callback: (result: Awaited<T>) => R): () => Promise<Awaited<R>>;
 
 /**
  * Creates a promise of which fulfilment can be deferred awaiting additional promises after it is created.
@@ -781,7 +787,7 @@ export function delay(ms: number): Promise<void>;
  */
 export function delay<T>(ms: number, callback: () => T): Promise<Awaited<T>>;
 
-export function makeAsync<T extends Zeta.AnyFunction>(callback: T): (...args: Parameters<T>) => Promise<ReturnType<T>>;
+export function makeAsync<T extends Zeta.AnyFunction>(callback: T): (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>;
 
 
 /* --------------------------------------
@@ -808,7 +814,7 @@ export function getOwnPropertyDescriptors(obj: object): PropertyDescriptorMap;
  * @param o An object which the properties will be defined on.
  * @param p
  */
-export function define<T extends object, U extends Zeta.Dictionary<number | string | boolean | object | null | Zeta.AnyFunction>>(o: T, p: Zeta.AdditionalMembers<T, U>);
+export function define<T extends object, U extends Zeta.Dictionary<number | string | boolean | object | null | Zeta.AnyFunction>>(o: T, p: Zeta.AdditionalMembers<T, U>): void;
 
 /**
  * Defines an enumerble value property on an object.
@@ -843,21 +849,21 @@ export function defineHiddenProperty(obj: object, name: string, value: any, read
  * @param parentClass A function which serves as the parent class.
  * @param proto An object containing values, getters, setters or methods which will be defined on the prototype object.
  */
-export function definePrototype<T extends Function, U extends Function, V extends Zeta.Dictionary<number | string | boolean | undefined | null | Zeta.AnyFunction>>(fn: T, parentClass: U, proto?: Zeta.AdditionalMembers<InstanceType<T> & InstanceType<U>, V>): void;
+export function definePrototype<T extends Function, U extends Function, V extends Zeta.Dictionary<number | string | boolean | undefined | null | Zeta.AnyFunction>>(fn: T, parentClass: U, proto?: Zeta.AdditionalMembers<InstanceTypeOrObject<T> & InstanceTypeOrObject<U>, V>): void;
 
 /**
  * Define properties on the prototype object of a function.
  * @param fn A function which its prototype object will have specified properties defined.
  * @param proto An object containing values, getters, setters or methods which will be defined on the prototype object.
  */
-export function definePrototype<T extends Function, U extends Zeta.Dictionary<number | string | boolean | undefined | null | Zeta.AnyFunction>>(fn: T, proto: Zeta.AdditionalMembers<InstanceType<T>, U>): void;
+export function definePrototype<T extends Function, U extends Zeta.Dictionary<number | string | boolean | undefined | null | Zeta.AnyFunction>>(fn: T, proto: Zeta.AdditionalMembers<InstanceTypeOrObject<T>, U>): void;
 
 /**
  * Creates an object which its prototype is set to the given function's prototype object.
  * @param proto A function with prototype object or an object as the prototype object.
  * @returns A new empty object with the specified prototype.
  */
-export function inherit<T extends Function>(proto: T, props?: object): InstanceType<T>;
+export function inherit<T extends Function>(proto: T, props?: object): InstanceTypeOrObject<T>;
 
 /**
  * Creates an object which its prototype is set to the given function's prototype object.
@@ -898,11 +904,11 @@ export function watch(obj: object, sync: boolean): ((callback: () => any) => voi
  */
 export function watch<T extends object>(obj: T, handler: (e: { oldValues: Partial<T>, newValues: Partial<T> }) => any): Zeta.UnregisterCallback;
 
-export function watch<T extends object, P extends Zeta.HintedString<keyof T>>(obj: T, prop: P, handler?: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
+export function watch<T extends object, P extends Zeta.HintedKeyOf<T>>(obj: T, prop: P, handler?: (this: T, newValue: Zeta.PropertyTypeOrAny<T, P>, oldValue: Zeta.PropertyTypeOrAny<T, P>, prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
 
-export function watchOnce<T extends object, P extends Zeta.HintedString<keyof T>>(obj: T, prop: P): Promise<T[P]>;
+export function watchOnce<T extends object, P extends Zeta.HintedKeyOf<T>>(obj: T, prop: P): Promise<Zeta.PropertyTypeOrAny<T, P>>;
 
-export function watchOnce<T extends object, P extends Zeta.HintedString<keyof T>, U>(obj: T, prop: P, handler: (this: T, newValue: T[P], oldValue: T[P], prop: P, obj: T) => U): Promise<U>;
+export function watchOnce<T extends object, P extends Zeta.HintedKeyOf<T>, U>(obj: T, prop: P, handler: (this: T, newValue: Zeta.PropertyTypeOrAny<T, P>, oldValue: Zeta.PropertyTypeOrAny<T, P>, prop: P, obj: T) => U): Promise<Awaited<U>>;
 
 /**
  * Creates a new object with `watch` and `watchOnce` method defined.
@@ -923,7 +929,7 @@ export function watchable<T extends object>(obj: T): Zeta.WatchableInstance<T>;
  * @param target An object which the new property will access.
  * @param targetProp Name of property to be accessed. If omitted, the property of the same name will be access.
  */
-export function defineAliasProperty(obj: object, prop: string, target: object, targetProp?: string): void;
+export function defineAliasProperty<T extends object, U extends object>(obj: T, prop: Zeta.HintedKeyOf<T>, target: U, targetProp?: Zeta.HintedKeyOf<U>): void;
 
 /**
  * Defines an observable property.
