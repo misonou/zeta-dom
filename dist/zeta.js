@@ -1,14 +1,14 @@
-/*! zeta-dom v0.4.12 | (c) misonou | http://hackmd.io/@misonou/zeta-dom */
+/*! zeta-dom v0.4.13 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory(require("jQuery"));
+		module.exports = factory(require("jquery"));
 	else if(typeof define === 'function' && define.amd)
-		define("zeta", ["jQuery"], factory);
+		define("zeta-dom", ["jquery"], factory);
 	else if(typeof exports === 'object')
-		exports["zeta"] = factory(require("jQuery"));
+		exports["zeta-dom"] = factory(require("jquery"));
 	else
 		root["zeta"] = factory(root["jQuery"]);
-})(self, function(__WEBPACK_EXTERNAL_MODULE__609__) {
+})(self, function(__WEBPACK_EXTERNAL_MODULE__254__) {
 return /******/ (function() { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
@@ -192,11 +192,11 @@ __webpack_require__.d(cssUtil_namespaceObject, {
 // CONCATENATED MODULE: ./src/include/promise-polyfill.js
 var promise_polyfill_Promise = window.Promise;
 /* harmony default export */ const promise_polyfill = (promise_polyfill_Promise);
-// EXTERNAL MODULE: external "jQuery"
-var external_jQuery_ = __webpack_require__(609);
+// EXTERNAL MODULE: external {"commonjs":"jquery","commonjs2":"jquery","amd":"jquery","root":"jQuery"}
+var external_commonjs_jquery_commonjs2_jquery_amd_jquery_root_jQuery_ = __webpack_require__(254);
 // CONCATENATED MODULE: ./src/include/jquery.js
 
-/* harmony default export */ const jquery = (external_jQuery_);
+/* harmony default export */ const jquery = (external_commonjs_jquery_commonjs2_jquery_amd_jquery_root_jQuery_);
 // CONCATENATED MODULE: ./src/env.js
 // @ts-nocheck
 
@@ -863,9 +863,11 @@ function setPromiseTimeout(promise, ms, resolveWhenTimeout) {
   });
 }
 
-function delay(ms) {
+function delay(ms, callback) {
   return new promise_polyfill(function (resolve) {
-    util_setTimeout(resolve, ms);
+    util_setTimeout(callback ? function () {
+      resolve(makeAsync(callback)());
+    } : resolve, ms);
   });
 }
 
@@ -1204,27 +1206,27 @@ function observe(element, options, callback) {
     options = optionsForChildList;
   }
 
-  var processRecords = callback;
+  var filterRecords = options.attributes && (options.attributeFilter || ['id']).indexOf('id') >= 0;
 
-  if (options.attributes && (options.attributeFilter || ['id']).indexOf('id') >= 0) {
-    processRecords = function processRecords(records) {
+  var processRecords = function processRecords(records) {
+    if (filterRecords) {
       records = records.filter(function (v) {
         // filter out changes due to sizzle engine
         // to prevent excessive invocation due to querying elements through jQuery
         return v.attributeName !== 'id' || (v.oldValue || '').slice(0, 6) !== 'sizzle' && v.target.id !== (v.oldValue || '');
       });
+    }
 
-      if (records[0]) {
-        callback(records);
-      }
-    };
-  }
+    if (records[0]) {
+      callback(records);
+    }
+  };
 
   var observer = new MutationObserver(processRecords);
   observer.observe(element, options);
 
-  var collect = function collect() {
-    processRecords(observer.takeRecords());
+  var collect = function collect(discard) {
+    (discard ? noop : processRecords)(observer.takeRecords());
   };
 
   var dispose = function dispose() {
@@ -4380,7 +4382,9 @@ function runCSSTransition(element, className, callback) {
 
     return resolveAll(anim.map(function (v) {
       return v.finished;
-    })).then(complete);
+    })).then(complete, function () {
+      return reject(errorWithCode(cancelled));
+    });
   }
 
   var arr = [];
@@ -5304,10 +5308,10 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 
 /***/ }),
 
-/***/ 609:
+/***/ 254:
 /***/ (function(module) {
 
-module.exports = __WEBPACK_EXTERNAL_MODULE__609__;
+module.exports = __WEBPACK_EXTERNAL_MODULE__254__;
 
 /***/ })
 
