@@ -1,5 +1,6 @@
 import { isCssUrlValue, parseCSS, runCSSTransition } from "../src/cssUtil";
-import { ErrorCode, initBody, mockFn, _ } from "./testUtil";
+import * as ErrorCode from '../src/errorCode';
+import { initBody, mockFn, _ } from "./testUtil";
 
 const transitionProps = [
     { property: 'opacity', from: '0', to: '1' },

@@ -3,7 +3,7 @@ import dom, { textInputAllowed } from "../src/dom";
 import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
-import { after, body, initBody, mockFn, objectContaining, root, verifyCalls, _, bindEvent } from "./testUtil";
+import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent } from "./testUtil";
 import { delay, makeArray } from "../src/util";
 
 async function type(elm, keystroke) {
@@ -13,6 +13,8 @@ async function type(elm, keystroke) {
         syn.type(elm, keystroke);
     });
 }
+
+const { objectContaining } = expect;
 
 beforeAll(async () => {
     await domReady;

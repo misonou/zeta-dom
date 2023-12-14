@@ -1,10 +1,12 @@
 import { acceptNode, bind, bindUntil, combineNodeFilters, comparePosition, createNodeIterator, createTreeWalker, dispatchDOMMouseEvent, elementFromPoint, getClass, getCommonAncestor, getContentRect, getRect, getScrollOffset, getScrollParent, isVisible, iterateNode, iterateNodeToArray, matchSelector, mergeRect, parentsAndSelf, pointInRect, rectCovers, rectEquals, rectIntersects, removeNode, scrollBy, scrollIntoView, selectClosestRelative, selectIncludeSelf, setClass, toPlainRect } from "../src/domUtil";
-import { bindEvent, body, delay, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
+import { bindEvent, body, delay, initBody, mockFn, root, verifyCalls, _ } from "./testUtil";
 import { jest } from "@jest/globals";
 
 function defaultAcceptNode(node) {
     return node.attributes['reject'] ? 2 : node.attributes['skip'] ? 3 : 1;
 }
+
+const { objectContaining } = expect;
 
 const [getBoundingClientRect] = [
     jest.spyOn(Element.prototype, 'getBoundingClientRect'),

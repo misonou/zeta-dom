@@ -1,7 +1,10 @@
-import { after, body, combineFn, initBody, mockFn, objectContaining, root, verifyCalls, _, bindEvent } from "./testUtil";
+import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent } from "./testUtil";
 import { emitDOMEvent, getEventContext, listenDOMEvent, ZetaEventContainer } from "../src/events";
 import { domReady } from "../src/env";
 import dom from "../src/dom";
+import { combineFn } from "../src/util";
+
+const { objectContaining } = expect;
 
 describe('ZetaEventContainer.event', () => {
     it('should return current event emitted from this container', () => {

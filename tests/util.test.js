@@ -1,5 +1,5 @@
 import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, map, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, single, splice, watch, watchable, watchOnce, delay as util_delay } from "../src/util";
-import { after, delay, mockFn, objectContaining, verifyCalls } from "./testUtil";
+import { after, delay, mockFn, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
 function createRejectPromise() {
@@ -7,6 +7,8 @@ function createRejectPromise() {
     promise.catch(function () { });
     return promise;
 }
+
+const { objectContaining } = expect;
 
 const testObjs = [
     { a: 1 },

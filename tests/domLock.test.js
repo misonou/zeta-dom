@@ -1,8 +1,11 @@
-import { after, body, combineFn, delay, ErrorCode, initBody, mockFn, objectContaining, root, verifyCalls, _ } from "./testUtil";
+import { after, body, delay, initBody, mockFn, root, verifyCalls, _ } from "./testUtil";
 import { cancelLock, lock, locked, notifyAsync, preventLeave, subscribeAsync } from "../src/domLock";
-import { catchAsync, noop } from "../src/util";
+import { catchAsync, combineFn, noop } from "../src/util";
 import { removeNode } from "../src/domUtil";
 import dom from "../src/dom";
+import * as ErrorCode from '../src/errorCode';
+
+const { objectContaining } = expect;
 
 describe('lock', () => {
     it('should pass promise result if not cancelled', async () => {

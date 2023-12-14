@@ -1,7 +1,9 @@
 {
     "testEnvironment": "jsdom",
     "transform": {},
+    "clearMocks": true,
     "setupFilesAfterEnv": [
+        "@misonou/test-utils/mock/console",
         "<rootDir>/tests/setup.js"
     ],
     "modulePathIgnorePatterns": [
