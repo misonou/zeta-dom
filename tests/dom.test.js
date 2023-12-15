@@ -732,6 +732,26 @@ describe('focus event', () => {
             [objectContaining({ type: 'focusout', target: node1 }), _]
         ]);
     });
+
+    it('should be fired after element gained focus', async () => {
+        const { node1, node2 } = initBody(`
+            <button id="node1"></button>
+            <button id="node2"></button>
+        `);
+        const cb = mockFn(e => document.activeElement);
+        dom.on(node1, { focusin: cb, focusout: cb });
+        dom.on(node2, { focusin: cb, focusout: cb });
+
+        dom.focus(node1);
+        expect(cb).toBeCalledTimes(1);
+        expect(cb.mock.results[0].value).toBe(node1);
+
+        cb.mockClear();
+        dom.focus(node2);
+        expect(cb).toBeCalledTimes(2);
+        expect(cb.mock.results[0].value).toBe(node1); // focusout of node1
+        expect(cb.mock.results[1].value).toBe(node2); // focusin of node2
+    });
 });
 
 describe('click event', () => {

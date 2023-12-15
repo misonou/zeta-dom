@@ -266,7 +266,6 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
         elements = grep(elements, function (v) {
             return setAdd(focusElements, v);
         });
-        triggerFocusEvent('focusin', elements.reverse(), null, source);
     }
     if (path === focusPath && !suppressFocus) {
         var activeElement = any(focusPath, function (v) {
@@ -279,6 +278,7 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
         }
         setTimeoutOnce(updateTabRoot);
     }
+    triggerFocusEvent('focusin', elements.reverse(), null, source);
 }
 
 function removeFocusUnsafe(path, element, source, relatedTarget, suppressFocus) {
