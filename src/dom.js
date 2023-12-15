@@ -623,14 +623,15 @@ domReady.then(function () {
     }
 
     function triggerUIEvent(eventName, data, preventNative, point, target) {
+        var originalEvent = currentEvent;
         var handled = emitDOMEvent(eventName, target || focusPath[0], data, {
             clientX: (point || '').clientX,
             clientY: (point || '').clientY,
             bubbles: true,
-            originalEvent: currentEvent
+            originalEvent: originalEvent
         });
         if (handled && preventNative) {
-            currentEvent.preventDefault();
+            originalEvent.preventDefault();
         }
         return handled;
     }

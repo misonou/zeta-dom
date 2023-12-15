@@ -670,6 +670,23 @@ describe('textInputAllowed', () => {
     });
 });
 
+describe('UI event', () => {
+    it('should be call preventDefault on associated native event when handled', async () => {
+        const { node } = initBody(`
+            <div id="node"></div>
+        `);
+        const cb = mockFn(e => {
+            node.dispatchEvent(new MouseEvent('contextmenu', { cancelable: true, bubbles: true }));
+            return true;
+        });
+        dom.on(node, 'click', cb);
+
+        const result = node.dispatchEvent(new MouseEvent('click', { cancelable: true, bubbles: true }));
+        expect(cb).toBeCalledTimes(1);
+        expect(result).toBe(false);
+    });
+});
+
 describe('focus event', () => {
     it('is not handleable', () => {
         const { node1, node2 } = initBody(`
