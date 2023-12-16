@@ -164,6 +164,17 @@ export function bind<T extends EventTarget>(element: T, event: DOMEventHandlers<
  */
 export function bind<T extends EventTarget, K extends Zeta.HintedString<Zeta.DOMEventsOf<T>>>(element: T, event: K, listener: DOMEventHandler<T, Zeta.WhitespaceDelimited<K>>, useCapture?: boolean | AddEventListenerOptions): Zeta.UnregisterCallback;
 
+/**
+ * Attaches event listener that would be automatically removed when invoked.
+ * If `event` specifies multiple event types, the listener will be removed from all event types once it is invoked.
+ * @param element The Window object, DOM element, or any object that supports events.
+ * @param event A whitespace-separated list of event names.
+ * @param listener Function to be called when the specified event(s) is/are dispatched.
+ * @param useCapture Optionally set the event listeners to be triggered in capture phase.
+ * @returns A callback that unregistered the event listeners.
+ */
+export function bindOnce<T extends EventTarget, K extends Zeta.HintedString<Zeta.DOMEventsOf<T>>>(element: T, event: K, listener: DOMEventHandler<T, Zeta.WhitespaceDelimited<K>>, useCapture?: boolean | AddEventListenerOptions): Zeta.UnregisterCallback;
+
 export function bindUntil<T extends EventTarget>(promise: PromiseLike<any>, element: T, event: DOMEventHandlers<T>, useCapture?: boolean | AddEventListenerOptions): void;
 
 export function bindUntil<T extends EventTarget, K extends Zeta.HintedString<Zeta.DOMEventsOf<T>>>(promise: PromiseLike<any>, element: T, event: K, listener: DOMEventHandler<T, Zeta.WhitespaceDelimited<K>>, useCapture?: boolean | AddEventListenerOptions): void;

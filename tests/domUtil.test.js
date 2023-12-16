@@ -1,4 +1,4 @@
-import { acceptNode, bind, bindUntil, combineNodeFilters, comparePosition, createNodeIterator, createTreeWalker, dispatchDOMMouseEvent, elementFromPoint, getClass, getCommonAncestor, getContentRect, getRect, getScrollOffset, getScrollParent, isVisible, iterateNode, iterateNodeToArray, matchSelector, mergeRect, parentsAndSelf, pointInRect, rectCovers, rectEquals, rectIntersects, removeNode, scrollBy, scrollIntoView, selectClosestRelative, selectIncludeSelf, setClass, toPlainRect } from "../src/domUtil";
+import { acceptNode, bind, bindOnce, bindUntil, combineNodeFilters, comparePosition, createNodeIterator, createTreeWalker, dispatchDOMMouseEvent, elementFromPoint, getClass, getCommonAncestor, getContentRect, getRect, getScrollOffset, getScrollParent, isVisible, iterateNode, iterateNodeToArray, matchSelector, mergeRect, parentsAndSelf, pointInRect, rectCovers, rectEquals, rectIntersects, removeNode, scrollBy, scrollIntoView, selectClosestRelative, selectIncludeSelf, setClass, toPlainRect } from "../src/domUtil";
 import { bindEvent, body, delay, initBody, mockFn, root, verifyCalls, _ } from "./testUtil";
 import { jest } from "@jest/globals";
 
@@ -459,6 +459,27 @@ describe('bind', () => {
             [objectContaining({ type: 'customEvent2' })],
         ]);
         unbind();
+    });
+});
+
+describe('bindOnce', () => {
+    it('should remove event listener when callback is invoked', () => {
+        const cb = mockFn();
+        bindOnce(body, 'customEvent1 customEvent2', cb);
+        body.dispatchEvent(new CustomEvent('customEvent1'));
+        body.dispatchEvent(new CustomEvent('customEvent2'));
+        verifyCalls(cb, [
+            [objectContaining({ type: 'customEvent1' })],
+        ]);
+    });
+
+    it('should return a callback which remove the event listener', () => {
+        const cb = mockFn();
+        const unbind = bind(body, 'customEvent1 customEvent2', cb);
+        unbind();
+        body.dispatchEvent(new CustomEvent('customEvent1'));
+        body.dispatchEvent(new CustomEvent('customEvent2'));
+        expect(cb).not.toBeCalled();
     });
 });
 

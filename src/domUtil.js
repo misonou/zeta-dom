@@ -272,6 +272,14 @@ function bind(element, event, listener, useCapture) {
     });
 }
 
+function bindOnce(element, event, listener, useCapture) {
+    var unbind = bind(element, event, function () {
+        unbind();
+        return listener.apply(this, arguments);
+    }, useCapture);
+    return unbind;
+}
+
 function bindUntil(promise, element, event, listener, useCapture) {
     always(promise, bind(element, event, listener, useCapture));
 }
@@ -650,6 +658,7 @@ export {
     createTreeWalker,
 
     bind,
+    bindOnce,
     bindUntil,
     dispatchDOMMouseEvent,
 
