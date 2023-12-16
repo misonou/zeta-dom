@@ -3,7 +3,7 @@ import dom, { focusable, releaseModal, setModal, textInputAllowed } from "../src
 import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
-import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent } from "./testUtil";
+import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent, fireEventAsTrusted } from "./testUtil";
 import { delay, makeArray } from "../src/util";
 
 async function type(elm, keystroke) {
@@ -831,6 +831,27 @@ describe('click event', () => {
             cancelable: true
         }));
         expect(cb).not.toBeCalled();
+    });
+
+    it('should focus target only when event is trusted', async () => {
+        const { node } = initBody(`
+            <div id="node"></div>
+        `);
+        node.dispatchEvent(new MouseEvent('click', {
+            clientX: 0,
+            clientY: 0,
+            bubbles: true,
+            cancelable: true
+        }));
+        expect(dom.activeElement).toBe(body);
+
+        fireEventAsTrusted(node, new MouseEvent('click', {
+            clientX: 0,
+            clientY: 0,
+            bubbles: true,
+            cancelable: true
+        }));
+        expect(dom.activeElement).toBe(node);
     });
 });
 

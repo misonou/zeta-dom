@@ -894,7 +894,9 @@ domReady.then(function () {
         },
         click: function (e) {
             if (!preventClick) {
-                setFocus(e.target);
+                if (e.isTrusted !== false) {
+                    setFocus(e.target);
+                }
                 triggerMouseEvent(getEventName(e, 'click'));
             }
             preventClick = false;
