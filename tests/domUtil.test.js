@@ -438,6 +438,12 @@ describe('bind', () => {
         unbind();
         body.dispatchEvent(new CustomEvent('customEvent'));
         expect(cb).not.toBeCalled();
+
+        // unbind only be effective exactly once
+        bind(body, 'customEvent', cb);
+        unbind();
+        body.dispatchEvent(new CustomEvent('customEvent'));
+        expect(cb).toBeCalledTimes(1);
     });
 
     it('should add multiple event listeners when given a dictionary', () => {

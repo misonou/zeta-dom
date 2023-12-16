@@ -1,4 +1,4 @@
-import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep, freeze, isArray, matchWordMulti } from "./util.js";
+import { any, is, isFunction, isPlainObject, each, map, definePrototype, kv, noop, always, matchWord, makeArray, grep, freeze, isArray, matchWordMulti, executeOnce } from "./util.js";
 import $ from "./include/jquery.js";
 import { window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { emitDOMEvent } from "./events.js";
@@ -267,13 +267,9 @@ function addOrRemoveEventListener(method, element, event, listener, useCapture) 
 
 function bind(element, event, listener, useCapture) {
     addOrRemoveEventListener('addEventListener', element, event, listener, useCapture);
-    return function () {
-        unbind(element, event, listener);
-    };
-}
-
-function unbind(element, event, listener) {
-    addOrRemoveEventListener('removeEventListener', element, event, listener);
+    return executeOnce(function () {
+        addOrRemoveEventListener('removeEventListener', element, event, listener);
+    });
 }
 
 function bindUntil(promise, element, event, listener, useCapture) {
