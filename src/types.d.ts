@@ -133,8 +133,8 @@ declare namespace Zeta {
         keyof XMLHttpRequestEventTargetEventMap;
 
     type DOMEventIDLProp<K extends string, E extends Event> = { [P in `on${K}`]: ((ev: E) => any) | null };
-    type DOMEventType<T extends EventTarget, K extends string> = T extends DOMEventIDLProp<K, infer E> ? E : never;
-    type DOMEventsOf<T extends EventTarget> = ({ [K in DOMEventNames]: T extends DOMEventIDLProp<K, any> ? K : never })[DOMEventNames];
+    type DOMEventType<T extends EventTarget, K extends string> = ({ [P in K]: T extends DOMEventIDLProp<P, infer E> ? E : Event })[K];
+    type DOMEventsOf<T extends EventTarget> = ({ [P in keyof T]: EventListener extends T[P] ? P extends `on${infer E}` ? E : never : never })[keyof T];
 
     type BoxSide = 'left' | 'top' | 'right' | 'bottom';
     type BoxCorner = 'left bottom' | 'left top' | 'right bottom' | 'right top';
