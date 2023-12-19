@@ -6,7 +6,7 @@ import $ from "./include/jquery.js";
 import { always, any, combineFn, each, errorWithCode, extend, fill, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, elementFromPoint, getContentRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, tagName, toPlainRect } from "./domUtil.js";
 import { getEventContext, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
-import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
+import { lock, cancelLock, locked, notifyAsync, preventLeave, runAsync, subscribeAsync } from "./domLock.js";
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
 
 const SELECTOR_FOCUSABLE = 'input,select,button,textarea,[contenteditable],a[href],area[href],iframe';
@@ -1077,6 +1077,7 @@ export default {
     cancelLock,
     subscribeAsync,
     notifyAsync,
+    runAsync,
     preventLeave,
 
     observe,

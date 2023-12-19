@@ -191,6 +191,13 @@ declare namespace Zeta {
         waitFor(...args: Promise<any>[]): boolean;
     }
 
+    interface RunAsyncContext {
+        /**
+         * Gets a signal object that get notified when operation has been cancelled.
+         */
+        readonly signal: AbortSignal;
+    }
+
     interface PrivateStore<K extends object, V> {
         (obj: K): V;
         (obj: K, value: V): V;

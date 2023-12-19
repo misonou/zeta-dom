@@ -1,7 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
-import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, isFunction, makeArray, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, isFunction, makeArray, makeAsync, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd } from "./util.js";
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent, listenDOMEvent } from "./events.js";
 import { createAutoCleanupMap } from "./observe.js";
@@ -44,15 +44,16 @@ function clearLock(element, map) {
     }
 }
 
-function handlePromise(promise, element, oncancel) {
+function handlePromise(source, element, oncancel, sendAsync) {
     var cancel;
-    promise = new Promise(function (resolve, reject) {
+    var promise = new Promise(function (resolve, reject) {
         cancel = executeOnce(function () {
-            reject(muteAndReturn(errorWithCode(ErrorCode.cancelled)));
-            (oncancel || noop)();
+            var error = muteAndReturn(errorWithCode(ErrorCode.cancelled));
+            reject(error);
+            (oncancel || noop)(error);
         });
-        promise.then(resolve, reject);
-        promise.catch(function (error) {
+        source.then(resolve, reject);
+        source.catch(function (error) {
             // avoid firing error event for the same error for multiple target
             // while propagating through the promise chain
             if (error && (typeof error !== 'object' || setAdd(handledErrors, error))) {
@@ -60,6 +61,26 @@ function handlePromise(promise, element, oncancel) {
             }
         });
     });
+    if (sendAsync) {
+        subscribeAsync(element);
+        each(iterateFocusPath(element), function (i, v) {
+            var promises = subscribers.get(v);
+            if (promises) {
+                // ensure oncancel is called when cancelLock is called
+                ensureLock(v);
+                always(promise, function () {
+                    if (promises.delete(promise) && !promises.size) {
+                        emitDOMEvent('asyncEnd', v);
+                    }
+                });
+                promises.set(promise, cancel);
+                if (promises.size === 1) {
+                    emitDOMEvent('asyncStart', v);
+                }
+                return !promises.handled;
+            }
+        });
+    }
     return extend(promise, { cancel });
 }
 
@@ -100,25 +121,19 @@ function subscribeAsync(element, callback) {
 }
 
 function notifyAsync(element, promise, oncancel) {
-    promise = handlePromise(promise, element, oncancel);
-    subscribeAsync(element);
-    each(iterateFocusPath(element), function (i, v) {
-        var promises = subscribers.get(v);
-        if (promises) {
-            // ensure oncancel is called when cancelLock is called
-            ensureLock(v);
-            always(promise, function () {
-                if (promises.delete(promise) && !promises.size) {
-                    emitDOMEvent('asyncEnd', v);
-                }
-            });
-            promises.set(promise, promise.cancel);
-            if (promises.size === 1) {
-                emitDOMEvent('asyncStart', v);
-            }
-            return !promises.handled;
+    handlePromise(promise, element, oncancel, true);
+}
+
+function runAsync(element, callback) {
+    var controller = { abort: noop };
+    var promise = makeAsync(callback)({
+        get signal() {
+            return controller.signal || (controller = new AbortController()).signal;
         }
     });
+    return handlePromise(promise, element, function (error) {
+        controller.abort(error);
+    }, true);
 }
 
 function preventLeave(element, promise, oncancel) {
@@ -171,5 +186,6 @@ export {
     cancelLock,
     subscribeAsync,
     notifyAsync,
+    runAsync,
     preventLeave
 };

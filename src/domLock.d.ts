@@ -79,7 +79,15 @@ export declare function cancelLock(element: Element, force?: boolean): Promise<v
  * @param promise A promise which resolves or rejects when operation is completed.
  * @param oncancel An optional callback to be called when the operation is being cancelled.
  */
-export declare function notifyAsync(element: Element, promise: Promise<any>, oncancel?: () => any): void;
+export declare function notifyAsync(element: Element, promise: Promise<any>, oncancel?: (error: Error) => any): void;
+
+/**
+ * Associates an asynchronous operation with the specified element.
+ * @param element A DOM element.
+ * @param callback A callback that perform asynchronous operation.
+ * @returns A promise which forwards result returned from callback.
+ */
+export declare function runAsync<T>(element: Element, callback: (context: Zeta.RunAsyncContext) => T): Promise<Awaited<T>>;
 
 /**
  * Enables listening of `asyncStart` and `asyncEnd` events that is triggered by descedant elements.

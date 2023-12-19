@@ -1,6 +1,6 @@
 import { after, body, delay, initBody, mockFn, root, verifyCalls, _, cleanup } from "./testUtil";
-import { cancelLock, lock, locked, notifyAsync, preventLeave, subscribeAsync } from "../src/domLock";
-import { catchAsync, combineFn, noop } from "../src/util";
+import { cancelLock, lock, locked, notifyAsync, preventLeave, runAsync, subscribeAsync } from "../src/domLock";
+import { catchAsync, combineFn, noop, throws } from "../src/util";
 import { removeNode } from "../src/domUtil";
 import dom from "../src/dom";
 import * as ErrorCode from '../src/errorCode';
@@ -329,6 +329,105 @@ describe('notifyAsync', () => {
         var promise = delay();
         notifyAsync(div, promise, cb);
 
+        await promise;
+        await after(() => cancelLock(div));
+        expect(cb).not.toBeCalled();
+    });
+});
+
+describe('runAsync', () => {
+    it('should not lock element', async () => {
+        const promise = delay();
+        runAsync(body, () => promise);
+        expect(locked(body)).toBe(false);
+        await promise;
+        expect(locked(body)).toBe(false);
+    });
+
+    it('should return result from callback', async () => {
+        await expect(runAsync(root, () => 42)).resolves.toBe(42);
+    });
+
+    it('should reject when error is thrown from callback', async () => {
+        const error = new Error();
+        await expect(runAsync(root, () => throws(error))).rejects.toBe(error);
+    });
+
+    it('should reject when cancelLock is called', async () => {
+        const promise = runAsync(root, () => delay(10).then(() => 42));
+        cancelLock(root);
+        await expect(promise).rejects.toBeErrorWithCode(ErrorCode.cancelled);
+    });
+
+    it('should emit error event when given promise rejects', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        cleanup(
+            dom.on(div, 'error', cb),
+            dom.on(root, 'error', cb)
+        );
+        const error = new Error('dummy');
+        runAsync(div, () => Promise.reject(error));
+
+        await delay();
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: div, error }), _],
+            [objectContaining({ currentTarget: root, error }), _]
+        ]);
+    });
+
+    it('should not emit error event when operation is cancelled', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const promise = runAsync(root, () => delay(10).then(() => 42));
+        const cb = mockFn();
+        cleanup(dom.on('error', cb));
+
+        cancelLock(div);
+        await expect(promise).resolves.toBe(42);
+        expect(cb).not.toBeCalled();
+    });
+
+    it('should send abort signal when cancelLock is called', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        runAsync(div, ({ signal }) => {
+            signal.addEventListener('abort', cb);
+            return new Promise(noop);
+        });
+        await after(() => cancelLock(div));
+        expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should not send abort signal when cancelLock is rejected', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        catchAsync(lock(div, new Promise(noop)));
+        runAsync(div, ({ signal }) => {
+            signal.addEventListener('abort', cb);
+            return new Promise(noop);
+        });
+        await expect(cancelLock(div)).rejects.toBeErrorWithCode(ErrorCode.cancellationRejected);
+        expect(cb).not.toBeCalled();
+    });
+
+    it('should not send abort signal when promise settled before cancellation', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const promise = delay();
+        runAsync(div, ({ signal }) => {
+            signal.addEventListener('abort', cb);
+            return promise;
+        });
         await promise;
         await after(() => cancelLock(div));
         expect(cb).not.toBeCalled();
