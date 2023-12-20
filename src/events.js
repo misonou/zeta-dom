@@ -243,23 +243,21 @@ definePrototype(ZetaEventEmitter, {
 
 function emitterGetElements(emitter, bubbles) {
     var target = emitter.target;
-    if (!is(target, Node)) {
-        return bubbles ? parentsAndSelf(target) : [target];
+    if (!bubbles) {
+        return [target];
     }
-    var originalEvent = emitter.originalEvent;
+    if (!is(target, Node)) {
+        return parentsAndSelf(target);
+    }
     var focusedElements = dom.focusedElements;
     var index = focusedElements.indexOf(target);
-    if (!originalEvent || originalEvent !== dom.event || index < 0) {
-        return bubbles ? iterateFocusPath(target) : [target];
+    var targets = index < 0 || !emitter.originalEvent ? iterateFocusPath(target) : focusedElements.slice(index);
+    if (emitter.clientX !== undefined) {
+        return grep(targets, function (v) {
+            return containsOrEquals(v, target);
+        });
     }
-    var targets = focusedElements.slice(index);
-    if (emitter.clientX === undefined || !document.elementFromPoint) {
-        return targets;
-    }
-    var element = document.elementFromPoint(emitter.clientX, emitter.clientY) || root;
-    return grep(targets, function (v) {
-        return containsOrEquals(v, element);
-    });
+    return targets;
 }
 
 function emitterIterateTargets(emitter, container, elements, bubbles) {

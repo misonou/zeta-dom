@@ -6,6 +6,10 @@ import { combineFn } from "../src/util";
 
 const { objectContaining } = expect;
 
+beforeAll(async () => {
+    await domReady;
+});
+
 describe('ZetaEventContainer.event', () => {
     it('should return current event emitted from this container', () => {
         const container = new ZetaEventContainer();
@@ -600,7 +604,6 @@ describe('ZetaEvent.currentTarget', () => {
 
 describe('ZetaEvent.preventDefault', () => {
     it('should forward preventDefault to native events', async () => {
-        await domReady;
         const event = new MouseEvent('mousedown', {
             button: 1,
             buttons: 1,
@@ -619,7 +622,6 @@ describe('ZetaEvent.preventDefault', () => {
 
 describe('ZetaEvent.source', () => {
     it('should return mouse in mousedown event', async () => {
-        await domReady;
         const { node1, node2 } = initBody(`
             <div id="node1"></div>
             <div id="node2"></div>
@@ -639,7 +641,6 @@ describe('ZetaEvent.source', () => {
     });
 
     it('should return touch in touchstart event', async () => {
-        await domReady;
         const { node1, node2 } = initBody(`
             <div id="node1"></div>
             <div id="node2"></div>
@@ -695,7 +696,6 @@ describe('getEventContext', () => {
 
 describe('emitDOMEvent', () => {
     it('should dispatch custom event to modally locked element', async () => {
-        await domReady;
         const cb = mockFn();
         const { modal, child } = initBody(`
             <div id="modal">
@@ -709,6 +709,14 @@ describe('emitDOMEvent', () => {
             dom.on(modal, 'custom', cb),
             dom.on(child, 'custom', cb),
         );
+        dom.emit('custom', modal, null, true);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'custom' }), modal],
+            [objectContaining({ type: 'custom' }), body],
+            [objectContaining({ type: 'custom' }), root],
+        ]);
+
+        cb.mockClear();
         dom.emit('custom', child, null, true);
         verifyCalls(cb, [
             [objectContaining({ type: 'custom' }), child],
@@ -720,7 +728,6 @@ describe('emitDOMEvent', () => {
     });
 
     it('should dispatch custom event to element from which focus can be delegated', async () => {
-        await domReady;
         const cb = mockFn();
         const { modal, child1, child2 } = initBody(`
             <div id="modal">
@@ -745,5 +752,107 @@ describe('emitDOMEvent', () => {
             [objectContaining({ type: 'custom' }), root],
         ]);
         unregister();
+    });
+
+    it('should dispatch pointer event to target and its parents', async () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1"></div>
+            <div id="node2"></div>
+        `);
+        dom.retainFocus(node1, node2);
+        dom.focus(node1);
+        dom.focus(node2);
+        expect(dom.focusedElements).toEqual([node2, node1, body, root]);
+
+        const cb = mockFn();
+        bindEvent(root, 'click', cb);
+        bindEvent(body, 'click', cb);
+        bindEvent(node1, 'click', cb);
+        bindEvent(node2, 'click', cb);
+
+        node2.dispatchEvent(new MouseEvent('click', {
+            clientX: 0,
+            clientY: 0,
+            bubbles: true,
+            cancelable: true
+        }));
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: node2 }), node2],
+            [objectContaining({ currentTarget: body }), body],
+            [objectContaining({ currentTarget: root }), root],
+        ]);
+
+        cb.mockClear();
+        dom.focus(body);
+        expect(dom.focusedElements).toEqual([body, root]);
+
+        node2.dispatchEvent(new MouseEvent('click', {
+            clientX: 0,
+            clientY: 0,
+            bubbles: true,
+            cancelable: true
+        }));
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: node2 }), node2],
+            [objectContaining({ currentTarget: body }), body],
+            [objectContaining({ currentTarget: root }), root],
+        ]);
+    });
+
+    it('should dispatch pointer event to target and its parents when target is not in focus', async () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1"></div>
+            <div id="node2"></div>
+        `);
+        dom.retainFocus(node1, node2);
+        dom.focus(body);
+        expect(dom.focusedElements).toEqual([body, root]);
+
+        const cb = mockFn();
+        bindEvent(root, 'click', cb);
+        bindEvent(body, 'click', cb);
+        bindEvent(node1, 'click', cb);
+        bindEvent(node2, 'click', cb);
+
+        node2.dispatchEvent(new MouseEvent('click', {
+            clientX: 0,
+            clientY: 0,
+            bubbles: true,
+            cancelable: true
+        }));
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: node2 }), node2],
+            [objectContaining({ currentTarget: body }), body],
+            [objectContaining({ currentTarget: root }), root],
+        ]);
+    });
+
+    it('should dispatch pointer event to only focusable elements', async () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1">
+                <div id="node2"></div>
+            </div>
+        `);
+        dom.retainFocus(node1, node2);
+        dom.focus(node1);
+        dom.setModal(node2);
+        expect(dom.focusedElements).toEqual([node2, root]);
+
+        const cb = mockFn();
+        bindEvent(root, 'click', cb);
+        bindEvent(body, 'click', cb);
+        bindEvent(node1, 'click', cb);
+        bindEvent(node2, 'click', cb);
+
+        node2.dispatchEvent(new MouseEvent('click', {
+            clientX: 0,
+            clientY: 0,
+            bubbles: true,
+            cancelable: true
+        }));
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: node2 }), node2],
+            [objectContaining({ currentTarget: root }), root],
+        ]);
     });
 });
