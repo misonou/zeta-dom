@@ -3,7 +3,6 @@ import $ from "./include/jquery.js";
 import { window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { emitDOMEvent } from "./events.js";
 
-// @ts-ignore: non-standard member
 const elementsFromPoint = document.msElementsFromPoint || document.elementsFromPoint;
 const compareDocumentPositionImpl = document.compareDocumentPosition;
 const visualViewport = window.visualViewport;
@@ -67,15 +66,12 @@ definePrototype(Rect, {
         var dy = t + b + h;
         if (dx < 0) {
             l -= (dx * l / (l + r)) | 0;
-            // @ts-ignore: type inference issue
             r = -(l + w);
         }
         if (dy < 0) {
             t -= (dy * t / (t + b)) | 0;
-            // @ts-ignore: type inference issue
             b = -(t + h);
         }
-        // @ts-ignore: type inference issue
         return toPlainRect(self.left - l, self.top - t, self.right + r, self.bottom + b);
     }
 });
@@ -239,12 +235,10 @@ function selectClosestRelative(selector, container) {
 }
 
 function createNodeIterator(root, whatToShow, filter) {
-    // @ts-ignore: assume filter is of correct signature
     return document.createNodeIterator(root, whatToShow, isFunction(filter) || null, false);
 }
 
 function createTreeWalker(root, whatToShow, filter) {
-    // @ts-ignore: assume filter is of correct signature
     return document.createTreeWalker(root, whatToShow, isFunction(filter) || null, false);
 }
 

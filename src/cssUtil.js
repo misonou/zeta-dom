@@ -158,7 +158,6 @@ function runCSSTransition(element, className, callback) {
     return new Promise(function (resolve, reject) {
         var unbind = bind(element, 'animationend transitionend', function (e) {
             var dict = map.get(e.target) || {};
-            // @ts-ignore: mixed type of Event
             delete dict[(e.propertyName ? removeVendorPrefix(e.propertyName) : '@' + e.animationName) + (e.pseudoElement || '')];
             if (!keys(dict)[0] && map.delete(e.target) && !map.size) {
                 unbind();

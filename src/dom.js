@@ -152,7 +152,6 @@ function getModalElement() {
 }
 
 function focused(element, strict) {
-    // @ts-ignore: activeElement is not null
     return element === window ? !windowFocusedOut : focusElements.has(element) && (!strict || containsOrEquals(element, document.activeElement));
 }
 
@@ -600,7 +599,6 @@ domReady.then(function () {
         }
         if ('selectionEnd' in element) {
             imeNode = element;
-            // @ts-ignore: guranteed having selectionEnd property
             imeOffset = [element.selectionStart, element.selectionEnd];
             imeNodeText = inputValueImpl(element, 'get');
         } else {
@@ -612,7 +610,6 @@ domReady.then(function () {
                 var child = imeNode.childNodes[imeOffset[1] - 1];
                 if (child && child.nodeType === 3) {
                     imeNode = child;
-                    // @ts-ignore: child is Text
                     imeOffset = [child.length, child.length];
                 } else {
                     imeNode = imeNode.childNodes[imeOffset[1]];
@@ -954,15 +951,11 @@ domReady.then(function () {
         // prevent scrolling if interaction on such element should be blocked by modal element
         var deltaX = -e.deltaX;
         var deltaY = -e.deltaY;
-        // @ts-ignore: e.target is Element
         for (var cur = e.target; cur && cur !== root; cur = cur.parentNode) {
-            // @ts-ignore: e.target is Element
             var style = getComputedStyle(cur);
-            // @ts-ignore: e.target is Element
             if (cur.scrollWidth > cur.offsetWidth && matchWord(style.overflowX, 'auto scroll') && ((deltaX > 0 && cur.scrollLeft > 0) || (deltaX < 0 && cur.scrollLeft + cur.offsetWidth < cur.scrollWidth))) {
                 break;
             }
-            // @ts-ignore: e.target is Element
             if (cur.scrollHeight > cur.offsetHeight && matchWord(style.overflowY, 'auto scroll') && ((deltaY > 0 && cur.scrollTop > 0) || (deltaY < 0 && cur.scrollTop + cur.offsetHeight < cur.scrollHeight))) {
                 break;
             }

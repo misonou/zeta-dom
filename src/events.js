@@ -443,7 +443,6 @@ definePrototype(ZetaEventContainer, {
     emit: function (eventName, target, data, bubbles) {
         var options = normalizeEventOptions(bubbles);
         var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, this, target, data, options);
-        // @ts-ignore: type inference issue
         return emitter.emit(this, null, target, options.bubbles);
     },
     emitAsync: function (eventName, target, data, bubbles, mergeData) {

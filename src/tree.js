@@ -298,10 +298,8 @@ function updateTree(tree) {
         if (!connected || sNode.version !== newVersion) {
             var updated = false;
             if (traversable) {
-                // @ts-ignore: boolean arithmetics
                 updated |= updatedNodes.length !== updatedNodes.push.apply(updatedNodes, reorderTraversableChildNodes(sNode));
             }
-            // @ts-ignore: boolean arithmetics
             updated |= (connected ? insertNode : removeNode)(sNode);
             sNode.version = newVersion;
             if (updated) {
@@ -578,9 +576,7 @@ definePrototype(TreeWalker, {
         return treeWalkerTraverseChildren(this, 'lastChild', 'previousSibling');
     },
     parentNode: function () {
-        // @ts-ignore: type inference issue
         for (var node = this.currentNode; node && node !== this.root; node = node.parentNode) {
-            // @ts-ignore: type inference issue
             var parentNode = node.parentNode;
             if (treeWalkerNodeAccepted(this, parentNode, true)) {
                 return parentNode;
@@ -591,23 +587,18 @@ definePrototype(TreeWalker, {
     previousNode: function () {
         var self = this;
         for (var node = self.currentNode; node && node !== self.root;) {
-            // @ts-ignore: type inference issue
             for (var sibling = node.previousSibling; sibling; sibling = node.previousSibling) {
                 node = sibling;
                 var rv = treeWalkerAcceptNode(self, sibling);
-                // @ts-ignore: type inference issue
                 while (rv !== 2 && treeWalkerIsNodeVisible(self, node.firstChild)) {
-                    // @ts-ignore: type inference issue
                     node = node.lastChild;
                     rv = treeWalkerAcceptNode(self, node, true);
                 }
                 if (rv === 1) {
-                    // @ts-ignore: type inference issue
                     self.currentNode = node;
                     return node;
                 }
             }
-            // @ts-ignore: type inference issue
             node = treeWalkerIsNodeVisible(self, node.parentNode);
             if (!node || node === self.root) {
                 return null;
@@ -622,24 +613,19 @@ definePrototype(TreeWalker, {
         var self = this;
         var rv = 1;
         for (var node = self.currentNode; node;) {
-            // @ts-ignore: type inference issue
             while (rv !== 2 && node.firstChild) {
-                // @ts-ignore: type inference issue
                 node = node.firstChild;
                 if (treeWalkerNodeAccepted(self, node, true)) {
                     return node;
                 }
                 rv = treeWalkerAcceptNode.$1;
             }
-            // @ts-ignore: type inference issue
             while (node && node !== self.root && !node.nextSibling) {
-                // @ts-ignore: type inference issue
                 node = treeWalkerIsNodeVisible(self, node.parentNode);
             }
             if (!node || node === self.root) {
                 return null;
             }
-            // @ts-ignore: type inference issue
             node = node.nextSibling;
             if (treeWalkerNodeAccepted(self, node, true)) {
                 return node;

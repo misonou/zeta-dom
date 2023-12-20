@@ -172,7 +172,6 @@ function each(obj, callback) {
                 }
             });
         } else {
-            // @ts-ignore: i is unused elsewhere thus can be assigned string
             for (i in obj) {
                 if (callback(i, obj[i]) === false) {
                     return;
