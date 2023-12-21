@@ -21,6 +21,7 @@ const shortcuts = {};
 const metaKeys = {
     alt: true,
     ctrl: true,
+    meta: true,
     shift: true
 };
 

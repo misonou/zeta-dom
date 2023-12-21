@@ -58,8 +58,8 @@ export const KEYNAMES = {
     88: 'x',
     89: 'y',
     90: 'z',
-    91: 'leftWindow',
-    92: 'rightWindowKey',
+    91: 'meta',
+    92: 'meta',
     93: 'select',
     96: 'numpad0',
     97: 'numpad1',
@@ -100,7 +100,9 @@ export const KEYNAMES = {
     219: 'openBracket',
     220: 'backSlash',
     221: 'closeBracket',
-    222: 'singleQuote'
+    222: 'singleQuote',
+    MetaLeft: 'meta',
+    MetaRight: 'meta'
 };
 
 '1234567890'.split('').forEach(function (v) {
