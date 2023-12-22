@@ -648,17 +648,18 @@ domReady.then(function () {
 
     function triggerMouseEvent(eventName, event) {
         event = event || currentEvent;
+        var target = event.target;
         var data = {
-            target: event.target,
+            target: target,
             metakey: getEventName(event) || ''
         };
-        return triggerUIEvent(eventName, data, true, event, data.target);
+        return focusable(target) && triggerUIEvent(eventName, data, true, event, target);
     }
 
     function triggerGestureEvent(gesture) {
         var target = mouseInitialPoint.target;
         mouseInitialPoint = null;
-        return triggerUIEvent('gesture', gesture, true, null, target);
+        return focusable(target) && triggerUIEvent('gesture', gesture, true, null, target);
     }
 
     function handleUIEventWrapper(type, callback) {

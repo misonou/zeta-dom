@@ -781,6 +781,27 @@ describe('click event', () => {
             clientY: 10
         }), _);
     });
+
+    it('should not be emitted when target is not focusable', async () => {
+        const { node } = initBody(`
+            <div id="node"></div>
+        `);
+        dom.setModal(node);
+        expect(dom.focusedElements).toEqual([node, root]);
+
+        const cb = mockFn();
+        bindEvent(root, 'click', cb);
+        bindEvent(body, 'click', cb);
+        bindEvent(node, 'click', cb);
+
+        body.dispatchEvent(new MouseEvent('click', {
+            clientX: 0,
+            clientY: 0,
+            bubbles: true,
+            cancelable: true
+        }));
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('keystroke event', () => {
