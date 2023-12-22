@@ -685,6 +685,22 @@ describe('UI event', () => {
         expect(cb).toBeCalledTimes(1);
         expect(result).toBe(false);
     });
+
+    it('should be emitted to correct target after previously active element is detached', async () => {
+        const { node } = initBody(`
+            <div id="node"></div>
+        `);
+        const cb = mockFn();
+        bindEvent(body, 'keystroke', cb);
+        bindEvent(node, 'keystroke', cb);
+        dom.focus(node);
+        removeNode(node);
+
+        type(body, 'a');
+        verifyCalls(cb, [
+            [objectContaining({ type: 'keystroke' }), body]
+        ]);
+    });
 });
 
 describe('focus event', () => {
