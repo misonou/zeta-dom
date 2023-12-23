@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.13 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.4.14 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -141,6 +141,7 @@ __webpack_require__.r(domUtil_namespaceObject);
 __webpack_require__.d(domUtil_namespaceObject, {
   "acceptNode": function() { return acceptNode; },
   "bind": function() { return bind; },
+  "bindOnce": function() { return bindOnce; },
   "bindUntil": function() { return bindUntil; },
   "combineNodeFilters": function() { return combineNodeFilters; },
   "comparePosition": function() { return comparePosition; },
@@ -417,7 +418,6 @@ function each(obj, callback) {
         }
       });
     } else {
-      // @ts-ignore: i is unused elsewhere thus can be assigned string
       for (i in obj) {
         if (callback(i, obj[i]) === false) {
           return;
@@ -1471,8 +1471,8 @@ var KEYNAMES = {
   88: 'x',
   89: 'y',
   90: 'z',
-  91: 'leftWindow',
-  92: 'rightWindowKey',
+  91: 'meta',
+  92: 'meta',
   93: 'select',
   96: 'numpad0',
   97: 'numpad1',
@@ -1513,7 +1513,9 @@ var KEYNAMES = {
   219: 'openBracket',
   220: 'backSlash',
   221: 'closeBracket',
-  222: 'singleQuote'
+  222: 'singleQuote',
+  MetaLeft: 'meta',
+  MetaRight: 'meta'
 };
 '1234567890'.split('').forEach(function (v) {
   KEYNAMES['Digit' + v] = v;
@@ -1820,6 +1822,7 @@ var shortcuts = {};
 var metaKeys = {
   alt: true,
   ctrl: true,
+  meta: true,
   shift: true
 };
 var windowFocusedOut;
@@ -1956,7 +1959,6 @@ function getModalElement() {
 }
 
 function focused(element, strict) {
-  // @ts-ignore: activeElement is not null
   return element === env_window ? !windowFocusedOut : focusElements.has(element) && (!strict || containsOrEquals(element, env_document.activeElement));
 }
 
@@ -2083,7 +2085,6 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
     elements = grep(elements, function (v) {
       return setAdd(focusElements, v);
     });
-    triggerFocusEvent('focusin', elements.reverse(), null, source);
   }
 
   if (path === focusPath && !suppressFocus) {
@@ -2099,6 +2100,8 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
 
     setTimeoutOnce(updateTabRoot);
   }
+
+  triggerFocusEvent('focusin', elements.reverse(), null, source);
 }
 
 function removeFocusUnsafe(path, element, source, relatedTarget, suppressFocus) {
@@ -2461,8 +2464,7 @@ domReady.then(function () {
     }
 
     if ('selectionEnd' in element) {
-      imeNode = element; // @ts-ignore: guranteed having selectionEnd property
-
+      imeNode = element;
       imeOffset = [element.selectionStart, element.selectionEnd];
       imeNodeText = inputValueImpl(element, 'get');
     } else {
@@ -2475,8 +2477,7 @@ domReady.then(function () {
         var child = imeNode.childNodes[imeOffset[1] - 1];
 
         if (child && child.nodeType === 3) {
-          imeNode = child; // @ts-ignore: child is Text
-
+          imeNode = child;
           imeOffset = [child.length, child.length];
         } else {
           imeNode = imeNode.childNodes[imeOffset[1]];
@@ -2489,15 +2490,16 @@ domReady.then(function () {
   }
 
   function triggerUIEvent(eventName, data, preventNative, point, target) {
-    var handled = emitDOMEvent(eventName, target || focusPath[0], data, {
+    var originalEvent = currentEvent;
+    var handled = emitDOMEvent(eventName, target || getActiveElement(), data, {
       clientX: (point || '').clientX,
       clientY: (point || '').clientY,
       bubbles: true,
-      originalEvent: currentEvent
+      originalEvent: originalEvent
     });
 
     if (handled && preventNative) {
-      currentEvent.preventDefault();
+      originalEvent.preventDefault();
     }
 
     return handled;
@@ -2514,17 +2516,18 @@ domReady.then(function () {
 
   function triggerMouseEvent(eventName, event) {
     event = event || currentEvent;
+    var target = event.target;
     var data = {
-      target: event.target,
+      target: target,
       metakey: getEventName(event) || ''
     };
-    return triggerUIEvent(eventName, data, true, event, data.target);
+    return focusable(target) && triggerUIEvent(eventName, data, true, event, target);
   }
 
   function triggerGestureEvent(gesture) {
     var target = mouseInitialPoint.target;
     mouseInitialPoint = null;
-    return triggerUIEvent('gesture', gesture, true, null, target);
+    return focusable(target) && triggerUIEvent('gesture', gesture, true, null, target);
   }
 
   function handleUIEventWrapper(type, callback) {
@@ -2857,16 +2860,14 @@ domReady.then(function () {
 
 
     var deltaX = -e.deltaX;
-    var deltaY = -e.deltaY; // @ts-ignore: e.target is Element
+    var deltaY = -e.deltaY;
 
     for (var cur = e.target; cur && cur !== root; cur = cur.parentNode) {
-      // @ts-ignore: e.target is Element
-      var style = getComputedStyle(cur); // @ts-ignore: e.target is Element
+      var style = getComputedStyle(cur);
 
       if (cur.scrollWidth > cur.offsetWidth && matchWord(style.overflowX, 'auto scroll') && (deltaX > 0 && cur.scrollLeft > 0 || deltaX < 0 && cur.scrollLeft + cur.offsetWidth < cur.scrollWidth)) {
         break;
-      } // @ts-ignore: e.target is Element
-
+      }
 
       if (cur.scrollHeight > cur.offsetHeight && matchWord(style.overflowY, 'auto scroll') && (deltaY > 0 && cur.scrollTop > 0 || deltaY < 0 && cur.scrollTop + cur.offsetHeight < cur.scrollHeight)) {
         break;
@@ -3255,28 +3256,25 @@ definePrototype(ZetaEventEmitter, {
 function emitterGetElements(emitter, bubbles) {
   var target = emitter.target;
 
-  if (!is(target, Node)) {
-    return bubbles ? parentsAndSelf(target) : [target];
+  if (!bubbles) {
+    return [target];
   }
 
-  var originalEvent = emitter.originalEvent;
+  if (!is(target, Node)) {
+    return parentsAndSelf(target);
+  }
+
   var focusedElements = dom.focusedElements;
   var index = focusedElements.indexOf(target);
+  var targets = index < 0 || !emitter.originalEvent ? iterateFocusPath(target) : focusedElements.slice(index);
 
-  if (!originalEvent || originalEvent !== dom.event || index < 0) {
-    return bubbles ? iterateFocusPath(target) : [target];
+  if (emitter.clientX !== undefined) {
+    return grep(targets, function (v) {
+      return containsOrEquals(v, target);
+    });
   }
 
-  var targets = focusedElements.slice(index);
-
-  if (emitter.clientX === undefined || !document.elementFromPoint) {
-    return targets;
-  }
-
-  var element = document.elementFromPoint(emitter.clientX, emitter.clientY) || root;
-  return grep(targets, function (v) {
-    return containsOrEquals(v, element);
-  });
+  return targets;
 }
 
 function emitterIterateTargets(emitter, container, elements, bubbles) {
@@ -3492,8 +3490,7 @@ definePrototype(ZetaEventContainer, {
   },
   emit: function emit(eventName, target, data, bubbles) {
     var options = normalizeEventOptions(bubbles);
-    var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, this, target, data, options); // @ts-ignore: type inference issue
-
+    var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, this, target, data, options);
     return emitter.emit(this, null, target, options.bubbles);
   },
   emitAsync: function emitAsync(eventName, target, data, bubbles, mergeData) {
@@ -3558,7 +3555,6 @@ function containerRemoveHandler(container, target, key) {
 
 
 
- // @ts-ignore: non-standard member
 
 var elementsFromPoint = env_document.msElementsFromPoint || env_document.elementsFromPoint;
 var compareDocumentPositionImpl = env_document.compareDocumentPosition;
@@ -3630,17 +3626,14 @@ definePrototype(Rect, {
     var dy = t + b + h;
 
     if (dx < 0) {
-      l -= dx * l / (l + r) | 0; // @ts-ignore: type inference issue
-
+      l -= dx * l / (l + r) | 0;
       r = -(l + w);
     }
 
     if (dy < 0) {
-      t -= dy * t / (t + b) | 0; // @ts-ignore: type inference issue
-
+      t -= dy * t / (t + b) | 0;
       b = -(t + h);
-    } // @ts-ignore: type inference issue
-
+    }
 
     return toPlainRect(self.left - l, self.top - t, self.right + r, self.bottom + b);
   }
@@ -3837,12 +3830,10 @@ function selectClosestRelative(selector, container) {
 }
 
 function createNodeIterator(root, whatToShow, filter) {
-  // @ts-ignore: assume filter is of correct signature
   return env_document.createNodeIterator(root, whatToShow, isFunction(filter) || null, false);
 }
 
 function createTreeWalker(root, whatToShow, filter) {
-  // @ts-ignore: assume filter is of correct signature
   return env_document.createTreeWalker(root, whatToShow, isFunction(filter) || null, false);
 }
 /* --------------------------------------
@@ -3864,13 +3855,17 @@ function addOrRemoveEventListener(method, element, event, listener, useCapture) 
 
 function bind(element, event, listener, useCapture) {
   addOrRemoveEventListener('addEventListener', element, event, listener, useCapture);
-  return function () {
-    unbind(element, event, listener);
-  };
+  return executeOnce(function () {
+    addOrRemoveEventListener('removeEventListener', element, event, listener);
+  });
 }
 
-function unbind(element, event, listener) {
-  addOrRemoveEventListener('removeEventListener', element, event, listener);
+function bindOnce(element, event, listener, useCapture) {
+  var unbind = bind(element, event, function () {
+    unbind();
+    return listener.apply(this, arguments);
+  }, useCapture);
+  return unbind;
 }
 
 function bindUntil(promise, element, event, listener, useCapture) {
@@ -4477,8 +4472,7 @@ function runCSSTransition(element, className, callback) {
 
   return new promise_polyfill(function (resolve, reject) {
     var unbind = bind(element, 'animationend transitionend', function (e) {
-      var dict = map.get(e.target) || {}; // @ts-ignore: mixed type of Event
-
+      var dict = map.get(e.target) || {};
       delete dict[(e.propertyName ? removeVendorPrefix(e.propertyName) : '@' + e.animationName) + (e.pseudoElement || '')];
 
       if (!keys(dict)[0] && map.delete(e.target) && !map.size) {
@@ -4853,10 +4847,8 @@ function updateTree(tree) {
       var updated = false;
 
       if (traversable) {
-        // @ts-ignore: boolean arithmetics
         updated |= updatedNodes.length !== updatedNodes.push.apply(updatedNodes, reorderTraversableChildNodes(sNode));
-      } // @ts-ignore: boolean arithmetics
-
+      }
 
       updated |= (connected ? insertNode : tree_removeNode)(sNode);
       sNode.version = newVersion;
@@ -5188,9 +5180,7 @@ definePrototype(TreeWalker, {
     return treeWalkerTraverseChildren(this, 'lastChild', 'previousSibling');
   },
   parentNode: function parentNode() {
-    // @ts-ignore: type inference issue
     for (var node = this.currentNode; node && node !== this.root; node = node.parentNode) {
-      // @ts-ignore: type inference issue
       var parentNode = node.parentNode;
 
       if (treeWalkerNodeAccepted(this, parentNode, true)) {
@@ -5204,24 +5194,20 @@ definePrototype(TreeWalker, {
     var self = this;
 
     for (var node = self.currentNode; node && node !== self.root;) {
-      // @ts-ignore: type inference issue
       for (var sibling = node.previousSibling; sibling; sibling = node.previousSibling) {
         node = sibling;
-        var rv = treeWalkerAcceptNode(self, sibling); // @ts-ignore: type inference issue
+        var rv = treeWalkerAcceptNode(self, sibling);
 
         while (rv !== 2 && treeWalkerIsNodeVisible(self, node.firstChild)) {
-          // @ts-ignore: type inference issue
           node = node.lastChild;
           rv = treeWalkerAcceptNode(self, node, true);
         }
 
         if (rv === 1) {
-          // @ts-ignore: type inference issue
           self.currentNode = node;
           return node;
         }
-      } // @ts-ignore: type inference issue
-
+      }
 
       node = treeWalkerIsNodeVisible(self, node.parentNode);
 
@@ -5241,9 +5227,7 @@ definePrototype(TreeWalker, {
     var rv = 1;
 
     for (var node = self.currentNode; node;) {
-      // @ts-ignore: type inference issue
       while (rv !== 2 && node.firstChild) {
-        // @ts-ignore: type inference issue
         node = node.firstChild;
 
         if (treeWalkerNodeAccepted(self, node, true)) {
@@ -5251,18 +5235,15 @@ definePrototype(TreeWalker, {
         }
 
         rv = treeWalkerAcceptNode.$1;
-      } // @ts-ignore: type inference issue
-
+      }
 
       while (node && node !== self.root && !node.nextSibling) {
-        // @ts-ignore: type inference issue
         node = treeWalkerIsNodeVisible(self, node.parentNode);
       }
 
       if (!node || node === self.root) {
         return null;
-      } // @ts-ignore: type inference issue
-
+      }
 
       node = node.nextSibling;
 
