@@ -758,6 +758,7 @@ domReady.then(function () {
                 afterOffset += imeText.length;
             }
             prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
+            hasCompositionUpdate = false;
 
             setTextData(imeNode, prevNodeText, startOffset);
             if (!triggerUIEvent('textInput', imeText, false)) {
@@ -765,7 +766,6 @@ domReady.then(function () {
                 dispatchInputEvent(e.target, imeText);
             }
             imeNode = null;
-            hasCompositionUpdate = false;
             setTimeout(function () {
                 imeText = null;
             });
@@ -828,6 +828,11 @@ domReady.then(function () {
                     case 'deleteContentForward':
                         return triggerKeystrokeEvent('delete', '');
                 }
+            }
+        },
+        input: function (e) {
+            if (!hasCompositionUpdate && e.inputType) {
+                triggerUIEvent('input');
             }
         },
         touchstart: function (e) {

@@ -61,7 +61,7 @@ function getEventSourceName() {
     }
     var event = dom.event || window.event;
     var type = (event && event.type) || '';
-    if (type === 'beforeinput') {
+    if (type === 'beforeinput' || type === 'input') {
         return beforeInputType[event.inputType] || 'keyboard';
     }
     if (type === 'mousemove') {

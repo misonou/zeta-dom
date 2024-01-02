@@ -334,6 +334,7 @@ declare namespace Zeta {
         keystroke: ZetaKeystrokeEvent<T>;
         gesture: ZetaGestureEvent<T>;
         textInput: ZetaTextInputEvent<T>;
+        input: ZetaInputEvent<T>;
         error: ZetaErrorEvent;
         scrollBy: ZetaScrollByEvent<T>;
         getContentRect: ZetaGetContentRectEvent<T>;
@@ -528,6 +529,9 @@ declare namespace Zeta {
 
     interface ZetaTextInputEvent<T = Element> extends ZetaNativeUIEvent<T, KeyboardEvent | CompositionEvent | InputEvent> {
         readonly data: string;
+    }
+
+    interface ZetaInputEvent<T = Element> extends ZetaNativeUIEvent<T, InputEvent> {
     }
 
     interface ZetaScrollByEvent<T = Element> extends ZetaHandleableEvent<{ x: number, y: number } | false>, ZetaEventContextBase<T> {
