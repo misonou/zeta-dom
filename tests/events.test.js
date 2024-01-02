@@ -753,7 +753,6 @@ describe('emitDOMEvent', () => {
         dom.emit('custom', modal, null, true);
         verifyCalls(cb, [
             [objectContaining({ type: 'custom' }), modal],
-            [objectContaining({ type: 'custom' }), body],
             [objectContaining({ type: 'custom' }), root],
         ]);
 
@@ -762,7 +761,6 @@ describe('emitDOMEvent', () => {
         verifyCalls(cb, [
             [objectContaining({ type: 'custom' }), child],
             [objectContaining({ type: 'custom' }), modal],
-            [objectContaining({ type: 'custom' }), body],
             [objectContaining({ type: 'custom' }), root],
         ]);
         unregister();

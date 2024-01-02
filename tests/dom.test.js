@@ -1,10 +1,10 @@
 import syn from "syn";
-import dom, { focusable, releaseModal, setModal, textInputAllowed } from "../src/dom";
+import dom, { focusable, iterateFocusPath, releaseModal, setModal, textInputAllowed } from "../src/dom";
 import { bind, removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
 import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent, cleanup, fireEventAsTrusted } from "./testUtil";
-import { delay, makeArray } from "../src/util";
+import { delay, makeArray, map, pipe } from "../src/util";
 
 async function type(elm, keystroke) {
     await after(() => {
@@ -559,6 +559,33 @@ describe('retainFocus', () => {
         dom.retainFocus(modal, other);
         dom.focus(other);
         expect(dom.activeElement).toEqual(other);
+    });
+});
+
+describe('iterateFocusPath', () => {
+    it('should return correct path', () => {
+        const { modal1, modal2, child1, child2, friend, other } = initBody(`
+            <div id="modal1">
+                <div id="child1"></div>
+                <div id="modal2">
+                    <div id="child2"></div>
+                </div>
+            </div>
+            <div id="friend"></div>
+            <div id="other"></div>
+        `);
+        dom.setModal(modal1);
+        dom.focus(child1);
+        dom.setModal(modal2);
+        dom.retainFocus(child2, friend);
+        expect(dom.focusedElements).toEqual([modal2, root]);
+
+        expect(map(iterateFocusPath(root), pipe)).toEqual([root]);
+        expect(map(iterateFocusPath(body), pipe)).toEqual([body, root]);
+        expect(map(iterateFocusPath(other), pipe)).toEqual([other, body, root]);
+        expect(map(iterateFocusPath(child1), pipe)).toEqual([child1, modal1, root]);
+        expect(map(iterateFocusPath(child2), pipe)).toEqual([child2, modal2, root]);
+        expect(map(iterateFocusPath(friend), pipe)).toEqual([friend, child2, modal2, root]);
     });
 });
 

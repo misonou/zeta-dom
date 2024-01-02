@@ -188,6 +188,10 @@ export function retainFocus(source: Element, target: Element): void;
  */
 export function releaseFocus(target: Element): void;
 
+/**
+ * Iterates ancestor elements following focus delegation.
+ * @param element A DOM element to start from.
+ */
 export function iterateFocusPath(element: Element): Iterator<Element>;
 
 export function getShortcut(key: string): string[];

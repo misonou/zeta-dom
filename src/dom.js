@@ -106,18 +106,6 @@ function normalizeKey(e) {
     };
 }
 
-function createIterator(callback) {
-    return {
-        next: function () {
-            var value = callback();
-            return {
-                value: value,
-                done: !value
-            };
-        }
-    };
-}
-
 function inputValueImpl(element, method, value) {
     // React defines its own getter and setter on input elements
     var desc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), 'value');
@@ -396,40 +384,40 @@ function releaseFocus(b) {
 }
 
 function iterateFocusPath(element) {
-    var returnedOnce;
-    if (element === root || !focused(element)) {
-        var visited = new Set();
-        return createIterator(function () {
-            if (!returnedOnce || !element) {
-                returnedOnce = true;
-            } else {
-                var friend = focusFriends.get(element);
-                // make sure the next iterated element in connected in DOM and
-                // not being the descendants of current element
-                element = friend && !visited.has(friend) && containsOrEquals(root, friend) && !containsOrEquals(element, friend) ? friend : element.parentNode;
-            }
-            visited.add(element);
-            return element;
-        });
+    var index = focusPath.indexOf(element);
+    if (index >= 0) {
+        return focusPath.slice(index).values();
     }
-    var elements = focusPath.slice(0);
+    var path = focusPath.slice(0);
+    var visited = new Set();
+    var returnedOnce;
     var next = function () {
-        var cur = elements.shift();
-        var modalPath = modalElements.get(cur);
-        if (modalPath) {
-            elements.unshift.apply(elements, modalPath);
-        }
-        return cur;
-    };
-    return createIterator(function () {
-        var cur = next();
-        if (!returnedOnce) {
-            for (; cur !== element; cur = next());
+        if (!returnedOnce || !element) {
             returnedOnce = true;
+        } else if (!focusElements.has(element)) {
+            var friend = focusFriends.get(element);
+            // make sure the next iterated element in connected in DOM and
+            // not being the descendants of current element
+            element = friend && !visited.has(friend) && containsOrEquals(root, friend) && !containsOrEquals(element, friend) ? friend : element.parentNode;
+        } else {
+            while (path[0] && element !== path[0]) {
+                path.splice(0, path.findIndex(function (v) {
+                    return v === element || modalElements.has(v);
+                }));
+                if (element !== path[0]) {
+                    path.unshift.apply(path, modalElements.get(path.shift()));
+                }
+            }
+            path.shift();
+            element = path[0];
         }
-        element = cur;
-        return element;
-    });
+        visited.add(element);
+        return {
+            done: !element,
+            value: element
+        };
+    };
+    return { next };
 }
 
 
