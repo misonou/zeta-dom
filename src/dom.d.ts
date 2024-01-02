@@ -45,6 +45,12 @@ declare const dom: typeof lock & typeof observe & typeof events & typeof methods
     readonly metaKey: '' | Zeta.KeyNameModifier;
 
     /**
+     * Gets the currently pressed key, prefixed by {@link dom.metaKey} when meta keys like `Ctrl` or `Shift` is also pressed.
+     * Empty string is returned if there are no keys being pressed.
+     */
+    readonly pressedKey: string;
+
+    /**
      * Gets the active component registered through event container.
      * @see Zeta.ZetaEventContainer<T>
      */
@@ -69,6 +75,11 @@ declare const dom: typeof lock & typeof observe & typeof events & typeof methods
      * Gets the type of user interaction that triggers the current event.
      */
     readonly eventSource: Zeta.ZetaEventSourceName;
+
+    /**
+     * Gets the elements that are receiving current user interaction.
+     */
+    readonly eventSourcePath: Element[];
 
     /**
      * Gets the root element of the document, usually the `<html>` element.

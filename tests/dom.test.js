@@ -1,9 +1,9 @@
 import syn from "syn";
 import dom, { focusable, releaseModal, setModal, textInputAllowed } from "../src/dom";
-import { removeNode } from "../src/domUtil";
+import { bind, removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
-import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent, fireEventAsTrusted } from "./testUtil";
+import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent, cleanup, fireEventAsTrusted } from "./testUtil";
 import { delay, makeArray } from "../src/util";
 
 async function type(elm, keystroke) {
@@ -700,6 +700,58 @@ describe('textInputAllowed', () => {
     });
 });
 
+describe('eventSource', () => {
+    it('should return script by default', () => {
+        expect(dom.eventSource).toBe('script');
+    });
+
+    it('should return script in manually dispatched event', async () => {
+        bindEvent(body, 'mousedown', () => expect(dom.eventSource).toBe('script'));
+        body.dispatchEvent(new MouseEvent('mousedown', {
+            button: 1,
+            buttons: 1,
+            bubbles: true,
+            cancelable: true
+        }));
+        expect.assertions(1);
+    });
+
+    it('should be determined by trusted event', async () => {
+        bindEvent(body, 'mousedown', () => expect(dom.eventSource).toBe('mouse'));
+        bindEvent(body, 'touchstart', () => expect(dom.eventSource).toBe('mouse'));
+        bindEvent(body, 'mousedown', () => {
+            body.dispatchEvent(new TouchEvent('touchstart', {
+                touches: [{ clientX: 0, clientY: 0, identifier: 1, target: body }],
+                bubbles: true,
+                cancelable: true
+            }));
+        });
+        fireEventAsTrusted(body, new MouseEvent('mousedown', {
+            button: 1,
+            buttons: 1,
+            bubbles: true,
+            cancelable: true
+        }));
+        expect.assertions(2);
+    });
+});
+
+describe('pressedKey', () => {
+    it('should return pressed key combination', async () => {
+        const cb = mockFn();
+        cleanup(bind(root, 'keydown keypress keyup', e => cb(e.type, dom.pressedKey), { capture: true }));
+
+        await fireEventAsTrusted(() => type(body, '[ctrl]a[ctrl-up]'));
+        verifyCalls(cb, [
+            ['keydown', 'ctrl'],
+            ['keydown', 'ctrlA'],
+            ['keypress', 'ctrlA'],
+            ['keyup', 'ctrl'],
+            ['keyup', ''],
+        ]);
+    });
+});
+
 describe('UI event', () => {
     it('should be call preventDefault on associated native event when handled', async () => {
         const { node } = initBody(`
@@ -865,6 +917,7 @@ describe('keystroke event', () => {
         const cb = mockFn();
         dom.on(node1, { keystroke: cb, ctrlA: cb });
         dom.on(node2, { keystroke: cb, ctrlA: cb });
+        dom.focus(node2);
 
         await type(node2, '[ctrl]a[ctrl-up]');
         verifyCalls(cb, [

@@ -1,9 +1,9 @@
 import $ from "./include/jquery.js";
-import { window, root } from "./env.js";
+import { root } from "./env.js";
 import { arrRemove, createPrivateStore, definePrototype, each, executeOnce, extend, grep, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, makeArray, map, mapGet, mapRemove, matchWord, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { registerCleanup } from "./observe.js";
-import dom, { textInputAllowed, getShortcut, iterateFocusPath, focusable } from "./dom.js";
+import dom, { textInputAllowed, getShortcut, iterateFocusPath } from "./dom.js";
 
 const _ = createPrivateStore();
 const containers = new WeakMap();
@@ -11,12 +11,6 @@ const domEventTrap = new ZetaEventContainer();
 const domContainer = new ZetaEventContainer();
 const asyncEventData = new Map();
 const asyncEvents = [];
-
-const beforeInputType = {
-    insertFromDrop: 'drop',
-    insertFromPaste: 'paste',
-    deleteByCut: 'cut'
-};
 
 export var eventSource;
 export var lastEventSource;
@@ -26,57 +20,21 @@ export var lastEventSource;
  * Helper functions
  * -------------------------------------- */
 
-function ZetaEventSource(target, path) {
-    var self = this;
-    var source = getEventSourceName();
-    if (!path) {
-        if (eventSource) {
-            path = eventSource.path;
-        } else if (source === 'mouse' || source === 'touch') {
-            path = grep(parentsAndSelf(target), focusable);
-        } else {
-            path = dom.focusedElements;
-        }
-    }
-    self.path = path;
-    self.source = !target || containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0 ? source : 'script';
-    self.sourceKeyName = self.source !== 'keyboard' ? null : (eventSource || lastEventSource || '').sourceKeyName;
+function ZetaEventSource() {
+    this.path = dom.eventSourcePath;
+    this.source = dom.eventSource;
+    this.sourceKeyName = dom.pressedKey || null;
 }
 
-function setLastEventSource(source) {
-    lastEventSource = new ZetaEventSource(source);
+function setLastEventSource() {
 }
 
 function prepEventSource(promise) {
     return resolve(promise);
 }
 
-function getEventSource(element) {
-    return element ? new ZetaEventSource(element).source : getEventSourceName();
-}
-
-function getEventSourceName() {
-    if (eventSource) {
-        return eventSource.source;
-    }
-    var event = dom.event || window.event;
-    var type = (event && event.type) || '';
-    if (type === 'beforeinput' || type === 'input') {
-        return beforeInputType[event.inputType] || 'keyboard';
-    }
-    if (type === 'mousemove') {
-        return event.button || event.buttons ? 'mouse' : 'script';
-    }
-    if (/^(touch|mouse)./.test(type)) {
-        return RegExp.$1;
-    }
-    if (/^(?:key.|composition.|textInput$)/.test(type)) {
-        return 'keyboard';
-    }
-    if (matchWord(type, 'wheel click dblclick contextmenu')) {
-        return 'mouse'
-    }
-    return matchWord(type, 'drop cut copy paste') || 'script';
+function getEventSource() {
+    return dom.eventSource;
 }
 
 function getContainerForElement(element) {
@@ -288,11 +246,9 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         return true;
     }
     var sourceContainer = component.container;
-    var prevEventSource = eventSource;
     var handlers = component.handlers[handlerName || eventName];
     var handled;
     if (handlers) {
-        eventSource = emitter.source;
         emitter.current.unshift({ eventName, data });
         handled = single(handlers, function (v, i) {
             var context = component.contexts[i];
@@ -319,7 +275,6 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
             return emitter.handled;
         });
         emitter.current.shift();
-        eventSource = prevEventSource;
     }
     if (!handled && !emitter.current[0] && eventName === 'keystroke') {
         if (data.char && textInputAllowed(emitter.element)) {

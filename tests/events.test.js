@@ -1,4 +1,4 @@
-import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent } from "./testUtil";
+import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent, fireEventAsTrusted, delay } from "./testUtil";
 import { emitDOMEvent, getEventContext, listenDOMEvent, ZetaEventContainer } from "../src/events";
 import { domReady } from "../src/env";
 import dom from "../src/dom";
@@ -8,6 +8,10 @@ const { objectContaining } = expect;
 
 beforeAll(async () => {
     await domReady;
+});
+
+afterEach(async () => {
+    await delay();
 });
 
 describe('ZetaEventContainer.event', () => {
@@ -634,7 +638,7 @@ describe('ZetaEvent.source', () => {
         const cb = mockFn();
         dom.focus(node1);
         bindEvent(body, 'mousedown', cb);
-        node2.dispatchEvent(event);
+        fireEventAsTrusted(node2, event);
         verifyCalls(cb, [
             [objectContaining({ source: 'mouse', target: node2 }), _]
         ]);
@@ -652,9 +656,46 @@ describe('ZetaEvent.source', () => {
         const cb = mockFn();
         dom.focus(node1);
         bindEvent(body, 'touchstart', cb);
-        node2.dispatchEvent(event);
+        fireEventAsTrusted(node2, event);
         verifyCalls(cb, [
             [objectContaining({ source: 'touch', target: node2 }), _]
+        ]);
+    });
+
+    it('should return script in manually dispatched event', async () => {
+        const cb = mockFn();
+        bindEvent(body, 'mousedown', cb);
+        body.dispatchEvent(new MouseEvent('mousedown', {
+            button: 1,
+            buttons: 1,
+            bubbles: true,
+            cancelable: true
+        }));
+        verifyCalls(cb, [
+            [objectContaining({ source: 'script', target: body }), _]
+        ]);
+    });
+
+    it('should be determined by trusted event', async () => {
+        const cb = mockFn();
+        bindEvent(body, 'mousedown', cb);
+        bindEvent(body, 'touchstart', cb);
+        bindEvent(body, 'mousedown', () => {
+            body.dispatchEvent(new TouchEvent('touchstart', {
+                touches: [{ clientX: 0, clientY: 0, identifier: 1, target: body }],
+                bubbles: true,
+                cancelable: true
+            }));
+        });
+        fireEventAsTrusted(body, new MouseEvent('mousedown', {
+            button: 1,
+            buttons: 1,
+            bubbles: true,
+            cancelable: true
+        }));
+        verifyCalls(cb, [
+            [objectContaining({ source: 'mouse', type: 'mousedown' }), _],
+            [objectContaining({ source: 'mouse', type: 'touchstart' }), _],
         ]);
     });
 });

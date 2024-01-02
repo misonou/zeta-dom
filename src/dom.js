@@ -3,9 +3,9 @@ import { IS_MAC, window, document, root, getSelection, getComputedStyle, domRead
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, errorWithCode, extend, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, reject, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, extend, fill, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, elementFromPoint, getContentRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, tagName, toPlainRect } from "./domUtil.js";
-import { ZetaEventSource, lastEventSource, getEventContext, setLastEventSource, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
+import { getEventContext, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, subscribeAsync } from "./domLock.js";
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
 
@@ -24,14 +24,42 @@ const metaKeys = {
     meta: true,
     shift: true
 };
+const beforeInputType = {
+    insertFromDrop: 'drop',
+    insertFromPaste: 'paste',
+    deleteByCut: 'cut'
+};
+const sourceDict = {
+    cut: 'cut',
+    copy: 'copy',
+    drop: 'drop',
+    paste: 'paste',
+    wheel: 'mouse'
+};
 
 var windowFocusedOut;
-var currentEvent;
+var currentEvent = null;
+var currentKeyName = '';
 var currentMetaKey = '';
 var currentTabRoot = root;
+var eventSource;
+var trustedEvent;
 var trackPromise;
 var trackCallbacks;
+var touchedClick;
 
+fill(sourceDict, 'touchstart touchend touchmove', 'touch');
+fill(sourceDict, 'compositionstart compositionupdate compositionend keydown keyup keypress', 'keyboard');
+fill(sourceDict, 'beforeinput input textInput', function (e) {
+    return beforeInputType[e.inputType] || eventSource || 'input';
+});
+fill(sourceDict, 'pointerdown', function (e) {
+    touchedClick = e.pointerType !== 'mouse';
+    return touchedClick ? 'touch' : 'mouse';
+});
+fill(sourceDict, 'mousedown mouseup mousemove click contextmenu dblclick', function (e) {
+    return touchedClick ? 'touch' : e.type !== 'mousemove' || e.button || e.buttons ? 'mouse' : 'script';
+});
 
 /* --------------------------------------
  * Helper functions
@@ -261,7 +289,6 @@ function setFocus(element, source, suppressFocusChange) {
 
 function setFocusUnsafe(path, elements, source, suppressFocus) {
     if (elements[0]) {
-        source = source || new ZetaEventSource(elements[0], path);
         path.unshift.apply(path, elements);
         elements = grep(elements, function (v) {
             return setAdd(focusElements, v);
@@ -573,6 +600,7 @@ function insertText(element, text, startOffset, endOffset) {
 }
 
 domReady.then(function () {
+    var eventTimeout;
     var modifierCount;
     var modifiedKeyCode;
     var mouseInitialPoint;
@@ -585,6 +613,11 @@ domReady.then(function () {
     var imeNode;
     var imeOffset;
     var imeText;
+
+    function getEventSource(e) {
+        var value = sourceDict[e.type];
+        return value && (typeof value === 'string' ? value : value(e));
+    }
 
     function getEventName(e, suffix) {
         var mod = ((e.ctrlKey || e.metaKey) ? 'Ctrl' : '') + (e.altKey ? 'Alt' : '') + (e.shiftKey ? 'Shift' : '');
@@ -639,7 +672,6 @@ domReady.then(function () {
             data: keyName,
             char: char
         };
-        lastEventSource.sourceKeyName = keyName;
         return triggerUIEvent('keystroke', data, true);
     }
 
@@ -655,7 +687,6 @@ domReady.then(function () {
 
     function triggerGestureEvent(gesture) {
         var target = mouseInitialPoint.target;
-        mouseInitialPoint = null;
         return focusable(target) && triggerUIEvent('gesture', gesture, true, null, target);
     }
 
@@ -665,10 +696,17 @@ domReady.then(function () {
         var fireFocusReturn = matchWord(type, 'mousedown touchstart');
         return function (e) {
             currentEvent = e;
-            setTimeout(function () {
-                if (currentEvent === e) {
-                    currentEvent = null;
-                }
+            if (e.isTrusted !== false) {
+                clearTimeout(eventTimeout);
+                trustedEvent = e;
+                eventSource = getEventSource(e);
+                eventTimeout = setTimeout(function () {
+                    eventSource = '';
+                }, 20);
+            }
+            setImmediate(function () {
+                currentEvent = currentEvent === e ? null : currentEvent;
+                trustedEvent = trustedEvent === e ? null : trustedEvent;
             });
             if ('ctrlKey' in e) {
                 var metaKey = getEventName(e, '');
@@ -677,18 +715,14 @@ domReady.then(function () {
                     triggerUIEvent('metakeychange', metaKey, false);
                 }
             }
-            if (!isMoveEvent) {
-                setLastEventSource(null);
-                if (!focusable(e.target)) {
-                    e.stopImmediatePropagation();
-                    if (!isKeyboardEvent) {
-                        e.preventDefault();
-                    }
-                    if (fireFocusReturn) {
-                        emitDOMEvent('focusreturn', focusPath.slice(-2)[0]);
-                    }
+            if (!isMoveEvent && !focusable(e.target)) {
+                e.stopImmediatePropagation();
+                if (!isKeyboardEvent) {
+                    e.preventDefault();
                 }
-                setLastEventSource(e.target);
+                if (fireFocusReturn) {
+                    emitDOMEvent('focusreturn', focusPath.slice(-2)[0]);
+                }
             }
             callback(e);
         };
@@ -768,32 +802,27 @@ domReady.then(function () {
             hasBeforeInput = false;
         },
         keydown: function (e) {
-            if (!imeNode) {
-                var data = normalizeKey(e);
-                modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !data.meta;
-                modifierCount *= !data.meta && (!data.char || modifierCount > 2 || (modifierCount > 1 && !e.shiftKey));
-                modifiedKeyCode = data.key;
-                if (modifierCount) {
-                    triggerKeystrokeEvent(getEventName(e, data.key), '');
-                }
+            var data = normalizeKey(e);
+            modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !data.meta;
+            modifierCount *= !data.meta && (!data.char || modifierCount > 2 || (modifierCount > 1 && !e.shiftKey));
+            modifiedKeyCode = data.meta ? modifiedKeyCode : data.key;
+            currentKeyName = getEventName(e, modifiedKeyCode);
+            if (!imeNode && modifierCount) {
+                triggerKeystrokeEvent(currentKeyName, '');
             }
         },
         keyup: function (e) {
             var data = normalizeKey(e);
-            if (!imeNode && (data.meta || modifiedKeyCode === data.key)) {
+            if (modifiedKeyCode === data.key) {
                 modifiedKeyCode = null;
-                modifierCount--;
             }
-            lastEventSource.sourceKeyName = null;
+            currentKeyName = getEventName(e, modifiedKeyCode || '');
         },
         keypress: function (e) {
-            if (!imeNode) {
-                var data = normalizeKey(e).char;
-                var keyName = getEventName(e, modifiedKeyCode || data);
-                lastEventSource.sourceKeyName = keyName;
-                if (!modifierCount) {
-                    triggerKeystrokeEvent(keyName, data);
-                }
+            var data = normalizeKey(e).char;
+            currentKeyName = getEventName(e, modifiedKeyCode || data);
+            if (!imeNode && !modifierCount) {
+                triggerKeystrokeEvent(currentKeyName, data);
             }
         },
         beforeinput: function (e) {
@@ -802,7 +831,7 @@ domReady.then(function () {
             }
             if (!imeNode && e.cancelable) {
                 hasBeforeInput = true;
-                if (!lastEventSource.sourceKeyName || getEventSource() !== 'keyboard') {
+                if (!currentKeyName || beforeInputType[e.inputType]) {
                     switch (e.inputType) {
                         case 'insertText':
                         case 'insertFromPaste':
@@ -832,30 +861,26 @@ domReady.then(function () {
             triggerMouseEvent('touchstart', mouseInitialPoint);
             if (!e.touches[1]) {
                 pressTimeout = setTimeout(function () {
-                    if (mouseInitialPoint) {
-                        triggerMouseEvent('longPress', mouseInitialPoint);
-                        mouseInitialPoint = null;
-                    }
+                    triggerMouseEvent('longPress', mouseInitialPoint);
+                    mouseInitialPoint = null;
                 }, 1000);
             }
         },
         touchmove: function (e) {
             clearTimeout(pressTimeout);
-            pressTimeout = null;
             if (mouseInitialPoint) {
                 if (!e.touches[1]) {
-                    var point = mouseInitialPoint;
-                    var line = measureLine(e.touches[0], point);
+                    var line = measureLine(e.touches[0], mouseInitialPoint);
                     if (line.length > 5) {
                         var swipeDir = approxMultipleOf(line.deg, 90) && (approxMultipleOf(line.deg, 180) ? (line.dx > 0 ? 'Right' : 'Left') : (line.dy > 0 ? 'Down' : 'Up'));
                         if (!swipeDir || !triggerGestureEvent('swipe' + swipeDir)) {
-                            triggerMouseEvent('drag', point);
+                            triggerMouseEvent('drag', mouseInitialPoint);
                         }
                         mouseInitialPoint = null;
-                        return;
                     }
                 } else if (!e.touches[2]) {
                     triggerGestureEvent('pinchZoom');
+                    mouseInitialPoint = null;
                 }
             }
         },
@@ -901,6 +926,8 @@ domReady.then(function () {
             triggerMouseEvent('dblclick');
         }
     };
+    // required for setup event source by event wrapper
+    fill(uiEvents, 'drop cut copy paste pointerdown mouseup', noop);
 
     each(uiEvents, function (i, v) {
         bind(root, i, handleUIEventWrapper(i, v), { capture: true, passive: false });
@@ -914,7 +941,7 @@ domReady.then(function () {
                 target.blur();
             } else {
                 if (focusPath.indexOf(target) < 0) {
-                    setFocus(target, lastEventSource);
+                    setFocus(target);
                 }
                 scrollIntoView(target, 10);
             }
@@ -929,12 +956,12 @@ domReady.then(function () {
                     // find the first visible element in focusPath to focus
                     var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
                     if (cur) {
-                        setFocus(cur, lastEventSource);
+                        setFocus(cur);
                     }
                 } else if (!currentEvent) {
                     setTimeout(function () {
                         if (!windowFocusedOut && focusPath[0] === e.target) {
-                            setFocus(e.target.parentNode, lastEventSource);
+                            setFocus(e.target.parentNode);
                         }
                     });
                 }
@@ -967,6 +994,8 @@ domReady.then(function () {
     bind(window, 'blur', function (e) {
         if (e.target === window) {
             windowFocusedOut = true;
+            currentKeyName = '';
+            modifiedKeyCode = '';
         }
     });
 
@@ -1007,6 +1036,9 @@ export default {
     get metaKey() {
         return currentMetaKey;
     },
+    get pressedKey() {
+        return currentKeyName;
+    },
     get context() {
         return getEventContext(getActiveElement()).context;
     },
@@ -1021,7 +1053,10 @@ export default {
         return focusPath.slice(0);
     },
     get eventSource() {
-        return getEventSource();
+        return trustedEvent ? eventSource : 'script';
+    },
+    get eventSourcePath() {
+        return !trustedEvent || eventSource === 'keyboard' ? this.focusedElements : grep(parentsAndSelf(trustedEvent.target), focusable);
     },
     root,
     ready: domReady,

@@ -544,11 +544,24 @@ declare namespace Zeta {
     }
 
     class ZetaEventSource {
+        constructor();
+        /**
+         * @deprecated Parameters are no longer used. Use constructor with no arguments instead.
+         */
         constructor(target: Element, path?: Element[]);
 
-        readonly path: string;
+        /**
+         * Gets the elements that are receiving user interaction.
+         */
+        readonly path: readonly Element[];
+        /**
+         * Gets the type of user interaction that triggers the event.
+         */
         readonly source: ZetaEventSourceName;
-        sourceKeyName: string | null;
+        /**
+         * Gets the keystroke that triggers the event, or `null` if the event is not triggered by keyboard.
+         */
+        readonly sourceKeyName: string | null;
     }
 
     interface EventEmitOptions {

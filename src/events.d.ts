@@ -2,14 +2,23 @@
 
 export declare var ZetaEventSource: typeof Zeta.ZetaEventSource;
 export declare var ZetaEventContainer: typeof Zeta.ZetaEventContainer;
+/**
+ * @deprecated
+ */
 export declare var lastEventSource: Zeta.ZetaEventSource;
 
 /**
  * @deprecated
  */
 export declare function prepEventSource<T>(promise: Promise<T>): Promise<T>;
+/**
+ * @deprecated
+ */
 export declare function getEventSource(element?: Element): Zeta.ZetaEventSourceName;
 export declare function getEventContext(element: Element): Zeta.EventContainerOptions<any> & { element: Element; context: any };
+/**
+ * @deprecated
+ */
 export declare function setLastEventSource(element: Element | EventTarget | null): void;
 
 /**
