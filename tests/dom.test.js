@@ -1,5 +1,5 @@
 import syn from "syn";
-import dom, { textInputAllowed } from "../src/dom";
+import dom, { focusable, setModal, textInputAllowed } from "../src/dom";
 import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
@@ -409,6 +409,18 @@ describe('setModal', () => {
 
         expect(dom.setModal(body)).toBe(false);
         expect(dom.focusedElements).toEqual([modal, root]);
+    });
+
+    it('should do no-op and return false when element is root or body', () => {
+        expect(focusable(root)).toBeTruthy();
+        expect(setModal(root)).toBe(false);
+        expect(dom.modalElement).toBeNull();
+        expect(dom.focusedElements).toEqual([body, root]);
+
+        expect(focusable(body)).toBeTruthy();
+        expect(setModal(body)).toBe(false);
+        expect(dom.modalElement).toBeNull();
+        expect(dom.focusedElements).toEqual([body, root]);
     });
 
     it('should emit modalchange event', async () => {

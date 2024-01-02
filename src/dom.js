@@ -298,7 +298,7 @@ function setModal(element) {
     if (modalElements.has(element)) {
         return true;
     }
-    if (!focusable(element)) {
+    if (element === root || element === document.body || !focusable(element)) {
         return false;
     }
     var from = focusPath.indexOf(element) + 1;
