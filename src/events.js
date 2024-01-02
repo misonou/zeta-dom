@@ -1,6 +1,6 @@
 import $ from "./include/jquery.js";
 import { root } from "./env.js";
-import { arrRemove, createPrivateStore, definePrototype, each, executeOnce, extend, grep, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, makeArray, map, mapGet, mapRemove, matchWord, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { arrRemove, createPrivateStore, definePrototype, each, executeOnce, extend, grep, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, makeArray, mapGet, mapRemove, matchWord, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { registerCleanup } from "./observe.js";
 import dom, { textInputAllowed, getShortcut, iterateFocusPath } from "./dom.js";
@@ -112,7 +112,7 @@ function registerAsyncEvent(eventName, container, target, data, options, mergeDa
     if (dict[eventName] && (isFunction(mergeData) || (isUndefinedOrNull(data) && isUndefinedOrNull(dict[eventName].data)))) {
         dict[eventName].data = mergeData && mergeData(dict[eventName].data, data);
     } else {
-        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options, { handleable: false }), true);
+        dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options, { handleable: false }));
         asyncEvents.push(dict[eventName]);
         setImmediateOnce(emitAsyncEvents);
     }
@@ -148,7 +148,7 @@ function emitAsyncEvents(container) {
  * ZetaEventEmitter
  * -------------------------------------- */
 
-function ZetaEventEmitter(eventName, container, target, data, options, async) {
+function ZetaEventEmitter(eventName, container, target, data, options) {
     target = target || container.element;
     var self = this;
     var element = is(target.element, Node) || target;
@@ -171,24 +171,16 @@ function ZetaEventEmitter(eventName, container, target, data, options, async) {
         properties: properties,
         current: [],
     });
-    self.targets = async && map(emitterIterateTargets(self), function (v) {
-        return {
-            container: v.container,
-            target: v.target,
-            contexts: extend({}, v.contexts),
-            handlers: kv(eventName, extend({}, v.handlers[eventName]))
-        };
-    });
 }
 
 definePrototype(ZetaEventEmitter, {
     emit: function (container, eventName, target, bubbles) {
         var self = this;
-        var targets = self.targets;
+        var targets;
         if ((container && container !== self.container) || (target && target !== self.target)) {
             var elements = parentsAndSelf(target || self.target);
             targets = emitterIterateTargets(self, container, elements, bubbles);
-        } else if (!targets) {
+        } else {
             targets = emitterIterateTargets(self);
         }
         var emitting = self.current[0] || self;

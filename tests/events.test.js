@@ -441,7 +441,7 @@ describe('ZetaEventContainer.emitAsync', () => {
         ]);
     });
 
-    it('should fire handlers deleted thereafter', async () => {
+    it('should not fire handlers deleted thereafter', async () => {
         const container = new ZetaEventContainer();
         const target = container.element;
         const cb = mockFn();
@@ -452,9 +452,7 @@ describe('ZetaEventContainer.emitAsync', () => {
             container.delete(target);
             expect(cb).not.toBeCalled();
         });
-        verifyCalls(cb, [
-            [objectContaining({ type: 'asyncEvent', data: null }), _]
-        ]);
+        expect(cb).not.toBeCalled();
     });
 
     it('should emit event as non-handleable', async () => {
