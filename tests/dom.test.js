@@ -1,5 +1,5 @@
 import syn from "syn";
-import dom, { focusable, setModal, textInputAllowed } from "../src/dom";
+import dom, { focusable, releaseModal, setModal, textInputAllowed } from "../src/dom";
 import { removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
@@ -327,6 +327,24 @@ describe('setModal', () => {
         expect(dom.setModal(modal)).toBe(true);
         expect(dom.activeElement).toBe(modal);
         expect(dom.modalElement).toBe(modal);
+    });
+
+    it('should allow setting body\'s immediate child elements as modal element', () => {
+        const { modal1, modal2 } = initBody(`
+            <div id="modal1"></div>
+            <div id="modal2"></div>
+        `);
+        setModal(modal1);
+        expect(dom.modalElement).toBe(modal1);
+
+        expect(focusable(modal2)).toBe(false);
+        expect(setModal(modal2)).toBe(true);
+        expect(dom.modalElement).toBe(modal2);
+        expect(dom.focusedElements).toEqual([modal2, root]);
+
+        releaseModal(modal2);
+        expect(dom.modalElement).toBe(modal1);
+        expect(dom.focusedElements).toEqual([modal2, modal1, root]);
     });
 
     it('should keep modal element and its descendant as focused', () => {
