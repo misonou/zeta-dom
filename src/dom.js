@@ -813,20 +813,19 @@ domReady.then(function () {
             }
             if (!imeNode && e.cancelable) {
                 hasBeforeInput = true;
-                switch (e.inputType) {
-                    case 'insertText':
-                        if (lastEventSource.sourceKeyName) {
-                            return;
-                        }
-                    case 'insertFromPaste':
-                    case 'insertFromDrop':
-                        return triggerUIEvent('textInput', e.data, true);
-                    case 'deleteByCut':
-                    case 'deleteContent':
-                    case 'deleteContentBackward':
-                        return triggerKeystrokeEvent('backspace', '');
-                    case 'deleteContentForward':
-                        return triggerKeystrokeEvent('delete', '');
+                if (!lastEventSource.sourceKeyName || getEventSource() !== 'keyboard') {
+                    switch (e.inputType) {
+                        case 'insertText':
+                        case 'insertFromPaste':
+                        case 'insertFromDrop':
+                            return triggerUIEvent('textInput', e.data, true);
+                        case 'deleteByCut':
+                        case 'deleteContent':
+                        case 'deleteContentBackward':
+                            return triggerKeystrokeEvent('backspace', '');
+                        case 'deleteContentForward':
+                            return triggerKeystrokeEvent('delete', '');
+                    }
                 }
             }
         },
