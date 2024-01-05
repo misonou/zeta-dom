@@ -840,7 +840,7 @@ domReady.then(function () {
             if (!e.touches[1]) {
                 pressTimeout = setTimeout(function () {
                     if (mouseInitialPoint) {
-                        triggerMouseEvent('longPress', e);
+                        triggerMouseEvent('longPress', mouseInitialPoint);
                         mouseInitialPoint = null;
                     }
                 }, 1000);
