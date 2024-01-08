@@ -575,7 +575,7 @@ function deferrable(arr) {
     var resolved;
     var promise = resolve().then(function next() {
         resolved = !arr.length;
-        return resolved ? undefined : always(Promise.allSettled(arr.splice(0)), next);
+        return resolved ? undefined : resolveAll(arr.splice(0).map(catchAsync), next);
     });
     return extend(promise, {
         waitFor: function () {
