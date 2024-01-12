@@ -572,6 +572,24 @@ describe('ZetaEventContainer.flushEvents', () => {
     });
 });
 
+describe('ZetaEventContainer.tap', () => {
+    it('should return callback to unregister handler', () => {
+        const { root } = initBody(`
+            <div id="root"></div<
+        `);
+        const cb = mockFn();
+        const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
+        const unbind = container.tap(cb);
+        emitDOMEvent('custom', root);
+        expect(cb).toBeCalledTimes(1);
+
+        cb.mockClear();
+        unbind();
+        emitDOMEvent('custom', root);
+        expect(cb).not.toBeCalled();
+    });
+});
+
 describe('ZetaEvent.target', () => {
     it('should always be Element when possible', () => {
         /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */

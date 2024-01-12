@@ -762,7 +762,7 @@ declare namespace Zeta {
          * Adds a handler to intercept event being fired within this container.
          * @param handler An event handler.
          */
-        tap(handler: ZetaEventHandler<'tap', {}, ZetaEventContainer>): void;
+        tap(handler: ZetaEventHandler<'tap', {}, ZetaEventContainer>): Zeta.UnregisterCallback;
 
         /**
          * Fire scheduled asynchronous events immediately.

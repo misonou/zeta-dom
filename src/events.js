@@ -326,7 +326,7 @@ function ZetaEventContainer(element, context, options) {
 definePrototype(ZetaEventContainer, {
     event: null,
     tap: function (handler) {
-        domEventTrap.add(this, 'tap', handler);
+        return domEventTrap.add(this, 'tap', handler);
     },
     getContexts: function (element) {
         var state = _(this).components.get(element);
