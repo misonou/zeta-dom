@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.14 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.4.15 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -840,7 +840,7 @@ function deferrable(arr) {
   var resolved;
   var promise = util_resolve().then(function next() {
     resolved = !arr.length;
-    return resolved ? undefined : always(promise_polyfill.allSettled(arr.splice(0)), next);
+    return resolved ? undefined : resolveAll(arr.splice(0).map(catchAsync), next);
   });
   return extend(promise, {
     waitFor: function waitFor() {
@@ -2124,7 +2124,7 @@ function setModal(element) {
     return true;
   }
 
-  if (!focusable(element)) {
+  if (element === root || element === env_document.body || element.parentNode !== env_document.body && !focusable(element)) {
     return false;
   }
 
@@ -2642,6 +2642,7 @@ domReady.then(function () {
       }
 
       prevNodeText = imeNodeText.substr(0, startOffset) + imeNodeText.slice(afterOffset);
+      hasCompositionUpdate = false;
       setTextData(imeNode, prevNodeText, startOffset);
 
       if (!triggerUIEvent('textInput', imeText, false)) {
@@ -2650,7 +2651,6 @@ domReady.then(function () {
       }
 
       imeNode = null;
-      hasCompositionUpdate = false;
       setTimeout(function () {
         imeText = null;
       });
@@ -2705,24 +2705,27 @@ domReady.then(function () {
       if (!imeNode && e.cancelable) {
         hasBeforeInput = true;
 
-        switch (e.inputType) {
-          case 'insertText':
-            if (lastEventSource.sourceKeyName) {
-              return;
-            }
+        if (!lastEventSource.sourceKeyName || getEventSource() !== 'keyboard') {
+          switch (e.inputType) {
+            case 'insertText':
+            case 'insertFromPaste':
+            case 'insertFromDrop':
+              return triggerUIEvent('textInput', e.data, true);
 
-          case 'insertFromPaste':
-          case 'insertFromDrop':
-            return triggerUIEvent('textInput', e.data, true);
+            case 'deleteByCut':
+            case 'deleteContent':
+            case 'deleteContentBackward':
+              return triggerKeystrokeEvent('backspace', '');
 
-          case 'deleteByCut':
-          case 'deleteContent':
-          case 'deleteContentBackward':
-            return triggerKeystrokeEvent('backspace', '');
-
-          case 'deleteContentForward':
-            return triggerKeystrokeEvent('delete', '');
+            case 'deleteContentForward':
+              return triggerKeystrokeEvent('delete', '');
+          }
         }
+      }
+    },
+    input: function input(e) {
+      if (!hasCompositionUpdate && e.inputType) {
+        triggerUIEvent('input');
       }
     },
     touchstart: function touchstart(e) {
@@ -2732,7 +2735,7 @@ domReady.then(function () {
       if (!e.touches[1]) {
         pressTimeout = setTimeout(function () {
           if (mouseInitialPoint) {
-            triggerMouseEvent('longPress', e);
+            triggerMouseEvent('longPress', mouseInitialPoint);
             mouseInitialPoint = null;
           }
         }, 1000);
@@ -3047,7 +3050,7 @@ function getEventSourceName() {
   var event = dom.event || env_window.event;
   var type = event && event.type || '';
 
-  if (type === 'beforeinput') {
+  if (type === 'beforeinput' || type === 'input') {
     return beforeInputType[event.inputType] || 'keyboard';
   }
 
