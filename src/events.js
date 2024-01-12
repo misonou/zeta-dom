@@ -452,12 +452,8 @@ definePrototype(ZetaEventContainer, {
         emitAsyncEvents(this);
     },
     destroy: function () {
-        var self = this;
-        var state = _(self);
-        if (self.captureDOMEvents) {
-            domEventTrap.delete(self);
-        }
-        state.destroyed = true;
+        domEventTrap.delete(this);
+        _(this).destroyed = true;
     }
 });
 
