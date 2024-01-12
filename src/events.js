@@ -154,6 +154,8 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
     var element = is(target.element, Node) || target;
     var source = options.source || new ZetaEventSource(element);
     var properties = {
+        eventName: eventName,
+        target: target,
         source: source.source,
         sourceKeyName: source.sourceKeyName,
         timestamp: performance.now(),
@@ -163,8 +165,6 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
     };
     extend(self, options, properties, {
         container: container,
-        eventName: eventName,
-        target: target,
         element: element,
         source: source,
         data: data,
@@ -193,8 +193,8 @@ definePrototype(ZetaEventEmitter, {
 });
 
 function emitterIterateTargets(emitter, container, target) {
-    if (container !== emitter.container || target !== emitter.target || !is(target, Node)) {
-        return parentsAndSelf(target);
+    if (container !== domContainer || !is(target, Node)) {
+        return container.getEventPath(target, emitter.properties);
     }
     var targets = iterateFocusPath(target);
     if (emitter.clientX !== undefined) {
@@ -327,6 +327,9 @@ definePrototype(ZetaEventContainer, {
     event: null,
     tap: function (handler) {
         return domEventTrap.add(this, 'tap', handler);
+    },
+    getEventPath: function (element, props) {
+        return parentsAndSelf(element);
     },
     getContexts: function (element) {
         var state = _(this).components.get(element);

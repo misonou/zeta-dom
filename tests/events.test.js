@@ -1,8 +1,8 @@
 import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent, fireEventAsTrusted, delay } from "./testUtil";
 import { emitDOMEvent, getEventContext, listenDOMEvent, ZetaEventContainer } from "../src/events";
 import { domReady } from "../src/env";
-import dom from "../src/dom";
-import { combineFn } from "../src/util";
+import dom, { iterateFocusPath } from "../src/dom";
+import { combineFn, map, pipe } from "../src/util";
 
 const { objectContaining } = expect;
 
@@ -103,13 +103,48 @@ describe('ZetaEventContainer.delete', () => {
 });
 
 describe('ZetaEventContainer.emit', () => {
-    it('should emit bubbling event', () => {
-        const { node1, node2 } = initBody(`
+    it('should emit bubbling event to ancestors by default', () => {
+        const { node1, node2, node3 } = initBody(`
             <div id="node1">
                 <div id="node2"></div>
             </div>
+            <div id="node3"></div>
+        `);
+        dom.retainFocus(node3, node1);
+        expect(map(iterateFocusPath(node2), pipe)).toEqual([node2, node1, node3, body, root]);
+
+        const container = new ZetaEventContainer(node1, null, { captureDOMEvents: true });
+        container.tap(e => container.emit(e));
+
+        const cb = mockFn();
+        container.add(node1, 'customEvent', cb);
+        container.add(node2, 'customEvent', cb);
+        container.add(node3, 'customEvent', cb);
+        container.emit('customEvent', node2, 'string', true);
+        verifyCalls(cb, [
+            [objectContaining({ target: node2, currentTarget: node2 }), _],
+            [objectContaining({ target: node2, currentTarget: node1 }), _]
+        ]);
+
+        cb.mockClear();
+        container.add(node1, 'click', cb);
+        container.add(node2, 'click', cb);
+        container.add(node3, 'click', cb);
+        emitDOMEvent('click', node2, null, true);
+        verifyCalls(cb, [
+            [objectContaining({ target: node2, currentTarget: node2 }), _],
+            [objectContaining({ target: node2, currentTarget: node1 }), _]
+        ]);
+    });
+
+    it('should emit bubbling event to targets returned by getEventPath', () => {
+        const { node1, node2 } = initBody(`
+            <div id="node1"></div>
+            <div id="node2"></div>
         `);
         const container = new ZetaEventContainer(node1);
+        container.getEventPath = mockFn(() => [node2, node1]);
+
         const cb = mockFn();
         container.add(node1, 'customEvent', cb);
         container.add(node2, 'customEvent', cb);
@@ -119,6 +154,7 @@ describe('ZetaEventContainer.emit', () => {
             [objectContaining({ target: node2, currentTarget: node2 }), _],
             [objectContaining({ target: node2, currentTarget: node1 }), _]
         ]);
+        expect(container.getEventPath).toBeCalledTimes(1);
     });
 
     it('should emit non-bubbling event', () => {

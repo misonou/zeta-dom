@@ -398,21 +398,16 @@ declare namespace Zeta {
         on<E extends HintedStringKeyOf<M>>(event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
     }
 
-    interface ZetaEventBase {
+    interface ZetaEventData<T> {
         /**
          * Gets the event name.
          */
         readonly eventName: string;
 
         /**
-         * Gets the event name.
+         * Gets the target that received this event.
          */
-        readonly type: string;
-
-        /**
-         * Gets the DOM element that triggered this event.
-         */
-        readonly target: HTMLElement;
+        readonly target: T;
 
         /**
          * Gets the user action which triggers this event.
@@ -426,11 +421,6 @@ declare namespace Zeta {
         readonly sourceKeyName: KeyNameSingleCharacter | KeyNameSpecial | null;
 
         /**
-         * Gets the data associated with this event.
-         */
-        readonly data: any;
-
-        /**
          * Gets a high precision timestamp indicating the time at which this event is fired.
          * @see Performance#now
          */
@@ -440,6 +430,29 @@ declare namespace Zeta {
          * Gets the native DOM event that triggers this event.
          */
         readonly originalEvent: Event | null;
+
+        /**
+         * Specifies x-coordinate of a point on screen associated with the event.
+         */
+        readonly clientX: number | undefined;
+
+        /**
+         * Specifies y-coordinate of a point on screen associated with the event.
+         */
+        readonly clientY: number | undefined;
+    }
+
+    interface ZetaEventBase<T = HTMLElement> extends ZetaEventData<T> {
+        /**
+         * Gets the event name.
+         * @alias {@link ZetaEventData.eventName}
+         */
+        readonly type: string;
+
+        /**
+         * Gets the data associated with this event.
+         */
+        readonly data: any;
 
         /**
          * Suppresses the default behavior by the browser.
@@ -683,6 +696,13 @@ declare namespace Zeta {
          * @param target An event target, typically a DOM element.
          */
         getContexts(target: T): (T extends ZetaEventContextBase<infer R> ? R : T)[];
+
+        /**
+         * Enumerates targets to which event will be bubbled up.
+         * @param target An event target, typically a DOM element.
+         * @param eventData A dictionary containing properties associated to the event.
+         */
+        getEventPath(target: T, eventData: ZetaEventData<any>): Iterable<T>;
 
         /**
          * Registers event handlers to a DOM element or a custom event target.
