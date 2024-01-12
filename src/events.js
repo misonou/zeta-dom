@@ -176,61 +176,33 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
 definePrototype(ZetaEventEmitter, {
     emit: function (container, eventName, target, bubbles) {
         var self = this;
-        var targets;
-        if ((container && container !== self.container) || (target && target !== self.target)) {
-            var elements = parentsAndSelf(target || self.target);
-            targets = emitterIterateTargets(self, container, elements, bubbles);
-        } else {
-            targets = emitterIterateTargets(self);
+        container = container || self.container;
+        target = target || self.target;
+        if (isUndefinedOrNull(bubbles)) {
+            bubbles = self.bubbles;
         }
+        var targets = bubbles ? emitterIterateTargets(self, container, target) : [target];
         var emitting = self.current[0] || self;
+        var components = _(container).components;
         single(targets, function (v) {
-            return emitterCallHandlers(self, v, emitting.eventName, eventName, emitting.data);
+            var component = components.get(v);
+            return component && emitterCallHandlers(self, component, emitting.eventName, eventName, emitting.data);
         });
         return self.result;
     }
 });
 
-function emitterGetElements(emitter, bubbles) {
-    var target = emitter.target;
-    if (!bubbles) {
-        return [target];
-    }
-    if (!is(target, Node)) {
+function emitterIterateTargets(emitter, container, target) {
+    if (container !== emitter.container || target !== emitter.target || !is(target, Node)) {
         return parentsAndSelf(target);
     }
-    var focusedElements = dom.focusedElements;
-    var index = focusedElements.indexOf(target);
-    var targets = index < 0 || !emitter.originalEvent ? iterateFocusPath(target) : focusedElements.slice(index);
+    var targets = iterateFocusPath(target);
     if (emitter.clientX !== undefined) {
         return grep(targets, function (v) {
             return containsOrEquals(v, target);
         });
     }
     return targets;
-}
-
-function emitterIterateTargets(emitter, container, elements, bubbles) {
-    var components = _(container || emitter.container).components;
-    if (isUndefinedOrNull(bubbles)) {
-        bubbles = emitter.bubbles;
-    }
-    elements = elements || emitterGetElements(emitter, bubbles);
-    if (!bubbles) {
-        return makeArray(components.get(elements[0]));
-    }
-    if (isArray(elements)) {
-        // convert plain array to iterator so that subsequent call to nextNode will
-        // resume at the correct index
-        elements = elements.values();
-    }
-    return {
-        nextNode: function () {
-            return single(elements, function (v) {
-                return components.get(v);
-            });
-        }
-    };
 }
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
