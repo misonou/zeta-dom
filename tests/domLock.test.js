@@ -1,4 +1,4 @@
-import { after, body, delay, initBody, mockFn, root, verifyCalls, _ } from "./testUtil";
+import { after, body, delay, initBody, mockFn, root, verifyCalls, _, cleanup } from "./testUtil";
 import { cancelLock, lock, locked, notifyAsync, preventLeave, subscribeAsync } from "../src/domLock";
 import { catchAsync, combineFn, noop } from "../src/util";
 import { removeNode } from "../src/domUtil";
@@ -283,6 +283,19 @@ describe('notifyAsync', () => {
         unregister();
     });
 
+    it('should not emit error event for cancellation error', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const promise = lock(div, new Promise(noop), true);
+        notifyAsync(div, promise);
+        cleanup(dom.on(div, 'error', cb));
+
+        await after(() => cancelLock(div));
+        expect(cb).not.toBeCalled();
+    });
+
     it('should invoke oncancel callback when cancelLock is called', async () => {
         const { div } = initBody(`
             <div id="div"></div>
@@ -490,5 +503,18 @@ describe('cancelLock', () => {
         await delay();
         expect(cb).toBeCalledTimes(1);
         unregister();
+    });
+
+    it('should not emit error event for cancellation rejection error', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const promise = lock(div, new Promise(noop));
+        catchAsync(promise);
+        cleanup(dom.on(div, 'error', cb));
+
+        await after(() => notifyAsync(div, cancelLock(div)));
+        expect(cb).not.toBeCalled();
     });
 });

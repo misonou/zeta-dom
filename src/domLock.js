@@ -1,17 +1,22 @@
 import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
-import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, isFunction, makeArray, mapGet, mapRemove, noop, reject, resolve, retryable } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, isFunction, makeArray, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd } from "./util.js";
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent, listenDOMEvent } from "./events.js";
 import { createAutoCleanupMap } from "./observe.js";
 import { iterateFocusPath } from "./dom.js";
 
-const handledErrors = new WeakMap();
+const handledErrors = new WeakSet();
 const subscribers = new WeakMap();
 const locks = createAutoCleanupMap(clearLock);
 
 var leaveCounter = 0;
+
+function muteAndReturn(error) {
+    handledErrors.add(error);
+    return error;
+}
 
 function ensureLock(element) {
     var promises = mapGet(locks, element, Map);
@@ -24,7 +29,7 @@ function ensureLock(element) {
             }, resolve()).then(function () {
                 clearLock(element);
             }, function () {
-                throw errorWithCode(ErrorCode.cancellationRejected);
+                throw muteAndReturn(errorWithCode(ErrorCode.cancellationRejected));
             });
         });
     }
@@ -43,18 +48,15 @@ function handlePromise(promise, element, oncancel) {
     var cancel;
     promise = new Promise(function (resolve, reject) {
         cancel = executeOnce(function () {
-            reject(errorWithCode(ErrorCode.cancelled));
+            reject(muteAndReturn(errorWithCode(ErrorCode.cancelled)));
             (oncancel || noop)();
         });
         promise.then(resolve, reject);
         promise.catch(function (error) {
-            if (error && !handledErrors.has(error)) {
+            // avoid firing error event for the same error for multiple target
+            // while propagating through the promise chain
+            if (error && (typeof error !== 'object' || setAdd(handledErrors, error))) {
                 emitDOMEvent('error', element, { error }, true);
-                // avoid firing error event for the same error for multiple target
-                // while propagating through the promise chain
-                if (typeof error === 'object') {
-                    handledErrors.set(error, true);
-                }
             }
         });
     });
