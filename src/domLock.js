@@ -53,6 +53,8 @@ function handlePromise(source, element, oncancel, sendAsync) {
             (oncancel || noop)(error);
         });
         source.then(resolve, reject);
+    });
+    if (sendAsync) {
         source.catch(function (error) {
             // avoid firing error event for the same error for multiple target
             // while propagating through the promise chain
@@ -60,8 +62,6 @@ function handlePromise(source, element, oncancel, sendAsync) {
                 emitDOMEvent('error', element, { error }, true);
             }
         });
-    });
-    if (sendAsync) {
         subscribeAsync(element);
         each(iterateFocusPath(element), function (i, v) {
             var promises = subscribers.get(v);

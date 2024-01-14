@@ -72,6 +72,16 @@ describe('lock', () => {
         unregister();
     });
 
+    it('should not emit error event when promise is rejected', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        cleanup(dom.on(div, 'error', cb));
+        await after(() => catchAsync(lock(div, Promise.reject(42))));
+        expect(cb).not.toBeCalled();
+    });
+
     it('should return callback that remove the lock if no promise is provided', async () => {
         const cb = mockFn();
         const dispose = lock(root, cb);
@@ -246,6 +256,22 @@ describe('notifyAsync', () => {
             [objectContaining({ currentTarget: root }), _]
         ]);
         unregister();
+    });
+
+    it('should not emit error event after cancelLock is called', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const promise = delay(10).then(() => {
+            throw 42;
+        });
+        cleanup(dom.on(div, 'error', cb));
+        notifyAsync(div, promise);
+        cancelLock(div);
+
+        await catchAsync(promise);
+        expect(cb).toBeCalledTimes(1);
     });
 
     it('should emit error event for the same error only once', async () => {
