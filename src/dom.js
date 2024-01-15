@@ -709,17 +709,6 @@ domReady.then(function () {
             }
             imeText = e.data || '';
             hasCompositionUpdate = true;
-            // check whether input value or node data
-            // are updated immediately after compositionupdate event
-            if (!imeModifyOnUpdate) {
-                setImmediate(function () {
-                    var prevNodeText = imeNodeText;
-                    var prevOffset = imeOffset;
-                    updateIMEState();
-                    imeModifyOnUpdate = imeNodeText !== prevNodeText;
-                    imeOffset[0] = prevOffset[0];
-                });
-            }
         },
         compositionend: function (e) {
             if (!imeNode || imeOffset[0] === null) {
@@ -830,7 +819,11 @@ domReady.then(function () {
             }
         },
         input: function (e) {
-            if (!hasCompositionUpdate && e.inputType) {
+            if (hasCompositionUpdate) {
+                updateIMEState();
+                imeModifyOnUpdate = true;
+                imeOffset[0] = imeOffset[1] - imeText.length;
+            } else if (e.inputType) {
                 triggerUIEvent('input');
             }
         },
