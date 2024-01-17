@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.15 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.4.16 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -208,10 +208,10 @@ var root = env_document.documentElement;
 var getSelection = env_window.getSelection;
 var getComputedStyle = env_window.getComputedStyle;
 var domReady = new promise_polyfill(jquery);
-var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !env_window.MSStream;
+var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
+var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !env_window.MSStream || IS_MAC && navigator.maxTouchPoints > 2;
 var IS_IE10 = !!env_window.ActiveXObject;
 var IS_IE = IS_IE10 || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
-var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
 var IS_TOUCH = ('ontouchstart' in env_window);
 // CONCATENATED MODULE: ./src/errorCode.js
 var cancellationRejected = 'zeta/cancellation-rejected';
@@ -1628,10 +1628,15 @@ function domLock_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === 
 
 
 
-var handledErrors = new WeakMap();
+var handledErrors = new WeakSet();
 var subscribers = new WeakMap();
 var locks = createAutoCleanupMap(clearLock);
 var leaveCounter = 0;
+
+function muteAndReturn(error) {
+  handledErrors.add(error);
+  return error;
+}
 
 function ensureLock(element) {
   var promises = mapGet(locks, element, Map);
@@ -1645,7 +1650,7 @@ function ensureLock(element) {
       }, util_resolve()).then(function () {
         clearLock(element);
       }, function () {
-        throw errorWithCode(cancellationRejected);
+        throw muteAndReturn(errorWithCode(cancellationRejected));
       });
     });
   }
@@ -1666,20 +1671,17 @@ function handlePromise(promise, element, oncancel) {
   var cancel;
   promise = new promise_polyfill(function (resolve, reject) {
     cancel = executeOnce(function () {
-      reject(errorWithCode(cancelled));
+      reject(muteAndReturn(errorWithCode(cancelled)));
       (oncancel || noop)();
     });
     promise.then(resolve, reject);
     promise.catch(function (error) {
-      if (error && !handledErrors.has(error)) {
+      // avoid firing error event for the same error for multiple target
+      // while propagating through the promise chain
+      if (error && (domLock_typeof(error) !== 'object' || setAdd(handledErrors, error))) {
         emitDOMEvent('error', element, {
           error: error
-        }, true); // avoid firing error event for the same error for multiple target
-        // while propagating through the promise chain
-
-        if (domLock_typeof(error) === 'object') {
-          handledErrors.set(error, true);
-        }
+        }, true);
       }
     });
   });
@@ -2589,18 +2591,7 @@ domReady.then(function () {
       }
 
       imeText = e.data || '';
-      hasCompositionUpdate = true; // check whether input value or node data
-      // are updated immediately after compositionupdate event
-
-      if (!imeModifyOnUpdate) {
-        setImmediate(function () {
-          var prevNodeText = imeNodeText;
-          var prevOffset = imeOffset;
-          updateIMEState();
-          imeModifyOnUpdate = imeNodeText !== prevNodeText;
-          imeOffset[0] = prevOffset[0];
-        });
-      }
+      hasCompositionUpdate = true;
     },
     compositionend: function compositionend(e) {
       if (!imeNode || imeOffset[0] === null) {
@@ -2724,7 +2715,11 @@ domReady.then(function () {
       }
     },
     input: function input(e) {
-      if (!hasCompositionUpdate && e.inputType) {
+      if (hasCompositionUpdate) {
+        updateIMEState();
+        imeModifyOnUpdate = true;
+        imeOffset[0] = imeOffset[1] - imeText.length;
+      } else if (e.inputType) {
         triggerUIEvent('input');
       }
     },
@@ -2797,7 +2792,10 @@ domReady.then(function () {
     },
     click: function click(e) {
       if (!preventClick) {
-        setFocus(e.target);
+        if (e.isTrusted !== false) {
+          setFocus(e.target);
+        }
+
         triggerMouseEvent(getEventName(e, 'click'));
       }
 
@@ -3503,15 +3501,8 @@ definePrototype(ZetaEventContainer, {
     emitAsyncEvents(this);
   },
   destroy: function destroy() {
-    var self = this;
-
-    var state = _(self);
-
-    if (self.captureDOMEvents) {
-      domEventTrap.delete(self);
-    }
-
-    state.destroyed = true;
+    domEventTrap.delete(this);
+    _(this).destroyed = true;
   }
 });
 
