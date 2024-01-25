@@ -274,6 +274,9 @@ definePrototype(ZetaEvent, {
         if (event.handleable && !event.handled) {
             event.handled = true;
             event.result = event.asyncResult ? resolve(value) : value;
+            if (event.preventNative) {
+                this.preventDefault();
+            }
         }
     },
     isHandled: function () {

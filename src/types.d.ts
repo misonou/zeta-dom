@@ -627,6 +627,12 @@ declare namespace Zeta {
          * Provides a native Event object the event is associated with.
          */
         originalEvent?: Event;
+
+        /**
+         * Whether to automatically prevent default behavior when event is handled.
+         * This flag is used in conjunction to {@link EventEmitOptions.originalEvent}.
+         */
+        preventNative?: boolean;
     }
 
     interface EventContainerOptions<T> {

@@ -642,17 +642,13 @@ domReady.then(function () {
     }
 
     function triggerUIEvent(eventName, data, preventNative, point, target) {
-        var originalEvent = currentEvent;
-        var handled = emitDOMEvent(eventName, target || getActiveElement(), data, {
+        return emitDOMEvent(eventName, target || getActiveElement(), data, {
             clientX: (point || '').clientX,
             clientY: (point || '').clientY,
             bubbles: true,
-            originalEvent: originalEvent
+            preventNative: preventNative,
+            originalEvent: currentEvent
         });
-        if (handled && preventNative) {
-            originalEvent.preventDefault();
-        }
-        return handled;
     }
 
     function triggerKeystrokeEvent(keyName, char) {
