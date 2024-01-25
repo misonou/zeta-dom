@@ -416,6 +416,68 @@ describe('ZetaEventContainer.emit', () => {
         expect(returnValue).toBeUndefined();
         expect(cb).toBeCalledTimes(2);
     });
+
+    it('should flush async event for the same target when data is not given', async () => {
+        const container = new ZetaEventContainer();
+        const target2 = {};
+        const target1 = { parent: target2 };
+        const cb = mockFn();
+        container.add(target1, 'customEvent', cb);
+        container.add(target1, 'customEvent', cb);
+        container.add(target2, 'customEvent', cb);
+
+        container.emitAsync('customEvent', target1, 'foo', true);
+        container.emit('customEvent', target1, null, true);
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: target1, type: 'customEvent', data: 'foo' }), _], // first invocation was lacking of data
+            [objectContaining({ currentTarget: target1, type: 'customEvent', data: 'foo' }), _],
+            [objectContaining({ currentTarget: target2, type: 'customEvent', data: 'foo' }), _],
+        ]);
+        cb.mockClear();
+
+        await delay();
+        expect(cb).not.toBeCalled();
+    });
+
+    it('should not flush async event when data is given', async () => {
+        const container = new ZetaEventContainer();
+        const target = {};
+        const cb = mockFn();
+        container.add(target, 'customEvent', cb);
+
+        container.emitAsync('customEvent', target, 'foo');
+        container.emit('customEvent', target, 'bar');
+        verifyCalls(cb, [
+            [objectContaining({ type: 'customEvent', data: 'bar' }), _]
+        ]);
+        cb.mockClear();
+
+        await delay();
+        verifyCalls(cb, [
+            [objectContaining({ type: 'customEvent', data: 'foo' }), _]
+        ]);
+    });
+
+    it('should not flush async event when target is different', async () => {
+        const container = new ZetaEventContainer();
+        const target1 = {};
+        const target2 = {};
+        const cb = mockFn();
+        container.add(target1, 'customEvent', cb);
+        container.add(target2, 'customEvent', cb);
+
+        container.emitAsync('customEvent', target1, 'foo');
+        container.emit('customEvent', target2);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'customEvent', data: null }), _],
+        ]);
+        cb.mockClear();
+
+        await delay();
+        verifyCalls(cb, [
+            [objectContaining({ type: 'customEvent', data: 'foo' }), _],
+        ]);
+    });
 });
 
 describe('ZetaEventContainer.emitAsync', () => {

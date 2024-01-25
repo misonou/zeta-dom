@@ -217,9 +217,6 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         handled = single(handlers, function (v, i) {
             var context = component.contexts[i];
             var event = new ZetaEvent(emitter, eventName, component, context, data);
-            if (isUndefinedOrNull(data)) {
-                data = removeAsyncEvent(eventName, sourceContainer, context);
-            }
             var contextContainer = is(context, ZetaEventContainer) || sourceContainer;
             var prevEvent = contextContainer.event;
             sourceContainer.initEvent(event);
@@ -363,9 +360,10 @@ definePrototype(ZetaEventContainer, {
         }
     },
     emit: function (eventName, target, data, bubbles) {
+        var self = this;
         var options = normalizeEventOptions(bubbles);
-        var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, this, target, data, options);
-        return emitter.emit(this, null, target, options.bubbles);
+        var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, self, target, isUndefinedOrNull(data) ? removeAsyncEvent(eventName, self, target) : data, options);
+        return emitter.emit(self, null, target, options.bubbles);
     },
     emitAsync: function (eventName, target, data, bubbles, mergeData) {
         registerAsyncEvent(eventName, this, target, data, bubbles, mergeData);
