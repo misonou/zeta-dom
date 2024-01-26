@@ -641,14 +641,15 @@ domReady.then(function () {
         }
     }
 
-    function triggerUIEvent(eventName, data, preventNative, point, target) {
-        return emitDOMEvent(eventName, target || getActiveElement(), data, {
-            clientX: (point || '').clientX,
-            clientY: (point || '').clientY,
+    function triggerUIEvent(eventName, data, preventNative, target, options) {
+        if (target && !focusable(target)) {
+            return false;
+        }
+        return emitDOMEvent(eventName, target || getActiveElement(), data, extend({
             bubbles: true,
             preventNative: preventNative,
             originalEvent: currentEvent
-        });
+        }, options));
     }
 
     function triggerKeystrokeEvent(keyName, char) {
@@ -656,22 +657,32 @@ domReady.then(function () {
             data: keyName,
             char: char
         };
-        return triggerUIEvent('keystroke', data, true);
+        var extraEvent = [];
+        if (char && textInputAllowed(getActiveElement())) {
+            extraEvent.push({ eventName: 'textInput', data: char });
+        }
+        return triggerUIEvent('keystroke', data, true, null, {
+            preAlias: [keyName],
+            postAlias: extraEvent.concat(getShortcut(keyName))
+        });
     }
 
-    function triggerMouseEvent(eventName, event) {
-        event = event || currentEvent;
-        var target = event.target;
-        var data = {
-            target: target,
-            metakey: getEventName(event) || ''
+    function triggerMouseEvent(eventName, point, data) {
+        point = point || currentEvent;
+        data = data || {
+            target: point.target,
+            metakey: getEventName(point) || ''
         };
-        return focusable(target) && triggerUIEvent(eventName, data, true, event, target);
+        return triggerUIEvent(eventName, data, true, point.target, {
+            clientX: point.clientX,
+            clientY: point.clientY
+        });
     }
 
     function triggerGestureEvent(gesture) {
-        var target = mouseInitialPoint.target;
-        return focusable(target) && triggerUIEvent('gesture', gesture, true, null, target);
+        return triggerUIEvent('gesture', gesture, true, mouseInitialPoint.target, {
+            preAlias: [gesture]
+        });
     }
 
     function handleUIEventWrapper(type, callback) {
@@ -890,7 +901,7 @@ domReady.then(function () {
         },
         wheel: function (e) {
             var dir = e.deltaY || e.deltaX || e.detail;
-            if (dir && !textInputAllowed(e.target) && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1), false, e, e.target)) {
+            if (dir && !textInputAllowed(e.target) && triggerMouseEvent('mousewheel', e, dir / Math.abs(dir) * (IS_MAC ? -1 : 1))) {
                 e.stopPropagation();
             }
         },

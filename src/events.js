@@ -1,9 +1,9 @@
 import $ from "./include/jquery.js";
 import { root } from "./env.js";
-import { arrRemove, createPrivateStore, definePrototype, each, executeOnce, extend, grep, is, isArray, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, makeArray, mapGet, mapRemove, matchWord, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { arrRemove, createPrivateStore, definePrototype, each, executeOnce, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, mapGet, mapRemove, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { registerCleanup } from "./observe.js";
-import dom, { textInputAllowed, getShortcut, iterateFocusPath } from "./dom.js";
+import dom, { iterateFocusPath } from "./dom.js";
 
 const _ = createPrivateStore();
 const containers = new WeakMap();
@@ -206,7 +206,13 @@ function emitterIterateTargets(emitter, container, target) {
 }
 
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
-    if (!handlerName && matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data || data, handlerName)) {
+    var shouldForward = eventName === emitter.eventName;
+    var forwardEvent = function (entries) {
+        return single(entries, function (v) {
+            return emitterCallHandlers(emitter, component, v.eventName || v, handlerName, v.data);
+        });
+    };
+    if (!handlerName && shouldForward && forwardEvent(emitter.preAlias)) {
         return true;
     }
     var sourceContainer = component.container;
@@ -237,15 +243,7 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         });
         emitter.current.shift();
     }
-    if (!handled && !emitter.current[0] && eventName === 'keystroke') {
-        if (data.char && textInputAllowed(emitter.element)) {
-            return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char);
-        }
-        return single(getShortcut(data.data), function (v) {
-            return emitterCallHandlers(emitter, component, v, handlerName);
-        });
-    }
-    return handled;
+    return handled || (!emitter.current[0] && shouldForward && forwardEvent(emitter.postAlias));
 }
 
 /* --------------------------------------

@@ -584,6 +584,17 @@ declare namespace Zeta {
         readonly sourceKeyName: string | null;
     }
 
+    interface EventEmitAlias {
+        /**
+         * Specifies the name of alias event.
+         */
+        eventName: string;
+        /**
+         * Specifies event data.
+         */
+        data?: any;
+    }
+
     interface EventEmitOptions {
         /**
          * Specifies x-coordinate of a point on screen associated with the event.
@@ -633,6 +644,16 @@ declare namespace Zeta {
          * This flag is used in conjunction to {@link EventEmitOptions.originalEvent}.
          */
         preventNative?: boolean;
+
+        /**
+         * Specifies additional events to be emitted before the main event for each target before propagating up.
+         */
+        preAlias?: readonly (string | EventEmitAlias)[];
+
+        /**
+         * Specifies additional events to be emitted after the main event for each target before propagating up.
+         */
+        postAlias?: readonly (string | EventEmitAlias)[];
     }
 
     interface EventContainerOptions<T> {
