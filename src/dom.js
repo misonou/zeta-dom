@@ -667,7 +667,7 @@ domReady.then(function () {
         });
     }
 
-    function triggerMouseEvent(eventName, point, data) {
+    function triggerMouseEvent(eventName, point, data, extraEvent) {
         point = point || currentEvent;
         data = data || {
             target: point.target,
@@ -675,7 +675,8 @@ domReady.then(function () {
         };
         return triggerUIEvent(eventName, data, true, point.target, {
             clientX: point.clientX,
-            clientY: point.clientY
+            clientY: point.clientY,
+            postAlias: extraEvent
         });
     }
 
@@ -852,9 +853,10 @@ domReady.then(function () {
             }
         },
         touchstart: function (e) {
+            var singleTouch = !e.touches[1];
             mouseInitialPoint = extend({}, e.touches[0]);
-            triggerMouseEvent('touchstart', mouseInitialPoint);
-            if (!e.touches[1]) {
+            triggerMouseEvent('touchstart', mouseInitialPoint, null, singleTouch && ['mousedown']);
+            if (singleTouch) {
                 pressTimeout = setTimeout(function () {
                     triggerMouseEvent('longPress', mouseInitialPoint);
                     mouseInitialPoint = null;
@@ -885,7 +887,7 @@ domReady.then(function () {
         mousedown: function (e) {
             mouseInitialPoint = e;
             preventClick = false;
-            if (isMouseDown(e)) {
+            if ((!touchedClick || e.isTrusted !== true) && isMouseDown(e)) {
                 triggerMouseEvent('mousedown');
             }
         },

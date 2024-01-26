@@ -793,7 +793,10 @@ describe('ZetaEvent.source', () => {
     it('should be determined by trusted event', async () => {
         const cb = mockFn();
         bindEvent(body, 'mousedown', cb);
-        bindEvent(body, 'touchstart', cb);
+        bindEvent(body, 'touchstart', function () {
+            cb(...arguments);
+            return true;
+        });
         bindEvent(body, 'mousedown', () => {
             body.dispatchEvent(new TouchEvent('touchstart', {
                 touches: [{ clientX: 0, clientY: 0, identifier: 1, target: body }],

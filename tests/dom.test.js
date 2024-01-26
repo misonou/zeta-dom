@@ -744,9 +744,12 @@ describe('eventSource', () => {
     });
 
     it('should be determined by trusted event', async () => {
-        bindEvent(body, 'mousedown', () => expect(dom.eventSource).toBe('mouse'));
-        bindEvent(body, 'touchstart', () => expect(dom.eventSource).toBe('mouse'));
+        bindEvent(body, 'touchstart', () => {
+            expect(dom.eventSource).toBe('mouse');
+            return true;
+        });
         bindEvent(body, 'mousedown', () => {
+            expect(dom.eventSource).toBe('mouse');
             body.dispatchEvent(new TouchEvent('touchstart', {
                 touches: [{ clientX: 0, clientY: 0, identifier: 1, target: body }],
                 bubbles: true,

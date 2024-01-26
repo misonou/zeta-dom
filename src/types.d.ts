@@ -335,7 +335,7 @@ declare namespace Zeta {
         drag: ZetaDragEvent<T>;
         longPress: ZetaTouchEvent<T>;
         touchstart: ZetaTouchEvent<T>;
-        mousedown: ZetaMouseEvent<T>;
+        mousedown: ZetaPointerEvent<T>;
         mousewheel: ZetaWheelEvent<T>;
         metakeychange: ZetaKeystrokeEvent<T>;
         keystroke: ZetaKeystrokeEvent<T>;
@@ -520,7 +520,7 @@ declare namespace Zeta {
         readonly modalElement: Element;
     }
 
-    interface ZetaPointerEvent<T = Element, E extends UIEvent = UIEvent> extends ZetaNativeUIEvent<T, E> {
+    interface ZetaPointerEvent<T = Element, E extends UIEvent = MouseEvent | TouchEvent> extends ZetaNativeUIEvent<T, E> {
         readonly clientX: number;
         readonly clientY: number;
         readonly metakey: string;
@@ -532,7 +532,7 @@ declare namespace Zeta {
     interface ZetaTouchEvent<T = Element> extends ZetaPointerEvent<T, TouchEvent> {
     }
 
-    interface ZetaDragEvent<T = Element> extends ZetaPointerEvent<T, UIEvent> {
+    interface ZetaDragEvent<T = Element> extends ZetaPointerEvent<T> {
     }
 
     interface ZetaWheelEvent<T = Element> extends ZetaNativeUIEvent<T, WheelEvent> {
