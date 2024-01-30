@@ -347,6 +347,19 @@ describe('notifyAsync', () => {
         expect(cb).toBeCalledTimes(0);
     });
 
+    it('should not invoke oncancel callback when cancelLock for parent element is rejected', async () => {
+        const { div, nested } = initBody(`
+            <div id="div"><div id="nested"></div></div>
+        `);
+        const cb = mockFn();
+        const promise = new Promise(() => { });
+        notifyAsync(nested, promise, cb);
+        catchAsync(lock(div, promise));
+
+        await expect(cancelLock(div)).rejects.toBeErrorWithCode(ErrorCode.cancellationRejected);
+        expect(cb).toBeCalledTimes(0);
+    });
+
     it('should not invoke oncancel callback when promise settled before cancellation', async () => {
         const { div } = initBody(`
             <div id="div"></div>

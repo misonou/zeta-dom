@@ -26,9 +26,7 @@ function ensureLock(element) {
             // request user cancellation for each async task in sequence
             return makeArray(promises).reduce(function (a, v) {
                 return a.then(v.bind(0, false));
-            }, resolve()).then(function () {
-                clearLock(element);
-            }, function () {
+            }, resolve()).catch(function () {
                 throw muteAndReturn(errorWithCode(ErrorCode.cancellationRejected));
             });
         });
@@ -62,12 +60,12 @@ function handlePromise(source, element, oncancel, sendAsync) {
                 emitDOMEvent('error', element, { error }, true);
             }
         });
+        // ensure oncancel is called when cancelLock is called
+        ensureLock(element);
         subscribeAsync(element);
         each(iterateFocusPath(element), function (i, v) {
             var promises = subscribers.get(v);
             if (promises) {
-                // ensure oncancel is called when cancelLock is called
-                ensureLock(v);
                 always(promise, function () {
                     if (promises.delete(promise) && !promises.size) {
                         emitDOMEvent('asyncEnd', v);
@@ -161,15 +159,17 @@ function cancelLock(element, force) {
     var targets = element ? grep(locks, function (v, i) {
         return containsOrEquals(element, i);
     }) : makeArray(locks);
-    if (force) {
+    var finalize = function () {
         each(targets, function (i, v) {
             clearLock(v.element);
         });
-        return resolve();
+    };
+    if (force) {
+        return resolve(finalize());
     }
     return targets.reduce(function (a, v) {
         return a.then(v.cancel);
-    }, resolve());
+    }, resolve()).then(finalize);
 }
 
 bind(window, 'beforeunload', function (e) {
