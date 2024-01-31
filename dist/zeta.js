@@ -1,4 +1,4 @@
-/*! zeta-dom v0.4.16 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.0 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -1647,9 +1647,7 @@ function ensureLock(element) {
       // request user cancellation for each async task in sequence
       return makeArray(promises).reduce(function (a, v) {
         return a.then(v.bind(0, false));
-      }, util_resolve()).then(function () {
-        clearLock(element);
-      }, function () {
+      }, util_resolve()).catch(function () {
         throw muteAndReturn(errorWithCode(cancellationRejected));
       });
     });
@@ -1667,15 +1665,19 @@ function clearLock(element, map) {
   }
 }
 
-function handlePromise(promise, element, oncancel) {
+function handlePromise(source, element, oncancel, sendAsync) {
   var cancel;
-  promise = new promise_polyfill(function (resolve, reject) {
+  var promise = new promise_polyfill(function (resolve, reject) {
     cancel = executeOnce(function () {
-      reject(muteAndReturn(errorWithCode(cancelled)));
-      (oncancel || noop)();
+      var error = muteAndReturn(errorWithCode(cancelled));
+      reject(error);
+      (oncancel || noop)(error);
     });
-    promise.then(resolve, reject);
-    promise.catch(function (error) {
+    source.then(resolve, reject);
+  });
+
+  if (sendAsync) {
+    source.catch(function (error) {
       // avoid firing error event for the same error for multiple target
       // while propagating through the promise chain
       if (error && (domLock_typeof(error) !== 'object' || setAdd(handledErrors, error))) {
@@ -1683,8 +1685,30 @@ function handlePromise(promise, element, oncancel) {
           error: error
         }, true);
       }
+    }); // ensure oncancel is called when cancelLock is called
+
+    ensureLock(element);
+    subscribeAsync(element);
+    each(iterateFocusPath(element), function (i, v) {
+      var promises = subscribers.get(v);
+
+      if (promises) {
+        always(promise, function () {
+          if (promises.delete(promise) && !promises.size) {
+            emitDOMEvent('asyncEnd', v);
+          }
+        });
+        promises.set(promise, cancel);
+
+        if (promises.size === 1) {
+          emitDOMEvent('asyncStart', v);
+        }
+
+        return !promises.handled;
+      }
     });
-  });
+  }
+
   return extend(promise, {
     cancel: cancel
   });
@@ -1730,28 +1754,22 @@ function subscribeAsync(element, callback) {
 }
 
 function notifyAsync(element, promise, oncancel) {
-  promise = handlePromise(promise, element, oncancel);
-  subscribeAsync(element);
-  each(iterateFocusPath(element), function (i, v) {
-    var promises = subscribers.get(v);
+  handlePromise(promise, element, oncancel, true);
+}
 
-    if (promises) {
-      // ensure oncancel is called when cancelLock is called
-      ensureLock(v);
-      always(promise, function () {
-        if (promises.delete(promise) && !promises.size) {
-          emitDOMEvent('asyncEnd', v);
-        }
-      });
-      promises.set(promise, promise.cancel);
-
-      if (promises.size === 1) {
-        emitDOMEvent('asyncStart', v);
-      }
-
-      return !promises.handled;
+function runAsync(element, callback) {
+  var controller = {
+    abort: noop
+  };
+  var promise = makeAsync(callback)({
+    get signal() {
+      return controller.signal || (controller = new AbortController()).signal;
     }
+
   });
+  return handlePromise(promise, element, function (error) {
+    controller.abort(error);
+  }, true);
 }
 
 function preventLeave(element, promise, oncancel) {
@@ -1782,16 +1800,19 @@ function cancelLock(element, force) {
     return containsOrEquals(element, i);
   }) : makeArray(locks);
 
-  if (force) {
+  var finalize = function finalize() {
     each(targets, function (i, v) {
       clearLock(v.element);
     });
-    return util_resolve();
+  };
+
+  if (force) {
+    return util_resolve(finalize());
   }
 
   return targets.reduce(function (a, v) {
     return a.then(v.cancel);
-  }, util_resolve());
+  }, util_resolve()).then(finalize);
 }
 
 bind(env_window, 'beforeunload', function (e) {
@@ -1827,12 +1848,40 @@ var metaKeys = {
   meta: true,
   shift: true
 };
+var beforeInputType = {
+  insertFromDrop: 'drop',
+  insertFromPaste: 'paste',
+  deleteByCut: 'cut'
+};
+var sourceDict = {
+  cut: 'cut',
+  copy: 'copy',
+  drop: 'drop',
+  paste: 'paste',
+  wheel: 'mouse'
+};
 var windowFocusedOut;
-var currentEvent;
+var currentEvent = null;
+var currentKeyName = '';
 var currentMetaKey = '';
 var currentTabRoot = root;
+var eventSource;
+var trustedEvent;
 var trackPromise;
 var trackCallbacks;
+var touchedClick;
+fill(sourceDict, 'touchstart touchend touchmove', 'touch');
+fill(sourceDict, 'compositionstart compositionupdate compositionend keydown keyup keypress', 'keyboard');
+fill(sourceDict, 'beforeinput input textInput', function (e) {
+  return beforeInputType[e.inputType] || eventSource || 'input';
+});
+fill(sourceDict, 'pointerdown', function (e) {
+  touchedClick = e.pointerType !== 'mouse';
+  return touchedClick ? 'touch' : 'mouse';
+});
+fill(sourceDict, 'mousedown mouseup mousemove click contextmenu dblclick', function (e) {
+  return touchedClick ? 'touch' : e.type !== 'mousemove' || e.button || e.buttons ? 'mouse' : 'script';
+});
 /* --------------------------------------
  * Helper functions
  * -------------------------------------- */
@@ -1878,18 +1927,6 @@ function normalizeKey(e) {
     key: key || lcfirst(e.code) || e.key,
     char: e.char || (e.key || '').length === 1 && e.key || e.charCode && String.fromCharCode(e.charCode) || (key === 'enter' ? '\r' : ''),
     meta: !!metaKeys[key]
-  };
-}
-
-function createIterator(callback) {
-  return {
-    next: function next() {
-      var value = callback();
-      return {
-        value: value,
-        done: !value
-      };
-    }
   };
 }
 
@@ -2082,7 +2119,6 @@ function setFocus(element, source, suppressFocusChange) {
 
 function setFocusUnsafe(path, elements, source, suppressFocus) {
   if (elements[0]) {
-    source = source || new ZetaEventSource(elements[0], path);
     path.unshift.apply(path, elements);
     elements = grep(elements, function (v) {
       return setAdd(focusElements, v);
@@ -2205,52 +2241,49 @@ function releaseFocus(b) {
 }
 
 function iterateFocusPath(element) {
-  var returnedOnce;
+  var index = focusPath.indexOf(element);
 
-  if (element === root || !focused(element)) {
-    var visited = new Set();
-    return createIterator(function () {
-      if (!returnedOnce || !element) {
-        returnedOnce = true;
-      } else {
-        var friend = focusFriends.get(element); // make sure the next iterated element in connected in DOM and
-        // not being the descendants of current element
-
-        element = friend && !visited.has(friend) && containsOrEquals(root, friend) && !containsOrEquals(element, friend) ? friend : element.parentNode;
-      }
-
-      visited.add(element);
-      return element;
-    });
+  if (index >= 0) {
+    return focusPath.slice(index).values();
   }
 
-  var elements = focusPath.slice(0);
+  var path = focusPath.slice(0);
+  var visited = new Set();
+  var returnedOnce;
 
   var next = function next() {
-    var cur = elements.shift();
-    var modalPath = modalElements.get(cur);
+    if (!returnedOnce || !element) {
+      returnedOnce = true;
+    } else if (!focusElements.has(element)) {
+      var friend = focusFriends.get(element); // make sure the next iterated element in connected in DOM and
+      // not being the descendants of current element
 
-    if (modalPath) {
-      elements.unshift.apply(elements, modalPath);
-    }
+      element = friend && !visited.has(friend) && containsOrEquals(root, friend) && !containsOrEquals(element, friend) ? friend : element.parentNode;
+    } else {
+      while (path[0] && element !== path[0]) {
+        path.splice(0, path.findIndex(function (v) {
+          return v === element || modalElements.has(v);
+        }));
 
-    return cur;
-  };
-
-  return createIterator(function () {
-    var cur = next();
-
-    if (!returnedOnce) {
-      for (; cur !== element; cur = next()) {
-        ;
+        if (element !== path[0]) {
+          path.unshift.apply(path, modalElements.get(path.shift()));
+        }
       }
 
-      returnedOnce = true;
+      path.shift();
+      element = path[0];
     }
 
-    element = cur;
-    return element;
-  });
+    visited.add(element);
+    return {
+      done: !element,
+      value: element
+    };
+  };
+
+  return {
+    next: next
+  };
 }
 /* --------------------------------------
  * DOM event handling
@@ -2439,6 +2472,7 @@ function insertText(element, text, startOffset, endOffset) {
 }
 
 domReady.then(function () {
+  var eventTimeout;
   var modifierCount;
   var modifiedKeyCode;
   var mouseInitialPoint;
@@ -2451,6 +2485,11 @@ domReady.then(function () {
   var imeNode;
   var imeOffset;
   var imeText;
+
+  function getEventSource(e) {
+    var value = sourceDict[e.type];
+    return value && (typeof value === 'string' ? value : value(e));
+  }
 
   function getEventName(e, suffix) {
     var mod = (e.ctrlKey || e.metaKey ? 'Ctrl' : '') + (e.altKey ? 'Alt' : '') + (e.shiftKey ? 'Shift' : '');
@@ -2491,20 +2530,16 @@ domReady.then(function () {
     }
   }
 
-  function triggerUIEvent(eventName, data, preventNative, point, target) {
-    var originalEvent = currentEvent;
-    var handled = emitDOMEvent(eventName, target || getActiveElement(), data, {
-      clientX: (point || '').clientX,
-      clientY: (point || '').clientY,
-      bubbles: true,
-      originalEvent: originalEvent
-    });
-
-    if (handled && preventNative) {
-      originalEvent.preventDefault();
+  function triggerUIEvent(eventName, data, preventNative, target, options) {
+    if (target && !focusable(target)) {
+      return false;
     }
 
-    return handled;
+    return emitDOMEvent(eventName, target || getActiveElement(), data, extend({
+      bubbles: true,
+      preventNative: preventNative,
+      originalEvent: currentEvent
+    }, options));
   }
 
   function triggerKeystrokeEvent(keyName, char) {
@@ -2512,24 +2547,38 @@ domReady.then(function () {
       data: keyName,
       char: char
     };
-    lastEventSource.sourceKeyName = keyName;
-    return triggerUIEvent('keystroke', data, true);
+    var extraEvent = [];
+
+    if (char && textInputAllowed(getActiveElement())) {
+      extraEvent.push({
+        eventName: 'textInput',
+        data: char
+      });
+    }
+
+    return triggerUIEvent('keystroke', data, true, null, {
+      preAlias: [keyName],
+      postAlias: extraEvent.concat(getShortcut(keyName))
+    });
   }
 
-  function triggerMouseEvent(eventName, event) {
-    event = event || currentEvent;
-    var target = event.target;
-    var data = {
-      target: target,
-      metakey: getEventName(event) || ''
+  function triggerMouseEvent(eventName, point, data, extraEvent) {
+    point = point || currentEvent;
+    data = data || {
+      target: point.target,
+      metakey: getEventName(point) || ''
     };
-    return focusable(target) && triggerUIEvent(eventName, data, true, event, target);
+    return triggerUIEvent(eventName, data, true, point.target, {
+      clientX: point.clientX,
+      clientY: point.clientY,
+      postAlias: extraEvent
+    });
   }
 
   function triggerGestureEvent(gesture) {
-    var target = mouseInitialPoint.target;
-    mouseInitialPoint = null;
-    return focusable(target) && triggerUIEvent('gesture', gesture, true, null, target);
+    return triggerUIEvent('gesture', gesture, true, mouseInitialPoint.target, {
+      preAlias: [gesture]
+    });
   }
 
   function handleUIEventWrapper(type, callback) {
@@ -2538,10 +2587,19 @@ domReady.then(function () {
     var fireFocusReturn = matchWord(type, 'mousedown touchstart');
     return function (e) {
       currentEvent = e;
-      setTimeout(function () {
-        if (currentEvent === e) {
-          currentEvent = null;
-        }
+
+      if (e.isTrusted !== false) {
+        clearTimeout(eventTimeout);
+        trustedEvent = e;
+        eventSource = getEventSource(e);
+        eventTimeout = setTimeout(function () {
+          eventSource = '';
+        }, 20);
+      }
+
+      setImmediate(function () {
+        currentEvent = currentEvent === e ? null : currentEvent;
+        trustedEvent = trustedEvent === e ? null : trustedEvent;
       });
 
       if ('ctrlKey' in e) {
@@ -2553,22 +2611,16 @@ domReady.then(function () {
         }
       }
 
-      if (!isMoveEvent) {
-        setLastEventSource(null);
+      if (!isMoveEvent && !focusable(e.target)) {
+        e.stopImmediatePropagation();
 
-        if (!focusable(e.target)) {
-          e.stopImmediatePropagation();
-
-          if (!isKeyboardEvent) {
-            e.preventDefault();
-          }
-
-          if (fireFocusReturn) {
-            emitDOMEvent('focusreturn', focusPath.slice(-2)[0]);
-          }
+        if (!isKeyboardEvent) {
+          e.preventDefault();
         }
 
-        setLastEventSource(e.target);
+        if (fireFocusReturn) {
+          emitDOMEvent('focusreturn', focusPath.slice(-2)[0]);
+        }
       }
 
       callback(e);
@@ -2656,36 +2708,31 @@ domReady.then(function () {
       hasBeforeInput = false;
     },
     keydown: function keydown(e) {
-      if (!imeNode) {
-        var data = normalizeKey(e);
-        modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !data.meta;
-        modifierCount *= !data.meta && (!data.char || modifierCount > 2 || modifierCount > 1 && !e.shiftKey);
-        modifiedKeyCode = data.key;
+      var data = normalizeKey(e);
+      modifierCount = e.ctrlKey + e.shiftKey + e.altKey + e.metaKey + !data.meta;
+      modifierCount *= !data.meta && (!data.char || modifierCount > 2 || modifierCount > 1 && !e.shiftKey);
+      modifiedKeyCode = data.meta ? modifiedKeyCode : data.key;
+      currentKeyName = getEventName(e, modifiedKeyCode);
 
-        if (modifierCount) {
-          triggerKeystrokeEvent(getEventName(e, data.key), '');
-        }
+      if (!imeNode && modifierCount) {
+        triggerKeystrokeEvent(currentKeyName, '');
       }
     },
     keyup: function keyup(e) {
       var data = normalizeKey(e);
 
-      if (!imeNode && (data.meta || modifiedKeyCode === data.key)) {
+      if (modifiedKeyCode === data.key) {
         modifiedKeyCode = null;
-        modifierCount--;
       }
 
-      lastEventSource.sourceKeyName = null;
+      currentKeyName = getEventName(e, modifiedKeyCode || '');
     },
     keypress: function keypress(e) {
-      if (!imeNode) {
-        var data = normalizeKey(e).char;
-        var keyName = getEventName(e, modifiedKeyCode || data);
-        lastEventSource.sourceKeyName = keyName;
+      var data = normalizeKey(e).char;
+      currentKeyName = getEventName(e, modifiedKeyCode || data);
 
-        if (!modifierCount) {
-          triggerKeystrokeEvent(keyName, data);
-        }
+      if (!imeNode && !modifierCount) {
+        triggerKeystrokeEvent(currentKeyName, data);
       }
     },
     beforeinput: function beforeinput(e) {
@@ -2696,7 +2743,7 @@ domReady.then(function () {
       if (!imeNode && e.cancelable) {
         hasBeforeInput = true;
 
-        if (!lastEventSource.sourceKeyName || getEventSource() !== 'keyboard') {
+        if (!currentKeyName || beforeInputType[e.inputType]) {
           switch (e.inputType) {
             case 'insertText':
             case 'insertFromPaste':
@@ -2724,39 +2771,36 @@ domReady.then(function () {
       }
     },
     touchstart: function touchstart(e) {
+      var singleTouch = !e.touches[1];
       mouseInitialPoint = extend({}, e.touches[0]);
-      triggerMouseEvent('touchstart', mouseInitialPoint);
+      triggerMouseEvent('touchstart', mouseInitialPoint, null, singleTouch && ['mousedown']);
 
-      if (!e.touches[1]) {
+      if (singleTouch) {
         pressTimeout = setTimeout(function () {
-          if (mouseInitialPoint) {
-            triggerMouseEvent('longPress', mouseInitialPoint);
-            mouseInitialPoint = null;
-          }
+          triggerMouseEvent('longPress', mouseInitialPoint);
+          mouseInitialPoint = null;
         }, 1000);
       }
     },
     touchmove: function touchmove(e) {
       clearTimeout(pressTimeout);
-      pressTimeout = null;
 
       if (mouseInitialPoint) {
         if (!e.touches[1]) {
-          var point = mouseInitialPoint;
-          var line = measureLine(e.touches[0], point);
+          var line = measureLine(e.touches[0], mouseInitialPoint);
 
           if (line.length > 5) {
             var swipeDir = approxMultipleOf(line.deg, 90) && (approxMultipleOf(line.deg, 180) ? line.dx > 0 ? 'Right' : 'Left' : line.dy > 0 ? 'Down' : 'Up');
 
             if (!swipeDir || !triggerGestureEvent('swipe' + swipeDir)) {
-              triggerMouseEvent('drag', point);
+              triggerMouseEvent('drag', mouseInitialPoint);
             }
 
             mouseInitialPoint = null;
-            return;
           }
         } else if (!e.touches[2]) {
           triggerGestureEvent('pinchZoom');
+          mouseInitialPoint = null;
         }
       }
     },
@@ -2767,7 +2811,7 @@ domReady.then(function () {
       mouseInitialPoint = e;
       preventClick = false;
 
-      if (isMouseDown(e)) {
+      if ((!touchedClick || e.isTrusted !== true) && isMouseDown(e)) {
         triggerMouseEvent('mousedown');
       }
     },
@@ -2786,7 +2830,7 @@ domReady.then(function () {
     wheel: function wheel(e) {
       var dir = e.deltaY || e.deltaX || e.detail;
 
-      if (dir && !textInputAllowed(e.target) && triggerUIEvent('mousewheel', dir / Math.abs(dir) * (IS_MAC ? -1 : 1), false, e, e.target)) {
+      if (dir && !textInputAllowed(e.target) && triggerMouseEvent('mousewheel', e, dir / Math.abs(dir) * (IS_MAC ? -1 : 1))) {
         e.stopPropagation();
       }
     },
@@ -2807,7 +2851,9 @@ domReady.then(function () {
     dblclick: function dblclick(e) {
       triggerMouseEvent('dblclick');
     }
-  };
+  }; // required for setup event source by event wrapper
+
+  fill(uiEvents, 'drop cut copy paste pointerdown mouseup', noop);
   each(uiEvents, function (i, v) {
     bind(root, i, handleUIEventWrapper(i, v), {
       capture: true,
@@ -2823,7 +2869,7 @@ domReady.then(function () {
         target.blur();
       } else {
         if (focusPath.indexOf(target) < 0) {
-          setFocus(target, lastEventSource);
+          setFocus(target);
         }
 
         scrollIntoView(target, 10);
@@ -2841,12 +2887,12 @@ domReady.then(function () {
           var cur = any(focusPath.slice(focusPath.indexOf(e.target) + 1), isVisible);
 
           if (cur) {
-            setFocus(cur, lastEventSource);
+            setFocus(cur);
           }
         } else if (!currentEvent) {
           setTimeout(function () {
             if (!windowFocusedOut && focusPath[0] === e.target) {
-              setFocus(e.target.parentNode, lastEventSource);
+              setFocus(e.target.parentNode);
             }
           });
         }
@@ -2884,6 +2930,8 @@ domReady.then(function () {
   bind(env_window, 'blur', function (e) {
     if (e.target === env_window) {
       windowFocusedOut = true;
+      currentKeyName = '';
+      modifiedKeyCode = '';
     }
   });
   listenDOMEvent('escape', function () {
@@ -2924,6 +2972,10 @@ function dom_blur(element) {
     return currentMetaKey;
   },
 
+  get pressedKey() {
+    return currentKeyName;
+  },
+
   get context() {
     return getEventContext(getActiveElement()).context;
   },
@@ -2942,7 +2994,11 @@ function dom_blur(element) {
   },
 
   get eventSource() {
-    return getEventSource();
+    return trustedEvent ? eventSource : 'script';
+  },
+
+  get eventSourcePath() {
+    return !trustedEvent || eventSource === 'keyboard' ? this.focusedElements : grep(parentsAndSelf(trustedEvent.target), focusable);
   },
 
   root: root,
@@ -2973,6 +3029,7 @@ function dom_blur(element) {
   cancelLock: cancelLock,
   subscribeAsync: subscribeAsync,
   notifyAsync: notifyAsync,
+  runAsync: runAsync,
   preventLeave: preventLeave,
   observe: observe,
   registerCleanup: registerCleanup,
@@ -2998,77 +3055,26 @@ var domEventTrap = new ZetaEventContainer();
 var domContainer = new ZetaEventContainer();
 var asyncEventData = new Map();
 var asyncEvents = [];
-var beforeInputType = {
-  insertFromDrop: 'drop',
-  insertFromPaste: 'paste',
-  deleteByCut: 'cut'
-};
-var eventSource;
+var events_eventSource;
 var lastEventSource;
 /* --------------------------------------
  * Helper functions
  * -------------------------------------- */
 
-function ZetaEventSource(target, path) {
-  var self = this;
-  var source = getEventSourceName();
-
-  if (!path) {
-    if (eventSource) {
-      path = eventSource.path;
-    } else if (source === 'mouse' || source === 'touch') {
-      path = grep(parentsAndSelf(target), focusable);
-    } else {
-      path = dom.focusedElements;
-    }
-  }
-
-  self.path = path;
-  self.source = !target || containsOrEquals(path[0] || root, target) || path.indexOf(target) >= 0 ? source : 'script';
-  self.sourceKeyName = self.source !== 'keyboard' ? null : (eventSource || lastEventSource || '').sourceKeyName;
+function ZetaEventSource() {
+  this.path = dom.eventSourcePath;
+  this.source = dom.eventSource;
+  this.sourceKeyName = dom.pressedKey || null;
 }
 
-function setLastEventSource(source) {
-  lastEventSource = new ZetaEventSource(source);
-}
+function setLastEventSource() {}
 
 function prepEventSource(promise) {
   return resolve(promise);
 }
 
-function getEventSource(element) {
-  return element ? new ZetaEventSource(element).source : getEventSourceName();
-}
-
-function getEventSourceName() {
-  if (eventSource) {
-    return eventSource.source;
-  }
-
-  var event = dom.event || env_window.event;
-  var type = event && event.type || '';
-
-  if (type === 'beforeinput' || type === 'input') {
-    return beforeInputType[event.inputType] || 'keyboard';
-  }
-
-  if (type === 'mousemove') {
-    return event.button || event.buttons ? 'mouse' : 'script';
-  }
-
-  if (/^(touch|mouse)./.test(type)) {
-    return RegExp.$1;
-  }
-
-  if (/^(?:key.|composition.|textInput$)/.test(type)) {
-    return 'keyboard';
-  }
-
-  if (matchWord(type, 'wheel click dblclick contextmenu')) {
-    return 'mouse';
-  }
-
-  return matchWord(type, 'drop cut copy paste') || 'script';
+function getEventSource() {
+  return dom.eventSource;
 }
 
 function getContainerForElement(element) {
@@ -3160,7 +3166,7 @@ function registerAsyncEvent(eventName, container, target, data, options, mergeDa
   } else {
     dict[eventName] = new ZetaEventEmitter(eventName, container, target, data, normalizeEventOptions(options, {
       handleable: false
-    }), true);
+    }));
     asyncEvents.push(dict[eventName]);
     setImmediateOnce(emitAsyncEvents);
   }
@@ -3201,12 +3207,14 @@ function emitAsyncEvents(container) {
  * -------------------------------------- */
 
 
-function ZetaEventEmitter(eventName, container, target, data, options, async) {
+function ZetaEventEmitter(eventName, container, target, data, options) {
   target = target || container.element;
   var self = this;
   var element = is(target.element, Node) || target;
   var source = options.source || new ZetaEventSource(element);
   var properties = {
+    eventName: eventName,
+    target: target,
     source: source.source,
     sourceKeyName: source.sourceKeyName,
     timestamp: performance.now(),
@@ -3216,58 +3224,43 @@ function ZetaEventEmitter(eventName, container, target, data, options, async) {
   };
   extend(self, options, properties, {
     container: container,
-    eventName: eventName,
-    target: target,
     element: element,
     source: source,
     data: data,
     properties: properties,
     current: []
   });
-  self.targets = async && map(emitterIterateTargets(self), function (v) {
-    return {
-      container: v.container,
-      target: v.target,
-      contexts: extend({}, v.contexts),
-      handlers: kv(eventName, extend({}, v.handlers[eventName]))
-    };
-  });
 }
 
 definePrototype(ZetaEventEmitter, {
   emit: function emit(container, eventName, target, bubbles) {
     var self = this;
-    var targets = self.targets;
+    container = container || self.container;
+    target = target || self.target;
 
-    if (container && container !== self.container || target && target !== self.target) {
-      var elements = parentsAndSelf(target || self.target);
-      targets = emitterIterateTargets(self, container, elements, bubbles);
-    } else if (!targets) {
-      targets = emitterIterateTargets(self);
+    if (isUndefinedOrNull(bubbles)) {
+      bubbles = self.bubbles;
     }
 
+    var targets = bubbles ? emitterIterateTargets(self, container, target) : [target];
     var emitting = self.current[0] || self;
+
+    var components = _(container).components;
+
     single(targets, function (v) {
-      return emitterCallHandlers(self, v, emitting.eventName, eventName, emitting.data);
+      var component = components.get(v);
+      return component && emitterCallHandlers(self, component, emitting.eventName, eventName, emitting.data);
     });
     return self.result;
   }
 });
 
-function emitterGetElements(emitter, bubbles) {
-  var target = emitter.target;
-
-  if (!bubbles) {
-    return [target];
+function emitterIterateTargets(emitter, container, target) {
+  if (container !== domContainer || !is(target, Node)) {
+    return container.getEventPath(target, emitter.properties);
   }
 
-  if (!is(target, Node)) {
-    return parentsAndSelf(target);
-  }
-
-  var focusedElements = dom.focusedElements;
-  var index = focusedElements.indexOf(target);
-  var targets = index < 0 || !emitter.originalEvent ? iterateFocusPath(target) : focusedElements.slice(index);
+  var targets = iterateFocusPath(target);
 
   if (emitter.clientX !== undefined) {
     return grep(targets, function (v) {
@@ -3278,46 +3271,24 @@ function emitterGetElements(emitter, bubbles) {
   return targets;
 }
 
-function emitterIterateTargets(emitter, container, elements, bubbles) {
-  var components = _(container || emitter.container).components;
-
-  if (isUndefinedOrNull(bubbles)) {
-    bubbles = emitter.bubbles;
-  }
-
-  elements = elements || emitterGetElements(emitter, bubbles);
-
-  if (!bubbles) {
-    return makeArray(components.get(elements[0]));
-  }
-
-  if (isArray(elements)) {
-    // convert plain array to iterator so that subsequent call to nextNode will
-    // resume at the correct index
-    elements = elements.values();
-  }
-
-  return {
-    nextNode: function nextNode() {
-      return single(elements, function (v) {
-        return components.get(v);
-      });
-    }
-  };
-}
-
 function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
-  if (!handlerName && matchWord(eventName, 'keystroke gesture') && emitterCallHandlers(emitter, component, data.data || data, handlerName)) {
+  var shouldForward = eventName === emitter.eventName;
+
+  var forwardEvent = function forwardEvent(entries) {
+    return single(entries, function (v) {
+      return emitterCallHandlers(emitter, component, v.eventName || v, handlerName, v.data);
+    });
+  };
+
+  if (!handlerName && shouldForward && forwardEvent(emitter.preAlias)) {
     return true;
   }
 
   var sourceContainer = component.container;
-  var prevEventSource = eventSource;
   var handlers = component.handlers[handlerName || eventName];
   var handled;
 
   if (handlers) {
-    eventSource = emitter.source;
     emitter.current.unshift({
       eventName: eventName,
       data: data
@@ -3325,11 +3296,6 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
     handled = single(handlers, function (v, i) {
       var context = component.contexts[i];
       var event = new ZetaEvent(emitter, eventName, component, context, data);
-
-      if (isUndefinedOrNull(data)) {
-        data = removeAsyncEvent(eventName, sourceContainer, context);
-      }
-
       var contextContainer = is(context, ZetaEventContainer) || sourceContainer;
       var prevEvent = contextContainer.event;
       sourceContainer.initEvent(event);
@@ -3353,20 +3319,9 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
       return emitter.handled;
     });
     emitter.current.shift();
-    eventSource = prevEventSource;
   }
 
-  if (!handled && !emitter.current[0] && eventName === 'keystroke') {
-    if (data.char && textInputAllowed(emitter.element)) {
-      return emitterCallHandlers(emitter, component, 'textInput', handlerName, data.char);
-    }
-
-    return single(getShortcut(data.data), function (v) {
-      return emitterCallHandlers(emitter, component, v, handlerName);
-    });
-  }
-
-  return handled;
+  return handled || !emitter.current[0] && shouldForward && forwardEvent(emitter.postAlias);
 }
 /* --------------------------------------
  * ZetaEvent
@@ -3398,6 +3353,10 @@ definePrototype(ZetaEvent, {
     if (event.handleable && !event.handled) {
       event.handled = true;
       event.result = event.asyncResult ? util_resolve(value) : value;
+
+      if (event.preventNative) {
+        this.preventDefault();
+      }
     }
   },
   isHandled: function isHandled() {
@@ -3450,7 +3409,10 @@ function ZetaEventContainer(element, context, options) {
 definePrototype(ZetaEventContainer, {
   event: null,
   tap: function tap(handler) {
-    domEventTrap.add(this, 'tap', handler);
+    return domEventTrap.add(this, 'tap', handler);
+  },
+  getEventPath: function getEventPath(element, props) {
+    return parentsAndSelf(element);
   },
   getContexts: function getContexts(element) {
     var state = _(this).components.get(element);
@@ -3490,9 +3452,10 @@ definePrototype(ZetaEventContainer, {
     }
   },
   emit: function emit(eventName, target, data, bubbles) {
+    var self = this;
     var options = normalizeEventOptions(bubbles);
-    var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, this, target, data, options);
-    return emitter.emit(this, null, target, options.bubbles);
+    var emitter = is(_(eventName), ZetaEventEmitter) || new ZetaEventEmitter(eventName, self, target, isUndefinedOrNull(data) ? removeAsyncEvent(eventName, self, target) : data, options);
+    return emitter.emit(self, null, target, options.bubbles);
   },
   emitAsync: function emitAsync(eventName, target, data, bubbles, mergeData) {
     registerAsyncEvent(eventName, this, target, data, bubbles, mergeData);
