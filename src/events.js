@@ -152,7 +152,7 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
     target = target || container.element;
     var self = this;
     var element = is(target.element, Node) || target;
-    var source = options.source || new ZetaEventSource(element);
+    var source = options.source || new ZetaEventSource();
     var properties = {
         eventName: eventName,
         target: target,
@@ -166,7 +166,6 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
     extend(self, options, properties, {
         container: container,
         element: element,
-        source: source,
         data: data,
         properties: properties,
         current: [],

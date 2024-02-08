@@ -186,13 +186,12 @@ function focusable(element) {
     });
 }
 
-function triggerFocusEvent(eventName, elements, relatedTarget, source) {
+function triggerFocusEvent(eventName, elements, relatedTarget) {
     var data = {
-        relatedTarget: relatedTarget
+        relatedTarget: relatedTarget || null
     };
     each(elements, function (i, v) {
         emitDOMEvent(eventName, v, data, {
-            source: source,
             handleable: false
         });
     });
@@ -227,18 +226,18 @@ function updateTabIndex(newNodes) {
     });
 }
 
-function setFocus(element, source, suppressFocusChange) {
+function setFocus(element, suppressFocusChange) {
     if (element === root) {
         element = document.body;
     }
     var len = focusPath.length;
     var index = focusPath.indexOf(element);
     if (index === 0) {
-        setFocusUnsafe(focusPath, [], source);
+        setFocusUnsafe(focusPath, []);
         return len;
     }
     if (index > 0) {
-        removeFocusUnsafe(focusPath, element, source, element);
+        removeFocusUnsafe(focusPath, element, element);
         len = len - index;
     } else {
         var added = [];
@@ -247,11 +246,11 @@ function setFocus(element, source, suppressFocusChange) {
             return focusPath.indexOf(v) >= 0 || (added.push(v) && (friend = focusFriends.get(v)));
         });
         if (friend && added.indexOf(friend) < 0 && focusPath.indexOf(friend) < 0) {
-            len = setFocus(friend, source, true);
+            len = setFocus(friend, true);
         }
         var within = focusable(element);
         if (within) {
-            removeFocusUnsafe(focusPath, within, source, element, true);
+            removeFocusUnsafe(focusPath, within, element, true);
             len = Math.min(len, focusPath.length);
             // check whether the element is still attached in ROM
             // which can be detached while dispatching focusout event above
@@ -259,23 +258,23 @@ function setFocus(element, source, suppressFocusChange) {
                 each(added, function (i, element) {
                     if (focusElements.has(element) && focusPath.indexOf(element) < 0) {
                         any(modalElements, function (v) {
-                            return removeFocusUnsafe(v, element, source, element, true) && v.shift();
+                            return removeFocusUnsafe(v, element, element, true) && v.shift();
                         });
                     }
                 });
             } else {
                 added = [];
             }
-            setFocusUnsafe(focusPath, added, source);
+            setFocusUnsafe(focusPath, added);
         }
     }
     if (!suppressFocusChange) {
-        triggerFocusEvent('focuschange', focusPath.slice(-len), null, source);
+        triggerFocusEvent('focuschange', focusPath.slice(-len));
     }
     return len;
 }
 
-function setFocusUnsafe(path, elements, source, suppressFocus) {
+function setFocusUnsafe(path, elements, suppressFocus) {
     if (elements[0]) {
         path.unshift.apply(path, elements);
         elements = grep(elements, function (v) {
@@ -293,18 +292,18 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
         }
         setTimeoutOnce(updateTabRoot);
     }
-    triggerFocusEvent('focusin', elements.reverse(), null, source);
+    triggerFocusEvent('focusin', elements.reverse());
 }
 
-function removeFocusUnsafe(path, element, source, relatedTarget, suppressFocus) {
+function removeFocusUnsafe(path, element, relatedTarget, suppressFocus) {
     var index = path.indexOf(element);
     if (index > 0) {
         var removed = path.splice(0, index);
         each(removed, function (i, v) {
             focusElements.delete(v);
         });
-        triggerFocusEvent('focusout', removed, relatedTarget, source);
-        setFocusUnsafe(path, [], source, suppressFocus);
+        triggerFocusEvent('focusout', removed, relatedTarget);
+        setFocusUnsafe(path, [], suppressFocus);
     }
     return index >= 0;
 }
