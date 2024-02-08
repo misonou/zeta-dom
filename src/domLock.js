@@ -5,7 +5,7 @@ import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep,
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent, listenDOMEvent } from "./events.js";
 import { createAutoCleanupMap } from "./observe.js";
-import { iterateFocusPath } from "./dom.js";
+import { iterateFocusPath, reportError } from "./dom.js";
 
 const handledErrors = new WeakSet();
 const subscribers = new WeakMap();
@@ -57,7 +57,7 @@ function handlePromise(source, element, oncancel, sendAsync) {
             // avoid firing error event for the same error for multiple target
             // while propagating through the promise chain
             if (error && (typeof error !== 'object' || setAdd(handledErrors, error))) {
-                emitDOMEvent('error', element, { error }, true);
+                reportError(error, element);
             }
         });
         // ensure oncancel is called when cancelLock is called

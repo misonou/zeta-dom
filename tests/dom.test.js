@@ -1,5 +1,5 @@
 import syn from "syn";
-import dom, { focusable, iterateFocusPath, releaseModal, setModal, textInputAllowed } from "../src/dom";
+import dom, { focusable, iterateFocusPath, releaseModal, reportError, setModal, textInputAllowed } from "../src/dom";
 import { bind, removeNode } from "../src/domUtil";
 import { domReady } from "../src/env";
 import { ZetaEventContainer } from "../src/events";
@@ -106,6 +106,46 @@ describe('context', () => {
         });
         button.focus();
         expect(dom.context).toBe(context);
+    });
+});
+
+describe('reportError', () => {
+    it('should raise error event bubbling up to parent elements', () => {
+        const { parent, button } = initBody(`
+            <div id="parent">
+                <button id="button"></button>
+            </div>
+        `);
+        const cb = mockFn();
+        const error = new Error();
+        bindEvent(button, 'error', cb);
+        bindEvent(parent, 'error', cb);
+        bindEvent(root, 'error', cb);
+        expect(reportError(error, button)).toBeUndefined();
+
+        verifyCalls(cb, [
+            [objectContaining({ error }), button],
+            [objectContaining({ error }), parent],
+            [objectContaining({ error }), root],
+        ]);
+    });
+
+    it('should return promise if error is handled', async () => {
+        const { button } = initBody(`
+            <button id="button"></button>
+        `);
+        bindEvent(button, 'error', () => 42);
+        await expect(reportError(new Error(), button)).resolves.toBe(42);
+    });
+
+    it('should trigger error event on window if error is not handled', () => {
+        const cb = mockFn();
+        const error = new Error();
+        cleanup(bind(window, 'error', cb));
+        reportError(error);
+        verifyCalls(cb, [
+            [objectContaining({ error })]
+        ]);
     });
 });
 

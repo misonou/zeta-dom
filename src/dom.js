@@ -11,6 +11,10 @@ import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAtt
 
 const SELECTOR_FOCUSABLE = 'input,select,button,textarea,[contenteditable],a[href],area[href],iframe';
 
+const reportErrorImpl = window.reportError || function (error) {
+    console.log(error);
+};
+
 const focusPath = [root];
 const focusFriends = new WeakMap();
 const focusElements = new Set([root]);
@@ -1012,6 +1016,10 @@ setShortcut({
  * Exports
  * -------------------------------------- */
 
+function reportError(error, element) {
+    return emitDOMEvent('error', element || root, { error }, true) || reportErrorImpl.call(window, error);
+}
+
 function focus(element, focusInput) {
     if (focusInput !== false && !matchSelector(element, SELECTOR_FOCUSABLE)) {
         element = $(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
@@ -1057,6 +1065,7 @@ export default {
     root,
     ready: domReady,
 
+    reportError,
     textInputAllowed,
     focusable,
     focused,
@@ -1098,6 +1107,7 @@ export default {
 };
 
 export {
+    reportError,
     textInputAllowed,
     beginDrag,
     beginPinchZoom,
