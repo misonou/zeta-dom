@@ -1,5 +1,5 @@
 import { } from "./libCheck.js";
-import { IS_MAC, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
+import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
@@ -58,7 +58,7 @@ fill(sourceDict, 'beforeinput input textInput', function (e) {
     return beforeInputType[e.inputType] || eventSource || 'input';
 });
 fill(sourceDict, 'pointerdown', function (e) {
-    touchedClick = e.pointerType !== 'mouse';
+    touchedClick = e.pointerType === 'touch' || (e.pointerType === 'pen' && IS_TOUCH);
     return touchedClick ? 'touch' : 'mouse';
 });
 fill(sourceDict, 'mousedown mouseup mousemove click contextmenu dblclick', function (e) {
