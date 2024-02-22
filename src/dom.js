@@ -3,7 +3,7 @@ import { IS_MAC, window, document, root, getSelection, getComputedStyle, domRead
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
-import { always, any, combineFn, each, errorWithCode, extend, fill, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, setAdd, setImmediate, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, extend, fill, grep, isFunction, isPlainObject, isUndefinedOrNull, keys, lcfirst, makeArray, map, mapRemove, matchWord, noop, reject, setAdd, setImmediateOnce, setTimeoutOnce, ucfirst } from "./util.js";
 import { bind, bindUntil, containsOrEquals, elementFromPoint, getContentRect, getScrollParent, isVisible, makeSelection, matchSelector, parentsAndSelf, scrollIntoView, tagName, toPlainRect } from "./domUtil.js";
 import { getEventContext, getEventSource, emitDOMEvent, listenDOMEvent } from "./events.js";
 import { lock, cancelLock, locked, notifyAsync, preventLeave, runAsync, subscribeAsync } from "./domLock.js";
@@ -703,7 +703,7 @@ domReady.then(function () {
                     eventSource = '';
                 }, 20);
             }
-            setImmediate(function () {
+            setTimeout(function () {
                 currentEvent = currentEvent === e ? null : currentEvent;
                 trustedEvent = trustedEvent === e ? null : trustedEvent;
             });
