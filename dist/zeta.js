@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.0 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.1 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -8,197 +8,260 @@
 		exports["zeta-dom"] = factory(require("jquery"));
 	else
 		root["zeta"] = factory(root["jQuery"]);
-})(self, function(__WEBPACK_EXTERNAL_MODULE__254__) {
+})(self, function(__WEBPACK_EXTERNAL_MODULE__914__) {
 return /******/ (function() { // webpackBootstrap
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 702:
-/***/ (function(__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) {
+/***/ 914:
+/***/ (function(module) {
 
+module.exports = __WEBPACK_EXTERNAL_MODULE__914__;
+
+/***/ })
+
+/******/ 	});
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	!function() {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = function(exports, definition) {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	}();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	!function() {
+/******/ 		__webpack_require__.o = function(obj, prop) { return Object.prototype.hasOwnProperty.call(obj, prop); }
+/******/ 	}();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	!function() {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = function(exports) {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	}();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+!function() {
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
-  "ErrorCode": function() { return /* reexport */ errorCode_namespaceObject; },
-  "EventContainer": function() { return /* reexport */ ZetaEventContainer; },
-  "IS_IE": function() { return /* reexport */ IS_IE; },
-  "IS_IE10": function() { return /* reexport */ IS_IE10; },
-  "IS_IOS": function() { return /* reexport */ IS_IOS; },
-  "IS_MAC": function() { return /* reexport */ IS_MAC; },
-  "IS_TOUCH": function() { return /* reexport */ IS_TOUCH; },
-  "InheritedNode": function() { return /* reexport */ InheritedNode; },
-  "InheritedNodeTree": function() { return /* reexport */ InheritedNodeTree; },
-  "TraversableNode": function() { return /* reexport */ TraversableNode; },
-  "TraversableNodeTree": function() { return /* reexport */ TraversableNodeTree; },
-  "TreeWalker": function() { return /* reexport */ TreeWalker; },
-  "css": function() { return /* reexport */ cssUtil_namespaceObject; },
+  ErrorCode: function() { return /* reexport */ errorCode_namespaceObject; },
+  EventContainer: function() { return /* reexport */ ZetaEventContainer; },
+  IS_IE: function() { return /* reexport */ IS_IE; },
+  IS_IE10: function() { return /* reexport */ IS_IE10; },
+  IS_IOS: function() { return /* reexport */ IS_IOS; },
+  IS_MAC: function() { return /* reexport */ IS_MAC; },
+  IS_TOUCH: function() { return /* reexport */ IS_TOUCH; },
+  InheritedNode: function() { return /* reexport */ InheritedNode; },
+  InheritedNodeTree: function() { return /* reexport */ InheritedNodeTree; },
+  TraversableNode: function() { return /* reexport */ TraversableNode; },
+  TraversableNodeTree: function() { return /* reexport */ TraversableNodeTree; },
+  TreeWalker: function() { return /* reexport */ TreeWalker; },
+  css: function() { return /* reexport */ cssUtil_namespaceObject; },
   "default": function() { return /* binding */ src; },
-  "dom": function() { return /* reexport */ dom; },
-  "util": function() { return /* binding */ util; }
+  dom: function() { return /* reexport */ dom; },
+  util: function() { return /* binding */ util; }
 });
 
 // NAMESPACE OBJECT: ./src/errorCode.js
 var errorCode_namespaceObject = {};
 __webpack_require__.r(errorCode_namespaceObject);
 __webpack_require__.d(errorCode_namespaceObject, {
-  "cancellationRejected": function() { return cancellationRejected; },
-  "cancelled": function() { return cancelled; },
-  "invalidOperation": function() { return invalidOperation; }
+  cancellationRejected: function() { return cancellationRejected; },
+  cancelled: function() { return cancelled; },
+  invalidOperation: function() { return invalidOperation; }
 });
 
 // NAMESPACE OBJECT: ./src/util.js
 var util_namespaceObject = {};
 __webpack_require__.r(util_namespaceObject);
 __webpack_require__.d(util_namespaceObject, {
-  "always": function() { return always; },
-  "any": function() { return any; },
-  "arrRemove": function() { return arrRemove; },
-  "camel": function() { return camel; },
-  "catchAsync": function() { return catchAsync; },
-  "clearImmediateOnce": function() { return clearImmediateOnce; },
-  "combineFn": function() { return combineFn; },
-  "createPrivateStore": function() { return createPrivateStore; },
-  "deepFreeze": function() { return deepFreeze; },
-  "deferrable": function() { return deferrable; },
-  "define": function() { return define; },
-  "defineAliasProperty": function() { return defineAliasProperty; },
-  "defineGetterProperty": function() { return defineGetterProperty; },
-  "defineHiddenProperty": function() { return defineHiddenProperty; },
-  "defineObservableProperty": function() { return defineObservableProperty; },
-  "defineOwnProperty": function() { return defineOwnProperty; },
-  "definePrototype": function() { return definePrototype; },
-  "delay": function() { return delay; },
-  "each": function() { return each; },
-  "either": function() { return either; },
-  "equal": function() { return equal; },
-  "errorWithCode": function() { return errorWithCode; },
-  "exclude": function() { return exclude; },
-  "executeOnce": function() { return executeOnce; },
-  "extend": function() { return extend; },
-  "fill": function() { return fill; },
-  "freeze": function() { return freeze; },
-  "getOwnPropertyDescriptors": function() { return getOwnPropertyDescriptors; },
-  "grep": function() { return grep; },
-  "hasOwnProperty": function() { return util_hasOwnProperty; },
-  "htmlDecode": function() { return htmlDecode; },
-  "hyphenate": function() { return hyphenate; },
-  "iequal": function() { return iequal; },
-  "inherit": function() { return inherit; },
-  "is": function() { return is; },
-  "isArray": function() { return isArray; },
-  "isArrayLike": function() { return isArrayLike; },
-  "isErrorWithCode": function() { return isErrorWithCode; },
-  "isFunction": function() { return isFunction; },
-  "isPlainObject": function() { return isPlainObject; },
-  "isThenable": function() { return isThenable; },
-  "isUndefinedOrNull": function() { return isUndefinedOrNull; },
-  "keys": function() { return keys; },
-  "kv": function() { return kv; },
-  "lcfirst": function() { return lcfirst; },
-  "makeArray": function() { return makeArray; },
-  "makeAsync": function() { return makeAsync; },
-  "map": function() { return map; },
-  "mapGet": function() { return mapGet; },
-  "mapObject": function() { return mapObject; },
-  "mapRemove": function() { return mapRemove; },
-  "matchWord": function() { return matchWord; },
-  "matchWordMulti": function() { return matchWordMulti; },
-  "noop": function() { return noop; },
-  "pick": function() { return pick; },
-  "pipe": function() { return pipe; },
-  "randomId": function() { return randomId; },
-  "reject": function() { return reject; },
-  "repeat": function() { return repeat; },
-  "resolve": function() { return util_resolve; },
-  "resolveAll": function() { return resolveAll; },
-  "retryable": function() { return retryable; },
-  "sameValueZero": function() { return sameValueZero; },
-  "setAdd": function() { return setAdd; },
-  "setImmediate": function() { return setImmediate; },
-  "setImmediateOnce": function() { return setImmediateOnce; },
-  "setInterval": function() { return util_setInterval; },
-  "setIntervalSafe": function() { return setIntervalSafe; },
-  "setPromiseTimeout": function() { return setPromiseTimeout; },
-  "setTimeout": function() { return util_setTimeout; },
-  "setTimeoutOnce": function() { return setTimeoutOnce; },
-  "single": function() { return single; },
-  "splice": function() { return splice; },
-  "throwNotFunction": function() { return throwNotFunction; },
-  "throws": function() { return util_throws; },
-  "trim": function() { return trim; },
-  "ucfirst": function() { return ucfirst; },
-  "values": function() { return values; },
-  "watch": function() { return _watch; },
-  "watchOnce": function() { return _watchOnce; },
-  "watchable": function() { return watchable; }
+  always: function() { return always; },
+  any: function() { return any; },
+  arrRemove: function() { return arrRemove; },
+  camel: function() { return camel; },
+  catchAsync: function() { return catchAsync; },
+  clearImmediateOnce: function() { return clearImmediateOnce; },
+  combineFn: function() { return combineFn; },
+  createPrivateStore: function() { return createPrivateStore; },
+  deepFreeze: function() { return deepFreeze; },
+  deferrable: function() { return deferrable; },
+  define: function() { return util_define; },
+  defineAliasProperty: function() { return defineAliasProperty; },
+  defineGetterProperty: function() { return defineGetterProperty; },
+  defineHiddenProperty: function() { return defineHiddenProperty; },
+  defineObservableProperty: function() { return defineObservableProperty; },
+  defineOwnProperty: function() { return defineOwnProperty; },
+  definePrototype: function() { return definePrototype; },
+  delay: function() { return delay; },
+  each: function() { return each; },
+  either: function() { return either; },
+  equal: function() { return equal; },
+  errorWithCode: function() { return errorWithCode; },
+  exclude: function() { return exclude; },
+  executeOnce: function() { return executeOnce; },
+  extend: function() { return extend; },
+  fill: function() { return fill; },
+  freeze: function() { return freeze; },
+  getOwnPropertyDescriptors: function() { return getOwnPropertyDescriptors; },
+  grep: function() { return grep; },
+  hasOwnProperty: function() { return util_hasOwnProperty; },
+  htmlDecode: function() { return htmlDecode; },
+  hyphenate: function() { return hyphenate; },
+  iequal: function() { return iequal; },
+  inherit: function() { return inherit; },
+  is: function() { return is; },
+  isArray: function() { return isArray; },
+  isArrayLike: function() { return isArrayLike; },
+  isErrorWithCode: function() { return isErrorWithCode; },
+  isFunction: function() { return isFunction; },
+  isPlainObject: function() { return isPlainObject; },
+  isThenable: function() { return isThenable; },
+  isUndefinedOrNull: function() { return isUndefinedOrNull; },
+  keys: function() { return keys; },
+  kv: function() { return kv; },
+  lcfirst: function() { return lcfirst; },
+  makeArray: function() { return makeArray; },
+  makeAsync: function() { return makeAsync; },
+  map: function() { return map; },
+  mapGet: function() { return mapGet; },
+  mapObject: function() { return mapObject; },
+  mapRemove: function() { return mapRemove; },
+  matchWord: function() { return matchWord; },
+  matchWordMulti: function() { return matchWordMulti; },
+  noop: function() { return noop; },
+  pick: function() { return pick; },
+  pipe: function() { return pipe; },
+  randomId: function() { return randomId; },
+  reject: function() { return reject; },
+  repeat: function() { return repeat; },
+  resolve: function() { return util_resolve; },
+  resolveAll: function() { return resolveAll; },
+  retryable: function() { return retryable; },
+  sameValueZero: function() { return sameValueZero; },
+  setAdd: function() { return setAdd; },
+  setImmediate: function() { return setImmediate; },
+  setImmediateOnce: function() { return setImmediateOnce; },
+  setInterval: function() { return util_setInterval; },
+  setIntervalSafe: function() { return setIntervalSafe; },
+  setPromiseTimeout: function() { return setPromiseTimeout; },
+  setTimeout: function() { return util_setTimeout; },
+  setTimeoutOnce: function() { return setTimeoutOnce; },
+  single: function() { return single; },
+  splice: function() { return splice; },
+  throwNotFunction: function() { return throwNotFunction; },
+  throws: function() { return util_throws; },
+  trim: function() { return trim; },
+  ucfirst: function() { return ucfirst; },
+  values: function() { return values; },
+  watch: function() { return _watch; },
+  watchOnce: function() { return _watchOnce; },
+  watchable: function() { return watchable; }
 });
 
 // NAMESPACE OBJECT: ./src/domUtil.js
 var domUtil_namespaceObject = {};
 __webpack_require__.r(domUtil_namespaceObject);
 __webpack_require__.d(domUtil_namespaceObject, {
-  "acceptNode": function() { return acceptNode; },
-  "bind": function() { return bind; },
-  "bindOnce": function() { return bindOnce; },
-  "bindUntil": function() { return bindUntil; },
-  "combineNodeFilters": function() { return combineNodeFilters; },
-  "comparePosition": function() { return comparePosition; },
-  "connected": function() { return connected; },
-  "containsOrEquals": function() { return containsOrEquals; },
-  "createNodeIterator": function() { return createNodeIterator; },
-  "createTreeWalker": function() { return createTreeWalker; },
-  "dispatchDOMMouseEvent": function() { return dispatchDOMMouseEvent; },
-  "domReady": function() { return domReady; },
-  "elementFromPoint": function() { return elementFromPoint; },
-  "getClass": function() { return getClass; },
-  "getCommonAncestor": function() { return getCommonAncestor; },
-  "getContentRect": function() { return getContentRect; },
-  "getRect": function() { return getRect; },
-  "getRects": function() { return getRects; },
-  "getSafeAreaInset": function() { return getSafeAreaInset; },
-  "getScrollOffset": function() { return getScrollOffset; },
-  "getScrollParent": function() { return getScrollParent; },
-  "isVisible": function() { return isVisible; },
-  "iterateNode": function() { return iterateNode; },
-  "iterateNodeToArray": function() { return iterateNodeToArray; },
-  "makeSelection": function() { return makeSelection; },
-  "matchSelector": function() { return matchSelector; },
-  "mergeRect": function() { return mergeRect; },
-  "parentsAndSelf": function() { return parentsAndSelf; },
-  "pointInRect": function() { return pointInRect; },
-  "rectCovers": function() { return rectCovers; },
-  "rectEquals": function() { return rectEquals; },
-  "rectIntersects": function() { return rectIntersects; },
-  "removeNode": function() { return removeNode; },
-  "scrollBy": function() { return scrollBy; },
-  "scrollIntoView": function() { return scrollIntoView; },
-  "selectClosestRelative": function() { return selectClosestRelative; },
-  "selectIncludeSelf": function() { return selectIncludeSelf; },
-  "setClass": function() { return setClass; },
-  "tagName": function() { return tagName; },
-  "toPlainRect": function() { return toPlainRect; }
+  acceptNode: function() { return acceptNode; },
+  bind: function() { return bind; },
+  bindOnce: function() { return bindOnce; },
+  bindUntil: function() { return bindUntil; },
+  combineNodeFilters: function() { return combineNodeFilters; },
+  comparePosition: function() { return comparePosition; },
+  connected: function() { return connected; },
+  containsOrEquals: function() { return containsOrEquals; },
+  createNodeIterator: function() { return createNodeIterator; },
+  createTreeWalker: function() { return createTreeWalker; },
+  dispatchDOMMouseEvent: function() { return dispatchDOMMouseEvent; },
+  domReady: function() { return domReady; },
+  elementFromPoint: function() { return elementFromPoint; },
+  getClass: function() { return getClass; },
+  getCommonAncestor: function() { return getCommonAncestor; },
+  getContentRect: function() { return getContentRect; },
+  getRect: function() { return getRect; },
+  getRects: function() { return getRects; },
+  getSafeAreaInset: function() { return getSafeAreaInset; },
+  getScrollOffset: function() { return getScrollOffset; },
+  getScrollParent: function() { return getScrollParent; },
+  isVisible: function() { return isVisible; },
+  iterateNode: function() { return iterateNode; },
+  iterateNodeToArray: function() { return iterateNodeToArray; },
+  makeSelection: function() { return makeSelection; },
+  matchSelector: function() { return matchSelector; },
+  mergeRect: function() { return mergeRect; },
+  parentsAndSelf: function() { return parentsAndSelf; },
+  pointInRect: function() { return pointInRect; },
+  rectCovers: function() { return rectCovers; },
+  rectEquals: function() { return rectEquals; },
+  rectIntersects: function() { return rectIntersects; },
+  removeNode: function() { return removeNode; },
+  scrollBy: function() { return scrollBy; },
+  scrollIntoView: function() { return scrollIntoView; },
+  selectClosestRelative: function() { return selectClosestRelative; },
+  selectIncludeSelf: function() { return selectIncludeSelf; },
+  setClass: function() { return setClass; },
+  tagName: function() { return tagName; },
+  toPlainRect: function() { return toPlainRect; }
 });
 
 // NAMESPACE OBJECT: ./src/cssUtil.js
 var cssUtil_namespaceObject = {};
 __webpack_require__.r(cssUtil_namespaceObject);
 __webpack_require__.d(cssUtil_namespaceObject, {
-  "isCssUrlValue": function() { return isCssUrlValue; },
-  "parseCSS": function() { return parseCSS; },
-  "runCSSTransition": function() { return runCSSTransition; }
+  isCssUrlValue: function() { return isCssUrlValue; },
+  parseCSS: function() { return parseCSS; },
+  runCSSTransition: function() { return runCSSTransition; }
 });
 
-// CONCATENATED MODULE: ./src/include/promise-polyfill.js
+;// CONCATENATED MODULE: ./src/include/promise-polyfill.js
 var promise_polyfill_Promise = window.Promise;
-/* harmony default export */ const promise_polyfill = (promise_polyfill_Promise);
+/* harmony default export */ var promise_polyfill = (promise_polyfill_Promise);
 // EXTERNAL MODULE: external {"commonjs":"jquery","commonjs2":"jquery","amd":"jquery","root":"jQuery"}
-var external_commonjs_jquery_commonjs2_jquery_amd_jquery_root_jQuery_ = __webpack_require__(254);
-// CONCATENATED MODULE: ./src/include/jquery.js
+var external_commonjs_jquery_commonjs2_jquery_amd_jquery_root_jQuery_ = __webpack_require__(914);
+;// CONCATENATED MODULE: ./src/include/jquery.js
 
-/* harmony default export */ const jquery = (external_commonjs_jquery_commonjs2_jquery_amd_jquery_root_jQuery_);
-// CONCATENATED MODULE: ./src/env.js
+/* harmony default export */ var jquery = (external_commonjs_jquery_commonjs2_jquery_amd_jquery_root_jQuery_);
+;// CONCATENATED MODULE: ./src/env.js
 // @ts-nocheck
 
 
@@ -213,11 +276,11 @@ var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !env_window.MSStrea
 var IS_IE10 = !!env_window.ActiveXObject;
 var IS_IE = IS_IE10 || root.style.msTouchAction !== undefined || root.style.msUserSelect !== undefined;
 var IS_TOUCH = ('ontouchstart' in env_window);
-// CONCATENATED MODULE: ./src/errorCode.js
+;// CONCATENATED MODULE: ./src/errorCode.js
 var cancellationRejected = 'zeta/cancellation-rejected';
 var cancelled = 'zeta/cancelled';
 var invalidOperation = 'zeta/invalid-operation';
-// CONCATENATED MODULE: ./src/util.js
+;// CONCATENATED MODULE: ./src/util.js
 function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { _typeof = function _typeof(obj) { return typeof obj; }; } else { _typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return _typeof(obj); }
 
 
@@ -897,7 +960,7 @@ function getOwnPropertyDescriptors(obj) {
   return props;
 }
 
-function define(o, p) {
+function util_define(o, p) {
   each(getOwnPropertyDescriptors(p), function (i, v) {
     if (isFunction(v.value)) {
       v.enumerable = false;
@@ -940,13 +1003,13 @@ function definePrototype(fn, prototype, props) {
     defineHiddenProperty(fn.prototype, 'constructor', fn);
     Object.setPrototypeOf(fn, prototype);
   } else {
-    define(fn.prototype, prototype);
+    util_define(fn.prototype, prototype);
   }
 }
 
 function inherit(proto, props) {
   var obj = Object.create(isFunction(proto) ? proto.prototype : proto || objectProto);
-  define(obj, props || {});
+  util_define(obj, props || {});
   return obj;
 }
 
@@ -1168,7 +1231,7 @@ function _watchOnce(obj, prop, handler) {
 
 function watchable(obj) {
   obj = obj || {};
-  define(obj, {
+  util_define(obj, {
     watch: function watch(prop, handler, fireInit) {
       return _watch(this, prop, handler, fireInit);
     },
@@ -1180,7 +1243,7 @@ function watchable(obj) {
 }
 
 
-// CONCATENATED MODULE: ./src/observe.js
+;// CONCATENATED MODULE: ./src/observe.js
 
 
 
@@ -1400,7 +1463,7 @@ function initDetachWatcher(element) {
 }
 
 
-// CONCATENATED MODULE: ./src/libCheck.js
+;// CONCATENATED MODULE: ./src/libCheck.js
 
 var ZETA_KEY = '__ZETA__';
 
@@ -1409,8 +1472,8 @@ if (window[ZETA_KEY]) {
 }
 
 defineHiddenProperty(window, ZETA_KEY, true, true);
-/* harmony default export */ const libCheck = (null);
-// CONCATENATED MODULE: ./src/constants.js
+/* harmony default export */ var libCheck = (null);
+;// CONCATENATED MODULE: ./src/constants.js
 /**
  *  Key code mapping for keyboard events.
  */
@@ -1617,7 +1680,7 @@ for (var i in constants_map) {
   v = KEYNAMES[v];
   KEYNAMES[v[0].toUpperCase() + v.slice(1)] = v;
 });
-// CONCATENATED MODULE: ./src/domLock.js
+;// CONCATENATED MODULE: ./src/domLock.js
 function domLock_typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") { domLock_typeof = function _typeof(obj) { return typeof obj; }; } else { domLock_typeof = function _typeof(obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; } return domLock_typeof(obj); }
 
 
@@ -1681,9 +1744,7 @@ function handlePromise(source, element, oncancel, sendAsync) {
       // avoid firing error event for the same error for multiple target
       // while propagating through the promise chain
       if (error && (domLock_typeof(error) !== 'object' || setAdd(handledErrors, error))) {
-        emitDOMEvent('error', element, {
-          error: error
-        }, true);
+        reportError(error, element);
       }
     }); // ensure oncancel is called when cancelLock is called
 
@@ -1823,7 +1884,7 @@ bind(env_window, 'beforeunload', function (e) {
 });
 subscribeAsync(root);
 
-// CONCATENATED MODULE: ./src/dom.js
+;// CONCATENATED MODULE: ./src/dom.js
 
 
 
@@ -1835,6 +1896,11 @@ subscribeAsync(root);
 
 
 var SELECTOR_FOCUSABLE = 'input,select,button,textarea,[contenteditable],a[href],area[href],iframe';
+
+var reportErrorImpl = env_window.reportError || function (error) {
+  console.log(error);
+};
+
 var focusPath = [root];
 var focusFriends = new WeakMap();
 var focusElements = new Set([root]);
@@ -1876,7 +1942,7 @@ fill(sourceDict, 'beforeinput input textInput', function (e) {
   return beforeInputType[e.inputType] || eventSource || 'input';
 });
 fill(sourceDict, 'pointerdown', function (e) {
-  touchedClick = e.pointerType !== 'mouse';
+  touchedClick = e.pointerType === 'touch' || e.pointerType === 'pen' && IS_TOUCH;
   return touchedClick ? 'touch' : 'mouse';
 });
 fill(sourceDict, 'mousedown mouseup mousemove click contextmenu dblclick', function (e) {
@@ -2018,13 +2084,12 @@ function focusable(element) {
   });
 }
 
-function triggerFocusEvent(eventName, elements, relatedTarget, source) {
+function triggerFocusEvent(eventName, elements, relatedTarget) {
   var data = {
-    relatedTarget: relatedTarget
+    relatedTarget: relatedTarget || null
   };
   each(elements, function (i, v) {
     emitDOMEvent(eventName, v, data, {
-      source: source,
       handleable: false
     });
   });
@@ -2060,7 +2125,7 @@ function updateTabIndex(newNodes) {
   });
 }
 
-function setFocus(element, source, suppressFocusChange) {
+function setFocus(element, suppressFocusChange) {
   if (element === root) {
     element = env_document.body;
   }
@@ -2069,12 +2134,12 @@ function setFocus(element, source, suppressFocusChange) {
   var index = focusPath.indexOf(element);
 
   if (index === 0) {
-    setFocusUnsafe(focusPath, [], source);
+    setFocusUnsafe(focusPath, []);
     return len;
   }
 
   if (index > 0) {
-    removeFocusUnsafe(focusPath, element, source, element);
+    removeFocusUnsafe(focusPath, element, element);
     len = len - index;
   } else {
     var added = [];
@@ -2084,13 +2149,13 @@ function setFocus(element, source, suppressFocusChange) {
     });
 
     if (friend && added.indexOf(friend) < 0 && focusPath.indexOf(friend) < 0) {
-      len = setFocus(friend, source, true);
+      len = setFocus(friend, true);
     }
 
     var within = focusable(element);
 
     if (within) {
-      removeFocusUnsafe(focusPath, within, source, element, true);
+      removeFocusUnsafe(focusPath, within, element, true);
       len = Math.min(len, focusPath.length); // check whether the element is still attached in ROM
       // which can be detached while dispatching focusout event above
 
@@ -2098,7 +2163,7 @@ function setFocus(element, source, suppressFocusChange) {
         each(added, function (i, element) {
           if (focusElements.has(element) && focusPath.indexOf(element) < 0) {
             any(modalElements, function (v) {
-              return removeFocusUnsafe(v, element, source, element, true) && v.shift();
+              return removeFocusUnsafe(v, element, element, true) && v.shift();
             });
           }
         });
@@ -2106,18 +2171,18 @@ function setFocus(element, source, suppressFocusChange) {
         added = [];
       }
 
-      setFocusUnsafe(focusPath, added, source);
+      setFocusUnsafe(focusPath, added);
     }
   }
 
   if (!suppressFocusChange) {
-    triggerFocusEvent('focuschange', focusPath.slice(-len), null, source);
+    triggerFocusEvent('focuschange', focusPath.slice(-len));
   }
 
   return len;
 }
 
-function setFocusUnsafe(path, elements, source, suppressFocus) {
+function setFocusUnsafe(path, elements, suppressFocus) {
   if (elements[0]) {
     path.unshift.apply(path, elements);
     elements = grep(elements, function (v) {
@@ -2139,10 +2204,10 @@ function setFocusUnsafe(path, elements, source, suppressFocus) {
     setTimeoutOnce(updateTabRoot);
   }
 
-  triggerFocusEvent('focusin', elements.reverse(), null, source);
+  triggerFocusEvent('focusin', elements.reverse());
 }
 
-function removeFocusUnsafe(path, element, source, relatedTarget, suppressFocus) {
+function removeFocusUnsafe(path, element, relatedTarget, suppressFocus) {
   var index = path.indexOf(element);
 
   if (index > 0) {
@@ -2150,8 +2215,8 @@ function removeFocusUnsafe(path, element, source, relatedTarget, suppressFocus) 
     each(removed, function (i, v) {
       focusElements.delete(v);
     });
-    triggerFocusEvent('focusout', removed, relatedTarget, source);
-    setFocusUnsafe(path, [], source, suppressFocus);
+    triggerFocusEvent('focusout', removed, relatedTarget);
+    setFocusUnsafe(path, [], suppressFocus);
   }
 
   return index >= 0;
@@ -2597,7 +2662,7 @@ domReady.then(function () {
         }, 20);
       }
 
-      setImmediate(function () {
+      setTimeout(function () {
         currentEvent = currentEvent === e ? null : currentEvent;
         trustedEvent = trustedEvent === e ? null : trustedEvent;
       });
@@ -2949,6 +3014,12 @@ setShortcut({
  * Exports
  * -------------------------------------- */
 
+function reportError(error, element) {
+  return emitDOMEvent('error', element || root, {
+    error: error
+  }, true) || reportErrorImpl.call(env_window, error);
+}
+
 function dom_focus(element, focusInput) {
   if (focusInput !== false && !matchSelector(element, SELECTOR_FOCUSABLE)) {
     element = jquery(SELECTOR_FOCUSABLE, element).filter(':visible:not(:disabled,.disabled)')[0] || element;
@@ -2963,7 +3034,7 @@ function dom_blur(element) {
   return !focusElements.has(element);
 }
 
-/* harmony default export */ const dom = ({
+/* harmony default export */ var dom = ({
   get event() {
     return currentEvent;
   },
@@ -3003,6 +3074,7 @@ function dom_blur(element) {
 
   root: root,
   ready: domReady,
+  reportError: reportError,
   textInputAllowed: textInputAllowed,
   focusable: focusable,
   focused: focused,
@@ -3040,7 +3112,7 @@ function dom_blur(element) {
   watchOwnAttributes: watchOwnAttributes
 });
 
-// CONCATENATED MODULE: ./src/events.js
+;// CONCATENATED MODULE: ./src/events.js
 
 
 
@@ -3211,7 +3283,7 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
   target = target || container.element;
   var self = this;
   var element = is(target.element, Node) || target;
-  var source = options.source || new ZetaEventSource(element);
+  var source = options.source || new ZetaEventSource();
   var properties = {
     eventName: eventName,
     target: target,
@@ -3225,7 +3297,6 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
   extend(self, options, properties, {
     container: container,
     element: element,
-    source: source,
     data: data,
     properties: properties,
     current: []
@@ -3508,7 +3579,7 @@ function containerRemoveHandler(container, target, key) {
 }
 
 
-// CONCATENATED MODULE: ./src/domUtil.js
+;// CONCATENATED MODULE: ./src/domUtil.js
 
 
 
@@ -4250,7 +4321,7 @@ function elementFromPoint(x, y, container) {
 }
 
 
-// CONCATENATED MODULE: ./src/cssUtil.js
+;// CONCATENATED MODULE: ./src/cssUtil.js
 
 
 
@@ -4441,7 +4512,7 @@ function runCSSTransition(element, className, callback) {
 }
 
 
-// CONCATENATED MODULE: ./src/tree.js
+;// CONCATENATED MODULE: ./src/tree.js
 
 
 
@@ -5213,7 +5284,7 @@ definePrototype(TreeWalker, {
   }
 });
 
-// CONCATENATED MODULE: ./src/index.js
+;// CONCATENATED MODULE: ./src/index.js
 
 
 
@@ -5225,7 +5296,7 @@ definePrototype(TreeWalker, {
 
 var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 
-/* harmony default export */ const src = ({
+/* harmony default export */ var src = ({
   IS_IOS: IS_IOS,
   IS_IE10: IS_IE10,
   IS_IE: IS_IE,
@@ -5243,75 +5314,8 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
   TreeWalker: TreeWalker
 });
 
-
-/***/ }),
-
-/***/ 254:
-/***/ (function(module) {
-
-module.exports = __WEBPACK_EXTERNAL_MODULE__254__;
-
-/***/ })
-
-/******/ 	});
-/************************************************************************/
-/******/ 	// The module cache
-/******/ 	var __webpack_module_cache__ = {};
-/******/ 	
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/ 		// Check if module is in cache
-/******/ 		if(__webpack_module_cache__[moduleId]) {
-/******/ 			return __webpack_module_cache__[moduleId].exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = __webpack_module_cache__[moduleId] = {
-/******/ 			// no module.id needed
-/******/ 			// no module.loaded needed
-/******/ 			exports: {}
-/******/ 		};
-/******/ 	
-/******/ 		// Execute the module function
-/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-/******/ 	
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/ 	
-/************************************************************************/
-/******/ 	/* webpack/runtime/define property getters */
-/******/ 	!function() {
-/******/ 		// define getter functions for harmony exports
-/******/ 		__webpack_require__.d = function(exports, definition) {
-/******/ 			for(var key in definition) {
-/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-/******/ 				}
-/******/ 			}
-/******/ 		};
-/******/ 	}();
-/******/ 	
-/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
-/******/ 	!function() {
-/******/ 		__webpack_require__.o = function(obj, prop) { return Object.prototype.hasOwnProperty.call(obj, prop); }
-/******/ 	}();
-/******/ 	
-/******/ 	/* webpack/runtime/make namespace object */
-/******/ 	!function() {
-/******/ 		// define __esModule on exports
-/******/ 		__webpack_require__.r = function(exports) {
-/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-/******/ 			}
-/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
-/******/ 		};
-/******/ 	}();
-/******/ 	
-/************************************************************************/
-/******/ 	// module exports must be returned from runtime so entry inlining is disabled
-/******/ 	// startup
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(702);
+}();
+/******/ 	return __webpack_exports__;
 /******/ })()
 ;
 });
