@@ -86,6 +86,7 @@ expectTypeOf(each(<Set<A>>_, (_1: number, _2: A) => _)).toBeVoid();
 expectTypeOf(each(<NodeIterator>_, (_1: number, _2: Node) => _)).toBeVoid();
 expectTypeOf(each(<Iterator<A>>_, (_1: number, _2: A) => _)).toBeVoid();
 expectTypeOf(each(<D>_, (_1: string, _2: A) => _)).toBeVoid();
+expectTypeOf(each(<object>_, (_1: number | string, _2: any) => _)).toBeVoid();
 
 expectTypeOf(map(<C>_, (_1: A | B, _2: keyof C) => [1, 2, 3])).toMatchTypeOf<number[]>();
 expectTypeOf(map(<C>_, (_1: A | B, _2: keyof C) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();

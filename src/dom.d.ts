@@ -33,7 +33,7 @@ declare const events = {
     emit: emitDOMEvent
 };
 
-declare const dom: typeof lock & typeof observe & typeof events & typeof methods & {
+declare const dom: typeof lock & typeof observe & typeof events & typeof methods & Zeta.ZetaEventDispatcher<Zeta.ZetaDOMEventMap, HTMLHtmlElement> & {
     /**
      * Gets the DOM event which triggers the current event loop.
      */

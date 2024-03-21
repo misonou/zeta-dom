@@ -15,15 +15,15 @@ declare namespace Zeta {
         T extends WeakMap<infer K, any> ? K :
         T extends Set<infer V> ? V :
         T extends WeakSet<infer V> ? V :
-        T extends object ? Exclude<keyof T, symbol> :
-        T extends undefined | null ? never : string | number;
+        object extends T ? string | number :
+        T extends object ? Exclude<keyof T, symbol> : never;
     type ValueOf<T> = T extends (any[] | ArrayLike<any>) ? ArrayMember<T> :
         T extends Map<any, infer V> ? V :
         T extends WeakMap<any, infer V> ? V :
         T extends Set<infer V> ? V :
         T extends WeakSet<infer V> ? V :
-        T extends object ? T[Exclude<keyof T, symbol>] :
-        T extends undefined | null ? never : any;
+        object extends T ? any :
+        T extends object ? T[Exclude<keyof T, symbol>] : never;
     type PropertyTypeOrAny<T, P> = P extends keyof T ? T[P] : any;
     type HintedString<T extends string> = string & {} | T;
     type HintedKeyOf<T> = string & {} | keyof T;
