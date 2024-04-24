@@ -22,6 +22,9 @@ const values = Object.values || function (obj) {
 const queueMicrotask = window.queueMicrotask || function (callback) {
     resolve().then(callback);
 };
+const sameValue = Object.is || function (a, b) {
+    return sameValueZero(a, b) && (a !== 0 || 1 / a === 1 / b);
+};
 
 const compareFn = [
     function (b, v, i) { return !sameValueZero(b[i], v); },
@@ -890,6 +893,7 @@ export {
     noop,
     pipe,
     either,
+    sameValue,
     sameValueZero,
     is,
     isUndefinedOrNull,

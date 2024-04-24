@@ -39,6 +39,11 @@ export function pipe<T>(value: T): T;
 
 export function either(x: any, b: any): boolean;
 
+/**
+ * @alias {@link Object.is}
+ */
+export function sameValue(x: any, y: any): boolean;
+
 export function sameValueZero(x: any, y: any): boolean;
 
 /**
