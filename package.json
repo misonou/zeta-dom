@@ -38,6 +38,10 @@
     "jest": "^27.0.6",
     "syn": "^0.15.0"
   },
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*.js"
+  },
   "umdExports": {
     "index": "lib",
     "cssUtil": "lib.css",
