@@ -11,7 +11,7 @@
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
     "test:dts": "npx check-dts tests/**/*.ts",
     "version": "npm run build && git add -A dist",
-    "release": "node ./npm-publish.cjs"
+    "release": "npx @misonou/build-utils publish"
   },
   "author": "misonou",
   "license": "ISC",
@@ -27,18 +27,35 @@
     "@babel/core": "^7.12.3",
     "@babel/preset-env": "^7.12.1",
     "@jest/globals": "^26.6.2",
+    "@misonou/build-utils": "^1.3.1",
     "@misonou/test-utils": "^1.0.7",
     "@testing-library/user-event": "^14.4.3",
     "@types/jest": "^26.0.15",
     "@types/jquery": "^3.5.27",
-    "babel-loader": "^8.2.1",
+    "babel-loader": "^9.1.3",
     "cross-env": "^7.0.2",
     "expect-type": "^0.17.3",
     "jest": "^27.0.6",
-    "ncp": "^2.0.0",
-    "syn": "^0.15.0",
-    "webpack": "^5.90.3",
-    "webpack-cli": "^5.1.4"
+    "syn": "^0.15.0"
+  },
+  "umdExports": {
+    "index": "lib",
+    "cssUtil": "lib.css",
+    "dom": "lib.dom",
+    "domLock": "lib.dom",
+    "domUtil": "lib.util",
+    "env": "lib",
+    "errorCode": "lib.ErrorCode",
+    "events": {
+      "path": "lib",
+      "names": {
+        "ZetaEventContainer": "EventContainer",
+        "ZetaEventSource": "EventSource"
+      }
+    },
+    "observe": "lib.dom",
+    "tree": "lib",
+    "util": "lib.util"
   },
   "browserslist": [
     "> 1%",
