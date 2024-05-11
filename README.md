@@ -11,4 +11,4 @@ Zeta DOM features more semantic and async-aware API for DOM operation:
 
 and it is built for functional programming lovers.
 
-See documentation at http://hackmd.io/@misonou/zeta-dom.
+See documentation at https://misonou.github.io.
