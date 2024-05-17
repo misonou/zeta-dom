@@ -420,17 +420,18 @@ function getContentRectCustom(element, target) {
 }
 
 function getContentRectNative(element) {
-    var isRoot = element === root || element === document.body;
-    var parentRect = getRect(isRoot ? window : element, getBoxValues(element, 'scrollPadding', -1));
-    if (isRoot) {
+    if (element === document.body) {
+        element = root;
+    }
+    var parentRect = getRect(element, getBoxValues(element, 'scrollPadding', -1));
+    if (element === root) {
         var inset = getSafeAreaInset();
         var winRect = getRect();
-        var rootRect = getRect(root);
         return toPlainRect({
-            top: Math.max(parentRect.top, rootRect.top, winRect.top + inset.top),
-            left: Math.max(parentRect.left, rootRect.left, winRect.left + inset.left),
-            right: Math.min(parentRect.right, rootRect.right, winRect.right - inset.right),
-            bottom: Math.min(parentRect.bottom, rootRect.bottom, winRect.bottom - inset.bottom)
+            top: Math.max(parentRect.top, winRect.top + inset.top),
+            left: Math.max(parentRect.left, winRect.left + inset.left),
+            right: Math.min(parentRect.right, winRect.right - inset.right),
+            bottom: Math.min(parentRect.bottom, winRect.bottom - inset.bottom)
         });
     }
     if (scrollbarWidth === undefined) {
