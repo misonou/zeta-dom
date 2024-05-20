@@ -9,7 +9,6 @@ const visualViewport = window.visualViewport;
 const parseFloat = window.parseFloat;
 
 var helperDiv = $('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;--sai:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)">')[0];
-var scrollbarWidth;
 var safeAreaInset;
 
 /* --------------------------------------
@@ -349,6 +348,20 @@ function getBoxValues(element, prop, sign) {
     return sign === -1 ? [-l, -t, -r, -b] : [l, t, r, b];
 }
 
+function getInnerBoxValues(element, prop) {
+    var a = prop ? getBoxValues(element, prop, -1) : [0, 0, 0, 0];
+    var b = getBoxValues(element, 'border');
+    var dx = element.offsetWidth - element.clientWidth - b[0] - b[2];
+    var dy = element.offsetHeight - element.clientHeight - b[1] - b[3];
+    if (dx > 0.5) {
+        b[element.clientLeft - b[0] > 0.5 ? 0 : 2] += dx;
+    }
+    if (dy > 0.5) {
+        b[element.clientTop - b[1] > 0.5 ? 1 : 3] += dy;
+    }
+    return [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
+}
+
 function getScrollOffset(winOrElm) {
     return {
         x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
@@ -423,7 +436,7 @@ function getContentRectNative(element) {
     if (element === document.body) {
         element = root;
     }
-    var parentRect = getRect(element, getBoxValues(element, 'scrollPadding', -1));
+    var parentRect = getRect(element, getInnerBoxValues(element, 'scrollPadding'));
     if (element === root) {
         var inset = getSafeAreaInset();
         var winRect = getRect();
@@ -433,22 +446,6 @@ function getContentRectNative(element) {
             right: Math.min(parentRect.right, winRect.right - inset.right),
             bottom: Math.min(parentRect.bottom, winRect.bottom - inset.bottom)
         });
-    }
-    if (scrollbarWidth === undefined) {
-        // detect native scrollbar size
-        // height being picked because scrollbar may not be shown if container is too short
-        var dummy = $('<div style="overflow:scroll;height:80px"><div style="height:100px"></div></div>').appendTo(document.body)[0];
-        scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
-        removeNode(dummy);
-    }
-    if (scrollbarWidth) {
-        var style = getComputedStyle(element);
-        if (style.overflowY === 'scroll' || (style.overflowY === 'auto' && element.offsetHeight < element.scrollHeight)) {
-            parentRect.right -= scrollbarWidth;
-        }
-        if (style.overflowX === 'scroll' || (style.overflowX === 'auto' && element.offsetWidth < element.scrollWidth)) {
-            parentRect.bottom -= scrollbarWidth;
-        }
     }
     return parentRect;
 }
@@ -559,12 +556,10 @@ function getRect(elm, includeMargin) {
                     includeMargin = getBoxValues(elm, 'margin');
                     break;
                 case 'padding-box':
-                    includeMargin = getBoxValues(elm, 'border', -1);
+                    includeMargin = getInnerBoxValues(elm);
                     break;
                 case 'content-box':
-                    var a = getBoxValues(elm, 'border', -1);
-                    var b = getBoxValues(elm, 'padding');
-                    includeMargin = [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
+                    includeMargin = getInnerBoxValues(elm, 'padding');
             }
         }
     }

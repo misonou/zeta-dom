@@ -756,29 +756,17 @@ describe('getContentRect', () => {
 
     it('should deduct scrollbar size if overflow is not visible', () => {
         const { node } = initBody(`<div id="node" style="overflow-x: auto; overflow-y: auto;"></div>`);
-        const getScrollWidth = jest.spyOn(node, 'scrollWidth', 'get');
-        const getScrollHeight = jest.spyOn(node, 'scrollHeight', 'get');
+        jest.spyOn(node, 'clientWidth', 'get').mockReturnValue(90);
+        jest.spyOn(node, 'clientHeight', 'get').mockReturnValue(90);
         jest.spyOn(node, 'offsetWidth', 'get').mockReturnValue(100);
         jest.spyOn(node, 'offsetHeight', 'get').mockReturnValue(100);
-
-        getScrollWidth.mockReturnValueOnce(150);
-        getScrollHeight.mockReturnValueOnce(100);
         getBoundingClientRect.mockReturnValueOnce(toPlainRect(0, 0, 100, 100));
-        // mock return value for dummy element when calculating scrollbar size
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(0, 0, 100, 80));
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(0, 0, 80, 80));
-        expect(getContentRect(node)).toEqual(toPlainRect(0, 0, 100, 80));
+        expect(getContentRect(node)).toEqual(toPlainRect(0, 0, 90, 90));
 
-        getScrollWidth.mockReturnValueOnce(100);
-        getScrollHeight.mockReturnValueOnce(150);
+        jest.spyOn(node, 'clientTop', 'get').mockReturnValue(10);
+        jest.spyOn(node, 'clientLeft', 'get').mockReturnValue(10);
         getBoundingClientRect.mockReturnValueOnce(toPlainRect(0, 0, 100, 100));
-        expect(getContentRect(node)).toEqual(toPlainRect(0, 0, 80, 100));
-
-        node.setAttribute('style', 'overflow: visible;');
-        getScrollWidth.mockReturnValueOnce(150);
-        getScrollHeight.mockReturnValueOnce(150);
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(0, 0, 100, 100));
-        expect(getContentRect(node)).toEqual(toPlainRect(0, 0, 100, 100));
+        expect(getContentRect(node)).toEqual(toPlainRect(10, 10, 100, 100));
     });
 });
 
