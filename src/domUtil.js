@@ -538,13 +538,11 @@ function getRect(elm, includeMargin) {
         elm = elm.element || elm;
         if (elm === window) {
             rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
-        } else if (elm === root) {
-            rect = getRect(attachHelperDiv());
         } else if (!containsOrEquals(root, elm)) {
             // IE10 throws Unspecified Error for detached elements
             rect = toPlainRect(0, 0, 0, 0);
         } else {
-            rect = toPlainRect(elm.getBoundingClientRect());
+            rect = toPlainRect((elm === root ? attachHelperDiv() : elm).getBoundingClientRect());
             switch (includeMargin) {
                 case true:
                     includeMargin = getBoxValues(elm, 'margin');
