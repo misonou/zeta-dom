@@ -530,7 +530,7 @@ function makeSelection(b, e) {
 }
 
 function getRect(elm, includeMargin) {
-    var rect;
+    var rect, margins;
     elm = elm || window;
     if (elm.getRect) {
         rect = elm.getRect();
@@ -545,19 +545,21 @@ function getRect(elm, includeMargin) {
             rect = toPlainRect((elm === root ? attachHelperDiv() : elm).getBoundingClientRect());
             switch (includeMargin) {
                 case true:
-                    includeMargin = getBoxValues(elm, 'margin');
-                    for (var i = 0; i <= 3; i++) {
-                        includeMargin[i] = Math.max(0, includeMargin[i]);
-                    }
-                    break;
                 case 'margin-box':
-                    includeMargin = getBoxValues(elm, 'margin');
+                    margins = getBoxValues(elm, 'margin');
+                    includeMargin = includeMargin === true ? margins.map(function (v) {
+                        return Math.max(0, v);
+                    }) : margins;
                     break;
                 case 'padding-box':
                     includeMargin = getInnerBoxValues(elm);
                     break;
                 case 'content-box':
                     includeMargin = getInnerBoxValues(elm, 'padding');
+            }
+            if (elm === root) {
+                margins = margins || getBoxValues(elm, 'margin');
+                rect = rect.translate(margins[0], margins[1]);
             }
         }
     }
