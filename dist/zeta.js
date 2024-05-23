@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.2 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.3 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -3144,7 +3144,6 @@ var compareDocumentPositionImpl = env_document.compareDocumentPosition;
 var visualViewport = env_window.visualViewport;
 var domUtil_parseFloat = env_window.parseFloat;
 var helperDiv = jquery('<div style="position:fixed;top:0;left:0;right:0;bottom:0;visibility:hidden;pointer-events:none;--sai:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)">')[0];
-var scrollbarWidth;
 var safeAreaInset;
 
 /* --------------------------------------
@@ -3455,6 +3454,19 @@ function getBoxValues(element, prop, sign) {
   var b = domUtil_parseFloat(style[prop + 'Bottom']) || 0;
   return sign === -1 ? [-l, -t, -r, -b] : [l, t, r, b];
 }
+function getInnerBoxValues(element, prop) {
+  var a = prop ? getBoxValues(element, prop, -1) : [0, 0, 0, 0];
+  var b = getBoxValues(element, 'border');
+  var dx = element.offsetWidth - element.clientWidth - b[0] - b[2];
+  var dy = element.offsetHeight - element.clientHeight - b[1] - b[3];
+  if (dx > 0.5) {
+    b[element.clientLeft - b[0] > 0.5 ? 0 : 2] += dx;
+  }
+  if (dy > 0.5) {
+    b[element.clientTop - b[1] > 0.5 ? 1 : 3] += dy;
+  }
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
+}
 function getScrollOffset(winOrElm) {
   return {
     x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
@@ -3538,34 +3550,19 @@ function getContentRectCustom(element, target) {
   return result && toPlainRect(result);
 }
 function getContentRectNative(element) {
-  var isRoot = element === root || element === env_document.body;
-  var parentRect = getRect(isRoot ? env_window : element, getBoxValues(element, 'scrollPadding', -1));
-  if (isRoot) {
+  if (element === env_document.body) {
+    element = root;
+  }
+  var parentRect = getRect(element, getInnerBoxValues(element, 'scrollPadding'));
+  if (element === root) {
     var inset = getSafeAreaInset();
     var winRect = getRect();
-    var rootRect = getRect(root);
     return toPlainRect({
-      top: Math.max(parentRect.top, rootRect.top, winRect.top + inset.top),
-      left: Math.max(parentRect.left, rootRect.left, winRect.left + inset.left),
-      right: Math.min(parentRect.right, rootRect.right, winRect.right - inset.right),
-      bottom: Math.min(parentRect.bottom, rootRect.bottom, winRect.bottom - inset.bottom)
+      top: Math.max(parentRect.top, winRect.top + inset.top),
+      left: Math.max(parentRect.left, winRect.left + inset.left),
+      right: Math.min(parentRect.right, winRect.right - inset.right),
+      bottom: Math.min(parentRect.bottom, winRect.bottom - inset.bottom)
     });
-  }
-  if (scrollbarWidth === undefined) {
-    // detect native scrollbar size
-    // height being picked because scrollbar may not be shown if container is too short
-    var dummy = jquery('<div style="overflow:scroll;height:80px"><div style="height:100px"></div></div>').appendTo(env_document.body)[0];
-    scrollbarWidth = getRect(dummy).width - getRect(dummy.children[0]).width;
-    removeNode(dummy);
-  }
-  if (scrollbarWidth) {
-    var style = getComputedStyle(element);
-    if (style.overflowY === 'scroll' || style.overflowY === 'auto' && element.offsetHeight < element.scrollHeight) {
-      parentRect.right -= scrollbarWidth;
-    }
-    if (style.overflowX === 'scroll' || style.overflowX === 'auto' && element.offsetWidth < element.scrollWidth) {
-      parentRect.bottom -= scrollbarWidth;
-    }
   }
   return parentRect;
 }
@@ -3648,7 +3645,7 @@ function makeSelection(b, e) {
   selection.addRange(range);
 }
 function getRect(elm, includeMargin) {
-  var rect;
+  var rect, margins;
   elm = elm || env_window;
   if (elm.getRect) {
     rect = elm.getRect();
@@ -3656,30 +3653,28 @@ function getRect(elm, includeMargin) {
     elm = elm.element || elm;
     if (elm === env_window) {
       rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
-    } else if (elm === root) {
-      rect = getRect(attachHelperDiv());
     } else if (!containsOrEquals(root, elm)) {
       // IE10 throws Unspecified Error for detached elements
       rect = toPlainRect(0, 0, 0, 0);
     } else {
-      rect = toPlainRect(elm.getBoundingClientRect());
+      rect = toPlainRect((elm === root ? attachHelperDiv() : elm).getBoundingClientRect());
       switch (includeMargin) {
         case true:
-          includeMargin = getBoxValues(elm, 'margin');
-          for (var i = 0; i <= 3; i++) {
-            includeMargin[i] = Math.max(0, includeMargin[i]);
-          }
-          break;
         case 'margin-box':
-          includeMargin = getBoxValues(elm, 'margin');
+          margins = getBoxValues(elm, 'margin');
+          includeMargin = includeMargin === true ? margins.map(function (v) {
+            return Math.max(0, v);
+          }) : margins;
           break;
         case 'padding-box':
-          includeMargin = getBoxValues(elm, 'border', -1);
+          includeMargin = getInnerBoxValues(elm);
           break;
         case 'content-box':
-          var a = getBoxValues(elm, 'border', -1);
-          var b = getBoxValues(elm, 'padding');
-          includeMargin = [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
+          includeMargin = getInnerBoxValues(elm, 'padding');
+      }
+      if (elm === root) {
+        margins = margins || getBoxValues(elm, 'margin');
+        rect = rect.translate(margins[0], margins[1]);
       }
     }
   }
