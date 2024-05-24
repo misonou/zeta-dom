@@ -804,6 +804,41 @@ describe('getRect', () => {
     it('should call getBoundingClientRect for element', () => {
         expect(getRect(body)).toEqual(toPlainRect(0, 0, 0, 0));
         expect(getBoundingClientRect).toBeCalledTimes(1);
+        getBoundingClientRect.mockClear();
+
+        // normal case
+        getRect(body);
+        getRect(body, 10);
+        getRect(body, true);
+        getRect(body, 'margin-box');
+        getRect(body, 'border-box');
+        getRect(body, 'padding-box');
+        getRect(body, 'content-box');
+
+        const arr0 = getBoundingClientRect.mock.instances;
+        expect(arr0.at(-1)).toBe(body);
+        expect(arr0).toEqual(new Array(arr0.length).fill(arr0.at(-1)));
+        getBoundingClientRect.mockClear();
+
+        // special case for root
+        getRect(root);
+        getRect(root, 10);
+
+        const arr1 = getBoundingClientRect.mock.instances;
+        expect(arr1.at(-1)).toBeInstanceOf(Element);
+        expect(arr1.at(-1)).not.toBe(root);
+        expect(arr1).toEqual(new Array(arr1.length).fill(arr1.at(-1)));
+        getBoundingClientRect.mockClear();
+
+        getRect(root, true);
+        getRect(root, 'margin-box');
+        getRect(root, 'border-box');
+        getRect(root, 'padding-box');
+        getRect(root, 'content-box');
+
+        const arr2 = getBoundingClientRect.mock.instances;
+        expect(arr2.at(-1)).toBe(root);
+        expect(arr2).toEqual(new Array(arr2.length).fill(arr2.at(-1)));
     });
 
     it('should return a rect including element\'s margin if second argument is true', () => {
