@@ -126,8 +126,7 @@ function isVisible(element) {
     if (!connected(root, element)) {
         return false;
     }
-    var rect = getRect(element);
-    if (!rect.top && !rect.left && !rect.width && !rect.height) {
+    if (!element.offsetWidth && !element.offsetHeight) {
         for (var cur = element; cur && cur !== document; cur = cur.parentNode) {
             if (getComputedStyle(cur).display === 'none') {
                 return false;
@@ -544,9 +543,10 @@ function getRect(elm, includeMargin) {
         elm = elm.element || elm;
         if (elm === root && (!includeMargin || typeof includeMargin === 'number')) {
             rect = getRect(attachHelperDiv());
-        } else if (!containsOrEquals(root, elm)) {
-            // IE10 throws Unspecified Error for detached elements
+        } else if (!isVisible(elm)) {
+            // return zero rect at origin aligning with getBoundingClientRect
             rect = toPlainRect(0, 0, 0, 0);
+            includeMargin = 0;
         } else {
             rect = toPlainRect(elm.getBoundingClientRect());
             switch (includeMargin) {

@@ -88,18 +88,26 @@ describe('comparePosition', () => {
 
 describe('isVisible', () => {
     it('should return true when element has non-zero sized bounding rect', () => {
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(0, 0, 10, 10));
-        expect(isVisible(body)).toBe(true);
-    });
-
-    it('should return true if `display` style property is not none', () => {
-        const { node } = initBody(`<div id="node" style="display: block"></div>`);
-        expect(getRect(node)).toEqual(toPlainRect(0, 0, 0, 0));
+        const { node } = initBody(`<div id="node"></div>`);
+        jest.spyOn(node, 'offsetWidth', 'get').mockReturnValue(10);
+        jest.spyOn(node, 'offsetHeight', 'get').mockReturnValue(10);
         expect(isVisible(node)).toBe(true);
     });
 
+    it('should return false if element or any ancestor has `display` style property equal to none', () => {
+        const { node, child } = initBody(`
+            <div id="node" style="display: none">
+                <div id="child" style="display: block"></div>
+            </div>
+        `);
+        expect(isVisible(node)).toBe(false);
+        expect(isVisible(child)).toBe(false);
+    });
+
     it('should return false for detached element', () => {
-        expect(isVisible(document.createElement('div'))).toBe(false);
+        const node = document.createElement('div');
+        node.style.display = 'block';
+        expect(isVisible(node)).toBe(false);
     });
 });
 
@@ -883,6 +891,13 @@ describe('getRect', () => {
         }
         getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
         expect(getRect(node, 'margin-box')).toEqual(toPlainRect(105, 105, 195, 195));
+    });
+
+    it('should ignore second parameter is element is not visible', () => {
+        const { node } = initBody(`<div id="node" style="display: none"></div>`);
+        expect(isVisible(node)).toBe(false);
+        expect(getRect(node)).toEqual(toPlainRect(0, 0, 0, 0));
+        expect(getRect(node, 5)).toEqual(toPlainRect(0, 0, 0, 0));
     });
 });
 
