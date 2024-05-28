@@ -536,13 +536,13 @@ function makeSelection(b, e) {
 function getRect(elm, includeMargin) {
     var rect, margins;
     elm = elm || window;
-    if (elm.getRect) {
+    if (elm === window) {
+        rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
+    } else if (elm.getRect) {
         rect = elm.getRect();
     } else {
         elm = elm.element || elm;
-        if (elm === window) {
-            rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
-        } else if (elm === root && (!includeMargin || typeof includeMargin === 'number')) {
+        if (elm === root && (!includeMargin || typeof includeMargin === 'number')) {
             rect = getRect(attachHelperDiv());
         } else if (!containsOrEquals(root, elm)) {
             // IE10 throws Unspecified Error for detached elements
