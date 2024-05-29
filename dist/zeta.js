@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.3 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.4 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -3253,8 +3253,7 @@ function isVisible(element) {
   if (!connected(root, element)) {
     return false;
   }
-  var rect = getRect(element);
-  if (!rect.top && !rect.left && !rect.width && !rect.height) {
+  if (!element.offsetWidth && !element.offsetHeight) {
     for (var cur = element; cur && cur !== env_document; cur = cur.parentNode) {
       if (getComputedStyle(cur).display === 'none') {
         return false;
@@ -3467,6 +3466,9 @@ function getInnerBoxValues(element, prop) {
   }
   return [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
 }
+function applyBoxValues(rect, values) {
+  return rect.expand.apply(rect, makeArray(values));
+}
 function getScrollOffset(winOrElm) {
   return {
     x: winOrElm.pageXOffset || winOrElm.scrollLeft || 0,
@@ -3553,7 +3555,7 @@ function getContentRectNative(element) {
   if (element === env_document.body) {
     element = root;
   }
-  var parentRect = getRect(element, getInnerBoxValues(element, 'scrollPadding'));
+  var parentRect = applyBoxValues(getRect(element), getInnerBoxValues(element, 'scrollPadding'));
   if (element === root) {
     var inset = getSafeAreaInset();
     var winRect = getRect();
@@ -3647,17 +3649,20 @@ function makeSelection(b, e) {
 function getRect(elm, includeMargin) {
   var rect, margins;
   elm = elm || env_window;
-  if (elm.getRect) {
+  if (elm === env_window) {
+    rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
+  } else if (elm.getRect) {
     rect = elm.getRect();
   } else {
     elm = elm.element || elm;
-    if (elm === env_window) {
-      rect = visualViewport ? toPlainRect(0, 0, visualViewport.width, visualViewport.height) : toPlainRect(0, 0, root.clientWidth, root.clientHeight);
-    } else if (!containsOrEquals(root, elm)) {
-      // IE10 throws Unspecified Error for detached elements
+    if (elm === root && (!includeMargin || typeof includeMargin === 'number')) {
+      rect = getRect(attachHelperDiv());
+    } else if (!isVisible(elm)) {
+      // return zero rect at origin aligning with getBoundingClientRect
       rect = toPlainRect(0, 0, 0, 0);
+      includeMargin = 0;
     } else {
-      rect = toPlainRect((elm === root ? attachHelperDiv() : elm).getBoundingClientRect());
+      rect = toPlainRect(elm.getBoundingClientRect());
       switch (includeMargin) {
         case true:
         case 'margin-box':
@@ -3666,24 +3671,18 @@ function getRect(elm, includeMargin) {
             return Math.max(0, v);
           }) : margins;
           break;
+        case 'border-box':
+          includeMargin = 0;
+          break;
         case 'padding-box':
           includeMargin = getInnerBoxValues(elm);
           break;
         case 'content-box':
           includeMargin = getInnerBoxValues(elm, 'padding');
       }
-      if (elm === root) {
-        margins = margins || getBoxValues(elm, 'margin');
-        rect = rect.translate(margins[0], margins[1]);
-      }
     }
   }
-  if (typeof includeMargin === 'number') {
-    rect = rect.expand(includeMargin);
-  } else if (isArray(includeMargin)) {
-    rect = rect.expand.apply(rect, includeMargin);
-  }
-  return rect;
+  return includeMargin ? applyBoxValues(rect, includeMargin) : rect;
 }
 function getRects(range) {
   if (!is(range, Range)) {
