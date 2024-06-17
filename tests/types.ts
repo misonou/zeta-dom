@@ -87,6 +87,7 @@ expectTypeOf(each(<NodeIterator>_, (_1: number, _2: Node) => _)).toBeVoid();
 expectTypeOf(each(<Iterator<A>>_, (_1: number, _2: A) => _)).toBeVoid();
 expectTypeOf(each(<D>_, (_1: string, _2: A) => _)).toBeVoid();
 expectTypeOf(each(<object>_, (_1: number | string, _2: any) => _)).toBeVoid();
+expectTypeOf(each(<Zeta.Dictionary>_, (_1: string, _2: any) => _)).toBeVoid();
 
 expectTypeOf(map(<C>_, (_1: A | B, _2: keyof C) => [1, 2, 3])).toMatchTypeOf<number[]>();
 expectTypeOf(map(<C>_, (_1: A | B, _2: keyof C) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();
@@ -125,6 +126,8 @@ expectTypeOf(any(<Set<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<A | fals
 expectTypeOf(any(<NodeIterator>_, (_1: Node, _2: number) => <C>_)).toEqualTypeOf<Node | false>();
 expectTypeOf(any(<Iterator<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<A | false>();
 expectTypeOf(any(<D>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<A | false>();
+expectTypeOf(any(<object>_, (_1: any, _2: string | number) => _)).toBeAny();
+expectTypeOf(any(<Zeta.Dictionary>_, (_1: any, _2: string) => _)).toBeAny();
 
 expectTypeOf(single(<C>_, (_1: A | B, _2: keyof C) => <C>_)).toEqualTypeOf<C | false>();
 expectTypeOf(single([0, 'a'], (_1: number | string, _2: number) => <C>_)).toEqualTypeOf<C | false>();

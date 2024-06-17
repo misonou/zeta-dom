@@ -15,7 +15,6 @@ declare namespace Zeta {
         T extends WeakMap<infer K, any> ? K :
         T extends Set<infer V> ? V :
         T extends WeakSet<infer V> ? V :
-        object extends T ? string | number :
         T extends object ? Exclude<keyof T, symbol> : never;
     type ValueOf<T> = T extends (any[] | ArrayLike<any>) ? ArrayMember<T> :
         T extends Map<any, infer V> ? V :
