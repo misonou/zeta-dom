@@ -124,11 +124,12 @@ describe('subscribeAsync', () => {
             dom.on(root, 'asyncStart', cb),
             dom.on(root, 'asyncEnd', cb),
         );
-        const promise1 = delay();
-        const promise2 = delay();
+        const promise1 = delay(20);
+        const promise2 = delay(20);
         subscribeAsync(div, true);
         notifyAsync(div, promise1);
         notifyAsync(div, promise2);
+        await delay();
         verifyCalls(cb, [
             [objectContaining({ type: 'asyncStart', currentTarget: div }), _]
         ]);
@@ -217,10 +218,11 @@ describe('notifyAsync', () => {
         dom.focus(other);
         dom.focus(div);
 
-        const promise = delay();
+        const promise = delay(20);
         subscribeAsync(div);
         subscribeAsync(other);
         notifyAsync(div, promise);
+        await delay();
         verifyCalls(cb, [
             [objectContaining({ type: 'asyncStart', currentTarget: div }), _],
             [objectContaining({ type: 'asyncStart', currentTarget: other }), _],
@@ -235,6 +237,22 @@ describe('notifyAsync', () => {
             [objectContaining({ type: 'asyncEnd', currentTarget: div }), _],
             [objectContaining({ type: 'asyncEnd', currentTarget: other }), _],
         ]);
+        unregister();
+    });
+
+    it('shoud not emit asyncStart and asyncEnd event when promise is immediately resolved', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const unregister = combineFn(
+            dom.on(div, 'asyncStart', cb),
+            dom.on(div, 'asyncEnd', cb),
+        );
+        notifyAsync(div, Promise.resolve());
+        notifyAsync(div, Promise.resolve().then(v => 42));
+        await delay();
+        expect(cb).not.toBeCalled();
         unregister();
     });
 
@@ -304,7 +322,9 @@ describe('notifyAsync', () => {
         var promise = new Promise(() => { });
         notifyAsync(div, promise);
 
-        await after(() => cancelLock(div));
+        await delay();
+        cancelLock(div);
+        await delay();
         expect(cb).toBeCalledTimes(1);
         unregister();
     });
@@ -318,7 +338,9 @@ describe('notifyAsync', () => {
         notifyAsync(div, promise);
         cleanup(dom.on(div, 'error', cb));
 
-        await after(() => cancelLock(div));
+        await delay();
+        cancelLock(div);
+        await delay();
         expect(cb).not.toBeCalled();
     });
 
@@ -330,7 +352,9 @@ describe('notifyAsync', () => {
         var promise = new Promise(() => { });
         notifyAsync(div, promise, cb);
 
-        await after(() => cancelLock(div));
+        await delay();
+        cancelLock(div);
+        await delay();
         expect(cb).toBeCalledTimes(1);
     });
 
@@ -439,7 +463,9 @@ describe('runAsync', () => {
             signal.addEventListener('abort', cb);
             return new Promise(noop);
         });
-        await after(() => cancelLock(div));
+        await delay();
+        cancelLock(div);
+        await delay();
         expect(cb).toBeCalledTimes(1);
     });
 
@@ -636,6 +662,7 @@ describe('cancelLock', () => {
         const cb = mockFn();
         const unregister = dom.on(div, 'asyncEnd', cb);
         notifyAsync(div, unsettled);
+        await delay();
         cancelLock(div);
 
         await delay();

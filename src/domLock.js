@@ -60,23 +60,33 @@ function handlePromise(source, element, oncancel, sendAsync) {
                 reportError(error, element);
             }
         });
+        var targets = new Map();
         // ensure oncancel is called when cancelLock is called
         ensureLock(element);
         subscribeAsync(element);
         each(iterateFocusPath(element), function (i, v) {
             var promises = subscribers.get(v);
             if (promises) {
-                always(promise, function () {
-                    if (promises.delete(promise) && !promises.size) {
-                        emitDOMEvent('asyncEnd', v);
-                    }
-                });
+                targets.set(v, promises);
                 promises.set(promise, cancel);
-                if (promises.size === 1) {
-                    emitDOMEvent('asyncStart', v);
-                }
                 return !promises.handled;
             }
+        });
+        always(promise, function () {
+            each(targets, function (i, v) {
+                if (v.delete(promise) && v.started && !v.size) {
+                    v.started = false;
+                    emitDOMEvent('asyncEnd', i);
+                }
+            });
+        });
+        setTimeout(function () {
+            each(targets, function (i, v) {
+                if (v.size && !v.started) {
+                    v.started = true;
+                    emitDOMEvent('asyncStart', i);
+                }
+            });
         });
     }
     return extend(promise, { cancel });
