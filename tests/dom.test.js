@@ -166,6 +166,24 @@ describe('focusable', () => {
         dom.retainFocus(body, div);
         expect(dom.focusable(div)).toBe(false);
     });
+
+    it('should return true if element is a descandent of a fixed positioned element not blocked by modal element', () => {
+        const { modal, other1, child1, other2, child2 } = initBody(`
+            <div id="modal"></div>
+            <div id="other1" style="position: fixed">
+                <div id="child1"></div>
+            </div>
+            <div id="other2" style="position: fixed">
+                <div id="child2"></div>
+            </div>
+        `);
+        dom.focus(child2);
+        dom.setModal(modal);
+        expect(dom.focusable(other1)).toBeTruthy();
+        expect(dom.focusable(child1)).toBeTruthy();
+        expect(dom.focusable(other2)).toBe(false);
+        expect(dom.focusable(child2)).toBe(false);
+    });
 });
 
 describe('blur', () => {
@@ -278,6 +296,21 @@ describe('setFocus', () => {
         dom.focus(inner);
         expect(dom.activeElement).toBe(inner);
         expect(document.activeElement).toBe(button);
+    });
+
+    it('should focus descandent of a fixed positioned element not blocked by modal element', () => {
+        const { modal, other, child } = initBody(`
+            <div id="modal"></div>
+            <div id="other" style="position: fixed">
+                <div id="child"></div>
+            </div>
+        `);
+        dom.setModal(modal);
+        dom.focus(child);
+        expect(dom.focusedElements).toEqual([child, other, modal, root]);
+
+        dom.releaseModal(modal);
+        expect(dom.focusedElements).toEqual([child, other, modal, body, root]);
     });
 });
 

@@ -114,6 +114,7 @@ export function textInputAllowed(element: Element): boolean;
  * The result will be `false` in case the element is outside the current modal element,
  * which prevents focus to be moved outside the model element.
  * @param element A DOM element.
+ * @returns A DOM element when focusable, however it should only be tested for truthiness as it will change in future release.
  */
 export function focusable(element: Element): Element | false;
 
