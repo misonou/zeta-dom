@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.4 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.5 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -1563,23 +1563,33 @@ function handlePromise(source, element, oncancel, sendAsync) {
         reportError(error, element);
       }
     });
+    var targets = new Map();
     // ensure oncancel is called when cancelLock is called
     ensureLock(element);
     subscribeAsync(element);
     each(iterateFocusPath(element), function (i, v) {
       var promises = subscribers.get(v);
       if (promises) {
-        always(promise, function () {
-          if (promises.delete(promise) && !promises.size) {
-            emitDOMEvent('asyncEnd', v);
-          }
-        });
+        targets.set(v, promises);
         promises.set(promise, cancel);
-        if (promises.size === 1) {
-          emitDOMEvent('asyncStart', v);
-        }
         return !promises.handled;
       }
+    });
+    always(promise, function () {
+      each(targets, function (i, v) {
+        if (v.delete(promise) && v.started && !v.size) {
+          v.started = false;
+          emitDOMEvent('asyncEnd', i);
+        }
+      });
+    });
+    setTimeout(function () {
+      each(targets, function (i, v) {
+        if (v.size && !v.started) {
+          v.started = true;
+          emitDOMEvent('asyncStart', i);
+        }
+      });
     });
   }
   return extend(promise, {
@@ -1845,15 +1855,26 @@ function focusable(element) {
   if (!containsOrEquals(root, element)) {
     return false;
   }
-  if (element === root || !focusPath[1]) {
+  if (element === root || !focusPath[1] || !modalElements.size) {
     return root;
   }
-  var friends = map(parentsAndSelf(element), function (v) {
+  return getFocusableWithin(parentsAndSelf(element));
+}
+function getFocusableWithin(parents) {
+  var friends = map(parents, function (v) {
     return focusFriends.get(v);
   });
-  return any(focusPath, function (v) {
-    return v !== root && (containsOrEquals(v, element) || friends.indexOf(v) >= 0);
+  var within = any(focusPath, function (v) {
+    return containsOrEquals(v, parents[0]) || friends.indexOf(v) >= 0;
   });
+  if (within !== root || !focusPath[1]) {
+    return within;
+  }
+  // allow any fixed element to be focusable under modal unless it is already blocked
+  var index = parents.findIndex(function (v) {
+    return getComputedStyle(v).position === 'fixed';
+  });
+  return index >= 0 && !focusElements.has(parents[index]) && parents.splice(index + 1) && focusPath.slice(-2)[0];
 }
 function triggerFocusEvent(eventName, elements, relatedTarget) {
   var data = {
@@ -1897,7 +1918,7 @@ function setFocus(element, suppressFocusChange) {
   }
   var len = focusPath.length;
   var index = focusPath.indexOf(element);
-  if (index === 0) {
+  if (index === 0 || !containsOrEquals(root, element)) {
     setFocusUnsafe(focusPath, []);
     return len;
   }
@@ -1913,7 +1934,7 @@ function setFocus(element, suppressFocusChange) {
     if (friend && added.indexOf(friend) < 0 && focusPath.indexOf(friend) < 0) {
       len = setFocus(friend, true);
     }
-    var within = focusable(element);
+    var within = getFocusableWithin(added);
     if (within) {
       removeFocusUnsafe(focusPath, within, element, true);
       len = Math.min(len, focusPath.length);
