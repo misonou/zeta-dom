@@ -772,7 +772,7 @@ export function retryable<T, R>(fn: () => PromiseLike<T>, callback: (result: Awa
  */
 export function deferrable(promises?: Promise<any> | Promise<any>[]): Promise<void> & Zeta.Deferrable;
 
-export function catchAsync<T>(promise: T): Promise<Awaited<T>>;
+export function catchAsync<T>(promise: T): Promise<Awaited<T> | undefined>;
 
 /**
  * @deprecated Use {@link delay} instead.
