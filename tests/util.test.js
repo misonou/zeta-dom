@@ -508,6 +508,11 @@ describe('equal', () => {
     });
 
     it('should perform same value zero comparison for primitive values', () => {
+        expect(equal(null, null)).toBe(true);
+        expect(equal(undefined, undefined)).toBe(true);
+        expect(equal(undefined, null)).toBe(false);
+        expect(equal(null, {})).toBe(false);
+        expect(equal({}, null)).toBe(false);
         expect(equal(-0, 0)).toBe(true);
         expect(equal(1, 1)).toBe(true);
         expect(equal(1, 0)).toBe(false);

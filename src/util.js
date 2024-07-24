@@ -327,7 +327,7 @@ function setAdd(set, obj) {
 }
 
 function equal(a, b) {
-    if (typeof a !== 'object' || !b || a.constructor !== b.constructor) {
+    if (!a || !b || typeof a !== 'object' || a.constructor !== b.constructor) {
         return sameValueZero(a, b);
     }
     var type = (a instanceof Map && 1) || (a instanceof Set && 2) || (isArray(a) && 3) || 0;
