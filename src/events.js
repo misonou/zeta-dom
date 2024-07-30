@@ -1,6 +1,6 @@
 import $ from "./include/jquery.js";
 import { root } from "./env.js";
-import { arrRemove, createPrivateStore, definePrototype, each, executeOnce, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, mapGet, mapRemove, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { arrRemove, createPrivateStore, deferrable, definePrototype, each, executeOnce, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, mapGet, mapRemove, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { registerCleanup } from "./observe.js";
 import dom, { iterateFocusPath } from "./dom.js";
@@ -153,6 +153,7 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
     var self = this;
     var element = is(target.element, Node) || target;
     var source = options.source || new ZetaEventSource();
+    var result = options.deferrable ? deferrable() : undefined;
     var properties = {
         eventName: eventName,
         target: target,
@@ -168,8 +169,13 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
         element: element,
         data: data,
         properties: properties,
+        result: result,
         current: [],
     });
+    if (result) {
+        self.handleable = false;
+        properties.waitFor = result.waitFor;
+    }
 }
 
 definePrototype(ZetaEventEmitter, {

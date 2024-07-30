@@ -2,7 +2,7 @@ import { after, body, initBody, mockFn, root, verifyCalls, _, bindEvent, fireEve
 import { emitDOMEvent, getEventContext, listenDOMEvent, ZetaEventContainer } from "../src/events";
 import { domReady } from "../src/env";
 import dom, { iterateFocusPath } from "../src/dom";
-import { combineFn, map, pipe } from "../src/util";
+import { catchAsync, combineFn, map, pipe } from "../src/util";
 
 const { objectContaining } = expect;
 
@@ -414,6 +414,57 @@ describe('ZetaEventContainer.emit', () => {
             asyncResult: false
         });
         expect(returnValue).toBeUndefined();
+        expect(cb).toBeCalledTimes(2);
+    });
+
+    it('should return promise deferrable by multiple promises if deferrable is true', async () => {
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        const waitForResults = [];
+        const waitFor = mockFn();
+        const cb = mockFn(() => 84);
+
+        const handler = mockFn(e => {
+            const p = delay(100);
+            p.then(() => {
+                waitForResults.push(e.waitFor(delay(100).then(cb)));
+            });
+            waitForResults.push(e.waitFor(p.then(() => 21)));
+            waitFor.mockImplementation(e.waitFor);
+            e.handled(42);
+        });
+        container.add(target, 'customEvent', handler);
+        container.add(target, 'customEvent', handler);
+
+        const promise = container.emit('customEvent', target, null, {
+            deferrable: true,
+            handleable: true, // it should ignore handleable flag
+        });
+        expect(handler).toBeCalledTimes(2);
+        await expect(promise).resolves.toBeUndefined();
+
+        expect(cb).toBeCalledTimes(2);
+        expect(waitForResults).toEqual([true, true, true, true]);
+        expect(waitFor()).toBe(false);
+    });
+
+    it('should not throw or reject if deferrable is true', async () => {
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        const error = new Error();
+        const cb = mockFn((e) => {
+            const p = Promise.reject(error);
+            catchAsync(p);
+            e.handled(p);
+            throw error;
+        });
+        container.add(target, 'customEvent', cb);
+        container.add(target, 'customEvent', cb);
+
+        const promise = container.emit('customEvent', target, null, {
+            deferrable: true
+        });
+        await expect(promise).resolves.toBeUndefined();
         expect(cb).toBeCalledTimes(2);
     });
 

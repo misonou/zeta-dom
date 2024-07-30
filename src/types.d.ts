@@ -465,6 +465,9 @@ declare namespace Zeta {
         isDefaultPrevented(): boolean;
     }
 
+    interface ZetaDeferrableEvent extends ZetaEventBase, Deferrable {
+    }
+
     interface ZetaHandleableEvent<T = any> extends ZetaEventBase {
         /**
          * Signals that this event or user action is already handled and should not be observed by other components.
@@ -617,8 +620,19 @@ declare namespace Zeta {
          * Specifies whether the event can be handled, such that by returning a result value,
          * subsequent event handlers would be skipped and the returned value will be passed to
          * the caller of the emit function. Default is true.
+         *
+         * This option is ignored and is forced to be false when {@link EventEmitOptions.deferrable}
+         * option is set to true.
          */
         handleable?: boolean;
+
+        /**
+         * Specifies whether the event is deferrable by multiple handlers. Default is false.
+         *
+         * When set to true, the emit function will always return a promise that resolves after
+         * all promises registered to {@link ZetaDeferrableEvent.waitFor} has settled.
+         */
+        deferrable?: boolean;
 
         /**
          * Specifies if the emit function should wrap the return value from event handlers as a Promise.
