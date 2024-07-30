@@ -12,7 +12,7 @@ import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAtt
 const SELECTOR_FOCUSABLE = 'input,select,button,textarea,[contenteditable],a[href],area[href],iframe';
 
 const reportErrorImpl = window.reportError || function (error) {
-    console.log(error);
+    console.error(error);
 };
 
 const focusPath = [root];
@@ -1029,7 +1029,7 @@ setShortcut({
  * -------------------------------------- */
 
 function reportError(error, element) {
-    return emitDOMEvent('error', element || root, { error }, true) || reportErrorImpl.call(window, error);
+    return emitDOMEvent('error', element || root, { error }, true) || reportErrorImpl(error);
 }
 
 function focus(element, focusInput) {

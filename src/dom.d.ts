@@ -16,6 +16,7 @@ declare const methods = {
     retainFocus,
     releaseFocus,
     iterateFocusPath,
+    reportError,
     focus,
     blur,
     beginDrag,
