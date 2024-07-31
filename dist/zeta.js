@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.5 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.6 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -256,6 +256,9 @@ var env_document = env_window.document;
 var root = env_document.documentElement;
 var getSelection = env_window.getSelection;
 var getComputedStyle = env_window.getComputedStyle;
+var reportError = env_window.reportError || function (error) {
+  console.error(error);
+};
 var domReady = new promise_polyfill(jquery);
 var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
 var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !env_window.MSStream || IS_MAC && navigator.maxTouchPoints > 2;
@@ -568,7 +571,7 @@ function setAdd(set, obj) {
   return result;
 }
 function equal(a, b) {
-  if (_typeof(a) !== 'object' || !b || a.constructor !== b.constructor) {
+  if (!a || !b || _typeof(a) !== 'object' || a.constructor !== b.constructor) {
     return sameValueZero(a, b);
   }
   var type = a instanceof Map && 1 || a instanceof Set && 2 || isArray(a) && 3 || 0;
@@ -1560,7 +1563,7 @@ function handlePromise(source, element, oncancel, sendAsync) {
       // avoid firing error event for the same error for multiple target
       // while propagating through the promise chain
       if (error && (domLock_typeof(error) !== 'object' || setAdd(handledErrors, error))) {
-        reportError(error, element);
+        dom_reportError(error, element);
       }
     });
     var targets = new Map();
@@ -1701,9 +1704,6 @@ subscribeAsync(root);
 
 
 var SELECTOR_FOCUSABLE = 'input,select,button,textarea,[contenteditable],a[href],area[href],iframe';
-var reportErrorImpl = env_window.reportError || function (error) {
-  console.log(error);
-};
 var focusPath = [root];
 var focusFriends = new WeakMap();
 var focusElements = new Set([root]);
@@ -2672,10 +2672,10 @@ setShortcut({
  * Exports
  * -------------------------------------- */
 
-function reportError(error, element) {
+function dom_reportError(error, element) {
   return emitDOMEvent('error', element || root, {
     error: error
-  }, true) || reportErrorImpl.call(env_window, error);
+  }, true) || reportError(error);
 }
 function dom_focus(element, focusInput) {
   if (focusInput !== false && !matchSelector(element, SELECTOR_FOCUSABLE)) {
@@ -2719,7 +2719,7 @@ function dom_blur(element) {
   },
   root: root,
   ready: domReady,
-  reportError: reportError,
+  reportError: dom_reportError,
   textInputAllowed: textInputAllowed,
   focusable: focusable,
   focused: focused,
@@ -2902,6 +2902,7 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
   var self = this;
   var element = is(target.element, Node) || target;
   var source = options.source || new ZetaEventSource();
+  var result = options.deferrable ? deferrable() : undefined;
   var properties = {
     eventName: eventName,
     target: target,
@@ -2917,8 +2918,13 @@ function ZetaEventEmitter(eventName, container, target, data, options) {
     element: element,
     data: data,
     properties: properties,
+    result: result,
     current: []
   });
+  if (result) {
+    self.handleable = false;
+    properties.waitFor = result.waitFor;
+  }
 }
 definePrototype(ZetaEventEmitter, {
   emit: function emit(container, eventName, target, bubbles) {
@@ -2981,10 +2987,10 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
           event.handled(returnValue);
         }
       } catch (e) {
-        console.error(e);
         if (emitter.asyncResult) {
-          event.handled(reject(e));
+          emitterHandleResult(emitter, e, reject);
         }
+        reportError(e);
       }
       contextContainer.event = prevEvent;
       return emitter.handled;
@@ -2992,6 +2998,15 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
     emitter.current.shift();
   }
   return handled || !emitter.current[0] && shouldForward && forwardEvent(emitter.postAlias);
+}
+function emitterHandleResult(emitter, value, reject) {
+  if (emitter.handleable && !emitter.handled) {
+    emitter.handled = true;
+    emitter.result = emitter.asyncResult ? (reject || util_resolve)(value) : value;
+    if (emitter.originalEvent && emitter.preventNative) {
+      emitter.originalEvent.preventDefault();
+    }
+  }
 }
 
 /* --------------------------------------
@@ -3015,14 +3030,7 @@ function ZetaEvent(event, eventName, component, context, data) {
 }
 definePrototype(ZetaEvent, {
   handled: function handled(value) {
-    var event = _(this);
-    if (event.handleable && !event.handled) {
-      event.handled = true;
-      event.result = event.asyncResult ? util_resolve(value) : value;
-      if (event.preventNative) {
-        this.preventDefault();
-      }
-    }
+    emitterHandleResult(_(this), value);
   },
   isHandled: function isHandled() {
     return !!_(this).handled;
