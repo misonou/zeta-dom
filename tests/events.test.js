@@ -328,6 +328,18 @@ describe('ZetaEventContainer.emit', () => {
         await expect(promise).rejects.toBe(error);
     });
 
+    it('should not trigger unhandledrejection event if handler throws an error after event is marked handled', async () => {
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        container.add(target, 'customEvent', (e) => {
+            e.handled();
+            throw new Error();
+        });
+
+        await expect(container.emit('customEvent', target)).resolves.toBeUndefined();
+        // no need to explicitly assert as unhandledrejection event will cause test to fail
+    });
+
     it('should stop propagation if event is handled', async () => {
         const { node1, node2 } = initBody(`
             <div id="node1">
@@ -384,6 +396,18 @@ describe('ZetaEventContainer.emit', () => {
         });
         expect(returnValue).toBeUndefined();
         expect(cb).toBeCalledTimes(3);
+    });
+
+    it('should not trigger unhandledrejection event if handleable is false', () => {
+        const container = new ZetaEventContainer();
+        const target = container.element;
+        container.add(target, 'customEvent', () => { throw new Error() });
+        container.add(target, 'customEvent', () => { throw new Error() });
+
+        container.emit('customEvent', target, null, {
+            handleable: false
+        });
+        // no need to explicitly assert as unhandledrejection event will cause test to fail
     });
 
     it('should return value directly if asyncResult is false', () => {

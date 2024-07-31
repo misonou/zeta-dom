@@ -1,5 +1,5 @@
 import $ from "./include/jquery.js";
-import { root } from "./env.js";
+import { root, reportError } from "./env.js";
 import { arrRemove, createPrivateStore, deferrable, definePrototype, each, executeOnce, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, mapGet, mapRemove, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { registerCleanup } from "./observe.js";
@@ -238,10 +238,10 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
                     event.handled(returnValue);
                 }
             } catch (e) {
-                console.error(e);
                 if (emitter.asyncResult) {
-                    event.handled(reject(e));
+                    emitterHandleResult(emitter, e, reject);
                 }
+                reportError(e);
             }
             contextContainer.event = prevEvent;
             return emitter.handled;
@@ -249,6 +249,16 @@ function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
         emitter.current.shift();
     }
     return handled || (!emitter.current[0] && shouldForward && forwardEvent(emitter.postAlias));
+}
+
+function emitterHandleResult(emitter, value, reject) {
+    if (emitter.handleable && !emitter.handled) {
+        emitter.handled = true;
+        emitter.result = emitter.asyncResult ? (reject || resolve)(value) : value;
+        if (emitter.originalEvent && emitter.preventNative) {
+            emitter.originalEvent.preventDefault();
+        }
+    }
 }
 
 /* --------------------------------------
@@ -273,14 +283,7 @@ function ZetaEvent(event, eventName, component, context, data) {
 
 definePrototype(ZetaEvent, {
     handled: function (value) {
-        var event = _(this);
-        if (event.handleable && !event.handled) {
-            event.handled = true;
-            event.result = event.asyncResult ? resolve(value) : value;
-            if (event.preventNative) {
-                this.preventDefault();
-            }
-        }
+        emitterHandleResult(_(this), value);
     },
     isHandled: function () {
         return !!_(this).handled;

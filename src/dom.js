@@ -1,5 +1,5 @@
 import { } from "./libCheck.js";
-import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady } from "./env.js";
+import { IS_MAC, IS_TOUCH, window, document, root, getSelection, getComputedStyle, domReady, reportError as reportErrorImpl } from "./env.js";
 import { KEYNAMES } from "./constants.js";
 import * as ErrorCode from "./errorCode.js";
 import $ from "./include/jquery.js";
@@ -10,10 +10,6 @@ import { lock, cancelLock, locked, notifyAsync, preventLeave, runAsync, subscrib
 import { afterDetached, createAutoCleanupMap, observe, registerCleanup, watchAttributes, watchElements, watchOwnAttributes } from "./observe.js";
 
 const SELECTOR_FOCUSABLE = 'input,select,button,textarea,[contenteditable],a[href],area[href],iframe';
-
-const reportErrorImpl = window.reportError || function (error) {
-    console.error(error);
-};
 
 const focusPath = [root];
 const focusFriends = new WeakMap();

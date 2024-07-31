@@ -7,6 +7,9 @@ export const document = window.document;
 export const root = document.documentElement;
 export const getSelection = window.getSelection;
 export const getComputedStyle = window.getComputedStyle;
+export const reportError = window.reportError || function (error) {
+    console.error(error);
+};
 export const domReady = new Promise($);
 
 export const IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
