@@ -312,6 +312,53 @@ describe('setFocus', () => {
         dom.releaseModal(modal);
         expect(dom.focusedElements).toEqual([child, other, modal, body, root]);
     });
+
+    it('should trigger focuschange event to elements that neither got or lost focus', async () => {
+        const { outer, inner } = initBody(`
+            <div id="outer">
+                <div id="inner"></div>
+            </div>
+        `);
+
+        const cb = mockFn();
+        bindEvent(root, 'focuschange', cb);
+        bindEvent(body, 'focuschange', cb);
+        bindEvent(outer, 'focuschange', cb);
+        bindEvent(inner, 'focuschange', cb);
+
+        dom.focus(inner);
+        verifyCalls(cb, [
+            [objectContaining({ target: body }), _],
+            [objectContaining({ target: root }), _],
+        ]);
+        cb.mockClear();
+
+        dom.focus(outer);
+        verifyCalls(cb, [
+            [objectContaining({ target: outer }), _],
+            [objectContaining({ target: body }), _],
+            [objectContaining({ target: root }), _],
+        ]);
+    });
+
+    it('should not trigger focuschange event if active elements did not change', async () => {
+        const { modal } = initBody(`
+            <div id="modal"></div>
+        `);
+        dom.setModal(modal);
+        expect(dom.focusedElements).toEqual([modal, root]);
+
+        const cb = mockFn();
+        bindEvent(root, 'focuschange', cb);
+        bindEvent(body, 'focuschange', cb);
+        bindEvent(modal, 'focuschange', cb);
+
+        expect(dom.focus(modal)).toBe(true);
+        expect(cb).not.toBeCalled();
+
+        expect(dom.focus(body)).toBe(false);
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('setTabRoot', () => {
@@ -443,6 +490,25 @@ describe('setModal', () => {
         button.focus();
         expect(dom.activeElement).toBe(modal);
         expect(dom.focusedElements).toEqual([modal, root]);
+    });
+
+    it('should fire focuschange event on root element', async () => {
+        const { outer, inner } = initBody(`
+            <div id="outer">
+                <div id="inner"></div>
+            </div>
+        `);
+
+        const cb = mockFn();
+        bindEvent(root, 'focuschange', cb);
+        bindEvent(body, 'focuschange', cb);
+        bindEvent(outer, 'focuschange', cb);
+        bindEvent(inner, 'focuschange', cb);
+
+        dom.setModal(inner);
+        verifyCalls(cb, [
+            [objectContaining({ target: root }), _]
+        ]);
     });
 
     it('should fire focusreturn event if keyboard, mouse or touch event is triggered outside modal element', () => {

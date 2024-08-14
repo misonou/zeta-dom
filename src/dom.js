@@ -248,11 +248,12 @@ function setFocus(element, suppressFocusChange) {
         setFocusUnsafe(focusPath, []);
         return len;
     }
+    var before = len;
+    var added = [];
     if (index > 0) {
         removeFocusUnsafe(focusPath, element, element);
         len = len - index;
     } else {
-        var added = [];
         var friend;
         any(parentsAndSelf(element), function (v) {
             return focusPath.indexOf(v) >= 0 || (added.push(v) && (friend = focusFriends.get(v)));
@@ -280,7 +281,7 @@ function setFocus(element, suppressFocusChange) {
             setFocusUnsafe(focusPath, added);
         }
     }
-    if (!suppressFocusChange) {
+    if (!suppressFocusChange && (len !== before || (within && added[0]))) {
         triggerFocusEvent('focuschange', focusPath.slice(-len));
     }
     return len;
@@ -336,6 +337,7 @@ function setModal(element) {
         });
         setFocusUnsafe(modalPath, added.slice(1));
         setFocusUnsafe(focusPath, [element]);
+        triggerFocusEvent('focuschange', [root]);
     }
     setImmediateOnce(triggerModalChangeEvent);
     return true;
