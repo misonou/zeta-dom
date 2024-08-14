@@ -355,7 +355,8 @@ function releaseModal(element, modalPath) {
         each(modalElements, function (i, v) {
             var index = v.indexOf(element);
             if (index >= 0) {
-                v.splice.apply(v, [0, index + 1].concat(modalPath));
+                v.splice.apply(v, [index + 1, 0].concat(modalPath));
+                removeFocusUnsafe(v, modalPath[0]);
                 return false;
             }
         });

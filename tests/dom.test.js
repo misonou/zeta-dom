@@ -617,6 +617,31 @@ describe('releaseModal', () => {
         expect(dom.modalElement).toBe(null);
     });
 
+    it('should fire focusout event when blocked modal is released', () => {
+        const { modal1, modal2, button } = initBody(`
+            <div id="modal1">
+                <button id="button"></button>
+            </div>
+            <div id="modal2"></div>
+        `);
+        const cb = mockFn();
+        bindEvent(modal1, 'focusout', cb);
+        bindEvent(button, 'focusout', cb);
+
+        dom.setModal(modal1);
+        dom.focus(button);
+        dom.retainFocus(button, modal2);
+        dom.setModal(modal2);
+
+        dom.releaseModal(modal1);
+        expect(dom.focused(modal1)).toBe(false);
+        expect(dom.focused(button)).toBe(false);
+        expect(cb).toBeCalledTimes(2);
+
+        dom.releaseModal(modal2);
+        expect(dom.focusedElements).toEqual([modal2, body, root]);
+    });
+
     it('should emit modalchange event', async () => {
         const { modal } = initBody(`
             <div id="modal"></div>
