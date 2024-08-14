@@ -325,6 +325,7 @@ function setModal(element) {
     if (modalElements.has(element)) {
         return true;
     }
+    cleanupFocusPath();
     if (element === root || element === document.body || (element.parentNode !== document.body && !focusable(element))) {
         return false;
     }
@@ -332,10 +333,6 @@ function setModal(element) {
     var modalPath = focusPath.splice(from, focusPath.length - from - 1);
     modalElements.set(element, modalPath);
     if (!focused(element)) {
-        var added = parentsAndSelf(element).filter(function (v) {
-            return !focusElements.has(v);
-        });
-        setFocusUnsafe(modalPath, added.slice(1));
         setFocusUnsafe(focusPath, [element]);
         triggerFocusEvent('focuschange', [root]);
     }
@@ -348,17 +345,8 @@ function releaseModal(element, modalPath) {
     if (!modalPath) {
         return;
     }
-    if (focusPath.indexOf(element) >= 0) {
-        var inner = any(modalPath, function (v) {
-            return containsOrEquals(v, element);
-        });
-        if (inner && inner !== modalPath[0]) {
-            // trigger focusout event for previously focused element
-            // which focus is lost to modal element
-            removeFocusUnsafe(modalPath, inner);
-        }
-        // find the index again as focusPath might be updated
-        var index = focusPath.indexOf(element);
+    var index = focusPath.indexOf(element);
+    if (index >= 0) {
         focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
         setFocus(focusPath[0]);
         cleanupFocusPath();

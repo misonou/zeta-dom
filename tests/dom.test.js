@@ -613,24 +613,8 @@ describe('releaseModal', () => {
 
         dom.releaseModal(modal);
         expect(dom.focusable(button)).toBeTruthy();
-        expect(dom.focusedElements).toEqual([modal, body, root]);
+        expect(dom.focusedElements).toEqual([modal, button, other, body, root]);
         expect(dom.modalElement).toBe(null);
-    });
-
-    it('should fire focusout event on previously focused element', () => {
-        const { modal, other, button } = initBody(`
-            <div id="modal"></div>
-            <div id="other">
-                <button id="button"></button>
-            </div>
-        `);
-        const cb = mockFn();
-        const unregister = dom.on(button, 'focusout', cb);
-        button.focus();
-        dom.setModal(modal);
-        dom.releaseModal(modal);
-        expect(cb).toBeCalled();
-        unregister();
     });
 
     it('should emit modalchange event', async () => {
@@ -651,6 +635,24 @@ describe('releaseModal', () => {
         unregister();
     });
 
+    it('should restore correctly when modal is released in-order', () => {
+        const { modal1, modal2, other } = initBody(`
+            <div id="modal1"></div>
+            <div id="modal2"></div>
+            <div id="other"></div>
+        `);
+        dom.focus(other);
+        dom.setModal(modal1);
+        expect(dom.focusedElements).toEqual([modal1, root]);
+        expect(dom.setModal(modal2)).toBe(true);
+        expect(dom.focusedElements).toEqual([modal2, root]);
+
+        dom.releaseModal(modal2);
+        expect(dom.focusedElements).toEqual([modal2, modal1, root]);
+        dom.releaseModal(modal1);
+        expect(dom.focusedElements).toEqual([modal2, modal1, other, body, root]);
+    });
+
     it('should restore correctly when modal is released out-of-order', () => {
         const { modal1, modal2, other } = initBody(`
             <div id="modal1"></div>
@@ -660,14 +662,13 @@ describe('releaseModal', () => {
         dom.focus(other);
         dom.setModal(modal1);
         expect(dom.focusedElements).toEqual([modal1, root]);
-
-        dom.retainFocus(modal1, modal2);
         expect(dom.setModal(modal2)).toBe(true);
         expect(dom.focusedElements).toEqual([modal2, root]);
 
         dom.releaseModal(modal1);
+        expect(dom.focusedElements).toEqual([modal2, root]);
         dom.releaseModal(modal2);
-        expect(dom.focusedElements).toEqual([modal2, body, root]);
+        expect(dom.focusedElements).toEqual([modal2, other, body, root]);
     });
 });
 
