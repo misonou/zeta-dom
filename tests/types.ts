@@ -23,15 +23,36 @@ const _: unknown = {};
 
 expectTypeOf<Zeta.IsAny<any>>().toEqualTypeOf(true);
 expectTypeOf<Zeta.IsAny<unknown>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsAny<never>>().toEqualTypeOf(false);
 expectTypeOf<Zeta.IsAny<number>>().toEqualTypeOf(false);
 expectTypeOf<Zeta.IsAny<object>>().toEqualTypeOf(false);
 expectTypeOf<Zeta.IsAny<A>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsAny<any[]>>().toEqualTypeOf(false);
 
 expectTypeOf<Zeta.IsAnyOrUnknown<any>>().toEqualTypeOf(true);
 expectTypeOf<Zeta.IsAnyOrUnknown<unknown>>().toEqualTypeOf(true);
+expectTypeOf<Zeta.IsAnyOrUnknown<never>>().toEqualTypeOf(false);
 expectTypeOf<Zeta.IsAnyOrUnknown<number>>().toEqualTypeOf(false);
 expectTypeOf<Zeta.IsAnyOrUnknown<object>>().toEqualTypeOf(false);
 expectTypeOf<Zeta.IsAnyOrUnknown<A>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsAnyOrUnknown<any[]>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsAnyOrUnknown<unknown[]>>().toEqualTypeOf(false);
+
+expectTypeOf<Zeta.IsUnknown<any>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsUnknown<unknown>>().toEqualTypeOf(true);
+expectTypeOf<Zeta.IsUnknown<never>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsUnknown<number>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsUnknown<object>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsUnknown<A>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsUnknown<unknown[]>>().toEqualTypeOf(false);
+
+expectTypeOf<Zeta.IsNever<any>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsNever<unknown>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsNever<never>>().toEqualTypeOf(true);
+expectTypeOf<Zeta.IsNever<number>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsNever<object>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsNever<A>>().toEqualTypeOf(false);
+expectTypeOf<Zeta.IsNever<never[]>>().toEqualTypeOf(false);
 
 expectTypeOf(new (<Zeta.AnyConstructor>_)).toBeAny();
 

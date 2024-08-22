@@ -39,8 +39,14 @@ declare namespace Zeta {
     type MapResultValue<T> = T | T[] | null | undefined;
     type IterateCallbackOrNull<T, R> = null | ((node: T) => MapResultValue<R>);
 
+    type If<T extends boolean, U, V> = T extends true ? U : V;
+    type Not<T extends boolean> = If<T, false, true>;
     type IsAny<T> = (1 | 2) extends (T extends never ? 1 : 2) ? true : false;
     type IsAnyOrUnknown<T> = unknown extends T ? true : false;
+    type IsUnknown<T> = If<IsAnyOrUnknown<T>, Not<IsAny<T>>, false>;
+    type IsNever<T> = [T] extends [never] ? true : false;
+    type Default<T, U> = If<IsUnknown<T>, U, T>;
+
     type AnyFunction = (...args: any[]) => any;
     type AnyConstructor = new (...args: any[]) => any;
     type AnyConstructorOrClass = abstract new (...args: any[]) => any;
