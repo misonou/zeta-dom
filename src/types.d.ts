@@ -170,20 +170,38 @@ declare namespace Zeta {
     type ClickName = 'click' | 'dblclick' | 'rightClick' | 'doubleClick' | 'ctrlClick' | 'shiftClick' | 'altClick' | 'ctrlShiftClick' | 'ctrlAltClick' | 'altShiftClick' | 'ctrlAltShiftClick';
     type GestureName = 'swipeUp' | 'swipeDown' | 'swipeLeft' | 'swipeRight' | 'pinchZoom';
 
-    interface Watchable<T, K = keyof T> {
+    type PropertyChangeHandler<T, P, R> = (this: T, newValue: PropertyTypeOrAny<T, P>, oldValue: PropertyTypeOrAny<T, P>, prop: P, obj: T) => R;
+
+    interface PropertyChangeRecord<T> {
+        oldValues: Partial<T>;
+        newValues: Partial<T>;
+    }
+
+    interface Watchable<T = unknown, K = If<IsUnknown<T>, unknown, HintedKeyOf<T>>> {
+        /**
+         * Hooks a listener callback which will be fired when any observed property has been changed.
+         * @param handler A callback which receives changed values.
+         */
+        watch(handler: (e: PropertyChangeRecord<Default<T, this>>) => void): UnregisterCallback;
         /**
          * Watches a property on the object.
          * @param prop Property name.
          * @param handler Callback to be fired and the property is changed.
          * @param fireInit Optionally fire the handler immediately.
          */
-        watch<P extends K>(prop: P, handler?: (this: T, newValue: PropertyTypeOrAny<T, P>, oldValue: PropertyTypeOrAny<T, P>, prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
+        watch<P extends Default<K, HintedKeyOf<this>>>(prop: P, handler?: PropertyChangeHandler<Default<T, this>, P, void>, fireInit?: boolean): UnregisterCallback;
+        /**
+         * Watches a property and resolves when the property is changed.
+         * @param prop Property name.
+         */
+        watchOnce<P extends Default<K, HintedKeyOf<this>>>(prop: P): Promise<PropertyTypeOrAny<Default<T, this>, P>>;
         /**
          * Watches a property and resolves when the property is changed.
          * @param prop Property name.
          * @param handler Callback to be fired when the property is changed.
+         * @returns A promise that resolves with the returned value from handler callback.
          */
-        watchOnce<P extends K>(prop: P, handler?: (this: T, newValue: PropertyTypeOrAny<T, P>, oldValue: PropertyTypeOrAny<T, P>, prop: P, obj: T) => void): Promise<PropertyTypeOrAny<T, P>>;
+        watchOnce<P extends Default<K, HintedKeyOf<this>>, R>(prop: P, handler: PropertyChangeHandler<Default<T, this>, P, R | Promise<R>>): Promise<R>;
     }
 
     interface Deferrable {

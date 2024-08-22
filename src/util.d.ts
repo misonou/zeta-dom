@@ -907,13 +907,32 @@ export function watch(obj: object, sync: boolean): ((callback: () => any) => voi
  * @param obj An object to observe.
  * @param handler A callback which receives changed values.
  */
-export function watch<T extends object>(obj: T, handler: (e: { oldValues: Partial<T>, newValues: Partial<T> }) => any): Zeta.UnregisterCallback;
+export function watch<T extends object>(obj: T, handler: (e: Zeta.PropertyChangeRecord<T>) => any): Zeta.UnregisterCallback;
 
-export function watch<T extends object, P extends Zeta.HintedKeyOf<T>>(obj: T, prop: P, handler?: (this: T, newValue: Zeta.PropertyTypeOrAny<T, P>, oldValue: Zeta.PropertyTypeOrAny<T, P>, prop: P, obj: T) => void, fireInit?: boolean): Zeta.UnregisterCallback;
+/**
+ * Watches a property on the object.
+ * @param obj An object to observe.
+ * @param prop Property name.
+ * @param handler Callback to be fired and the property is changed.
+ * @param fireInit Optionally fire the handler immediately.
+ */
+export function watch<T extends object, P extends Zeta.HintedKeyOf<T>>(obj: T, prop: P, handler?: Zeta.PropertyChangeHandler<T, P, void>, fireInit?: boolean): Zeta.UnregisterCallback;
 
+/**
+ * Watches a property and resolves when the property is changed.
+ * @param obj An object to observe.
+ * @param prop Property name.
+ */
 export function watchOnce<T extends object, P extends Zeta.HintedKeyOf<T>>(obj: T, prop: P): Promise<Zeta.PropertyTypeOrAny<T, P>>;
 
-export function watchOnce<T extends object, P extends Zeta.HintedKeyOf<T>, U>(obj: T, prop: P, handler: (this: T, newValue: Zeta.PropertyTypeOrAny<T, P>, oldValue: Zeta.PropertyTypeOrAny<T, P>, prop: P, obj: T) => U): Promise<Awaited<U>>;
+/**
+ * Watches a property and resolves when the property is changed.
+ * @param obj An object to observe.
+ * @param prop Property name.
+ * @param handler Callback to be fired when the property is changed.
+ * @returns A promise that resolves with the returned value from handler callback.
+ */
+export function watchOnce<T extends object, P extends Zeta.HintedKeyOf<T>, U>(obj: T, prop: P, handler: Zeta.PropertyChangeHandler<T, P, U | Promise<U>>): Promise<U>;
 
 /**
  * Creates a new object with `watch` and `watchOnce` method defined.

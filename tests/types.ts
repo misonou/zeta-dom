@@ -259,8 +259,8 @@ expectTypeOf(deferrable().waitFor()).toEqualTypeOf<boolean>();
 expectTypeOf(deferrable().waitFor(resolve(1))).toEqualTypeOf<boolean>();
 expectTypeOf(deferrable().waitFor(resolve(1), resolve(1))).toEqualTypeOf<boolean>();
 
-expectTypeOf(catchAsync(<A>_)).toEqualTypeOf<Promise<A>>();
-expectTypeOf(catchAsync(resolve(<A>_))).toEqualTypeOf<Promise<A>>();
+expectTypeOf(catchAsync(<A>_)).toEqualTypeOf<Promise<A | undefined>>();
+expectTypeOf(catchAsync(resolve(<A>_))).toEqualTypeOf<Promise<A | undefined>>();
 
 expectTypeOf(setPromiseTimeout(resolve(1), 0)).toEqualTypeOf<Promise<number>>();
 expectTypeOf(setPromiseTimeout(resolve(1), 0, true)).toEqualTypeOf<Promise<number>>();
@@ -289,6 +289,15 @@ expectTypeOf(watchOnce(<C>_, 'a', (_1: A, _2: A, _3: string, _4: C) => resolve('
 
 expectTypeOf(watchable()).toEqualTypeOf<Zeta.Watchable<any>>();
 expectTypeOf(watchable(<C>_)).toEqualTypeOf<Zeta.WatchableInstance<C>>();
+
+expectTypeOf((<Zeta.Watchable>_).watch('a', (_1: any, _2: any, _3: string, _4: any) => { })).toEqualTypeOf<Zeta.UnregisterCallback>();
+expectTypeOf((<Zeta.Watchable & C>_).watch('a', (_1: A, _2: A, _3: string, _4: C) => { })).toEqualTypeOf<Zeta.UnregisterCallback>();
+expectTypeOf((<Zeta.Watchable<C>>_).watch('a', (_1: A, _2: A, _3: string, _4: C) => { })).toEqualTypeOf<Zeta.UnregisterCallback>();
+expectTypeOf((<Zeta.Watchable<C>>_).watch('c', (_1: any, _2: any, _3: string, _4: C) => { })).toEqualTypeOf<Zeta.UnregisterCallback>();
+expectTypeOf((<Zeta.Watchable<{}, 'a'>>_).watch('a', (_1: any, _2: any, _3: string, _4: {}) => { })).toEqualTypeOf<Zeta.UnregisterCallback>();
+
+expectTypeOf((<Zeta.Watchable & C>_).watch((_: { oldValues: Partial<C>, newValues: Partial<C> }) => { })).toEqualTypeOf<Zeta.UnregisterCallback>();
+expectTypeOf((<Zeta.Watchable<C>>_).watch((_: { oldValues: Partial<C>, newValues: Partial<C> }) => { })).toEqualTypeOf<Zeta.UnregisterCallback>();
 
 // defineAliasProperty - basic
 expectTypeOf(defineAliasProperty(<C>_, 'a', <D>_)).toBeVoid();
