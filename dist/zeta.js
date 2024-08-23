@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.6 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.7 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -1922,11 +1922,12 @@ function setFocus(element, suppressFocusChange) {
     setFocusUnsafe(focusPath, []);
     return len;
   }
+  var before = len;
+  var added = [];
   if (index > 0) {
     removeFocusUnsafe(focusPath, element, element);
     len = len - index;
   } else {
-    var added = [];
     var friend;
     any(parentsAndSelf(element), function (v) {
       return focusPath.indexOf(v) >= 0 || added.push(v) && (friend = focusFriends.get(v));
@@ -1954,7 +1955,7 @@ function setFocus(element, suppressFocusChange) {
       setFocusUnsafe(focusPath, added);
     }
   }
-  if (!suppressFocusChange) {
+  if (!suppressFocusChange && (len !== before || within && added[0])) {
     triggerFocusEvent('focuschange', focusPath.slice(-len));
   }
   return len;
@@ -1995,6 +1996,7 @@ function setModal(element) {
   if (modalElements.has(element)) {
     return true;
   }
+  cleanupFocusPath();
   if (element === root || element === env_document.body || element.parentNode !== env_document.body && !focusable(element)) {
     return false;
   }
@@ -2002,11 +2004,8 @@ function setModal(element) {
   var modalPath = focusPath.splice(from, focusPath.length - from - 1);
   modalElements.set(element, modalPath);
   if (!focused(element)) {
-    var added = parentsAndSelf(element).filter(function (v) {
-      return !focusElements.has(v);
-    });
-    setFocusUnsafe(modalPath, added.slice(1));
     setFocusUnsafe(focusPath, [element]);
+    triggerFocusEvent('focuschange', [root]);
   }
   setImmediateOnce(triggerModalChangeEvent);
   return true;
@@ -2016,17 +2015,8 @@ function releaseModal(element, modalPath) {
   if (!modalPath) {
     return;
   }
-  if (focusPath.indexOf(element) >= 0) {
-    var inner = any(modalPath, function (v) {
-      return containsOrEquals(v, element);
-    });
-    if (inner && inner !== modalPath[0]) {
-      // trigger focusout event for previously focused element
-      // which focus is lost to modal element
-      removeFocusUnsafe(modalPath, inner);
-    }
-    // find the index again as focusPath might be updated
-    var index = focusPath.indexOf(element);
+  var index = focusPath.indexOf(element);
+  if (index >= 0) {
     focusPath.splice.apply(focusPath, [index + 1, 0].concat(modalPath));
     setFocus(focusPath[0]);
     cleanupFocusPath();
@@ -2035,7 +2025,8 @@ function releaseModal(element, modalPath) {
     each(modalElements, function (i, v) {
       var index = v.indexOf(element);
       if (index >= 0) {
-        v.splice.apply(v, [0, index + 1].concat(modalPath));
+        v.splice.apply(v, [index + 1, 0].concat(modalPath));
+        removeFocusUnsafe(v, modalPath[0]);
         return false;
       }
     });
