@@ -350,13 +350,15 @@ function getBoxValues(element, prop, sign) {
 function getInnerBoxValues(element, prop) {
     var a = prop ? getBoxValues(element, prop, -1) : [0, 0, 0, 0];
     var b = getBoxValues(element, 'border');
-    var dx = element.offsetWidth - element.clientWidth - b[0] - b[2];
-    var dy = element.offsetHeight - element.clientHeight - b[1] - b[3];
-    if (dx > 0.5) {
-        b[element.clientLeft - b[0] > 0.5 ? 0 : 2] += dx;
-    }
-    if (dy > 0.5) {
-        b[element.clientTop - b[1] > 0.5 ? 1 : 3] += dy;
+    if (element !== root && element !== document.body) {
+        var dx = element.offsetWidth - element.clientWidth - b[0] - b[2];
+        var dy = element.offsetHeight - element.clientHeight - b[1] - b[3];
+        if (dx > 0.5) {
+            b[element.clientLeft - b[0] > 0.5 ? 0 : 2] += dx;
+        }
+        if (dy > 0.5) {
+            b[element.clientTop - b[1] > 0.5 ? 1 : 3] += dy;
+        }
     }
     return [a[0] - b[0], a[1] - b[1], a[2] - b[2], a[3] - b[3]];
 }

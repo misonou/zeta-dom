@@ -849,6 +849,19 @@ describe('getRect', () => {
         expect(getRect(node, 'margin-box')).toEqual(toPlainRect(105, 105, 195, 195));
     });
 
+    it('should return a rect representating the specified box of root element correctly', () => {
+        setRootSize(200, 200);
+        setBoxStyle(root, 'margin', '10px');
+        setBoxStyle(root, 'padding', '10px');
+        setBoxStyle(root, 'borderWidth', '10px');
+        setBoxStyle(root, 'borderStyle', 'solid');
+
+        expect(getRect(root, 'margin-box')).toEqual(toPlainRect(0, 0, 220, 220));
+        expect(getRect(root, 'border-box')).toEqual(toPlainRect(10, 10, 210, 210));
+        expect(getRect(root, 'padding-box')).toEqual(toPlainRect(20, 20, 200, 200));
+        expect(getRect(root, 'content-box')).toEqual(toPlainRect(30, 30, 190, 190));
+    });
+
     it('should ignore second parameter is element is not visible', () => {
         const { node } = initBody(`<div id="node" style="display: none"></div>`);
         expect(isVisible(node)).toBe(false);
