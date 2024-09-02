@@ -282,6 +282,7 @@ function setFocus(element, suppressFocusChange) {
         }
     }
     if (!suppressFocusChange && (len !== before || (within && added[0]))) {
+        triggerFocusEvent('focusin', focusPath.slice(0, -len).reverse());
         triggerFocusEvent('focuschange', focusPath.slice(-len));
     }
     return len;
@@ -305,7 +306,6 @@ function setFocusUnsafe(path, elements, suppressFocus) {
         }
         setTimeoutOnce(updateTabRoot);
     }
-    triggerFocusEvent('focusin', elements.reverse());
 }
 
 function removeFocusUnsafe(path, element, relatedTarget, suppressFocus) {
@@ -334,6 +334,7 @@ function setModal(element) {
     modalElements.set(element, modalPath);
     if (!focused(element)) {
         setFocusUnsafe(focusPath, [element]);
+        triggerFocusEvent('focusin', [element]);
         triggerFocusEvent('focuschange', [root]);
     }
     setImmediateOnce(triggerModalChangeEvent);

@@ -1045,6 +1045,22 @@ describe('focus event', () => {
         expect(cb.mock.results[0].value).toBe(node1); // focusout of node1
         expect(cb.mock.results[1].value).toBe(node2); // focusin of node2
     });
+
+    it('should be fired after delegated element gained focus', async () => {
+        const { node1, node2 } = initBody(`
+            <button id="node1"></button>
+            <button id="node2"></button>
+        `);
+        const cb = mockFn(e => [document.activeElement, dom.activeElement]);
+        dom.on(node1, { focusin: cb, focusout: cb });
+        dom.on(node2, { focusin: cb, focusout: cb });
+
+        dom.retainFocus(node1, node2);
+        dom.focus(node2);
+        expect(cb).toBeCalledTimes(2);
+        expect(cb.mock.results[0].value).toEqual([node2, node2]);
+        expect(cb.mock.results[1].value).toEqual([node2, node2]);
+    });
 });
 
 describe('click event', () => {
