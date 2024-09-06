@@ -1,3 +1,5 @@
+import { setBoxStyle, setInitialScreenSize, setRootSize } from "@misonou/test-utils/mock/boxModel";
+import { setViewportSize } from "@misonou/test-utils/mock/visualViewport";
 import { acceptNode, bind, bindOnce, bindUntil, combineNodeFilters, comparePosition, createNodeIterator, createTreeWalker, dispatchDOMMouseEvent, elementFromPoint, getClass, getCommonAncestor, getContentRect, getRect, getScrollOffset, getScrollParent, isVisible, iterateNode, iterateNodeToArray, matchSelector, mergeRect, parentsAndSelf, pointInRect, rectCovers, rectEquals, rectIntersects, removeNode, scrollBy, scrollIntoView, selectClosestRelative, selectIncludeSelf, setClass, toPlainRect } from "../src/domUtil";
 import { bindEvent, body, delay, initBody, mockFn, root, verifyCalls, _ } from "./testUtil";
 import { jest } from "@jest/globals";
@@ -7,21 +9,12 @@ function defaultAcceptNode(node) {
 }
 
 const { objectContaining } = expect;
+const { getBoundingClientRect } = Element.prototype;
 
-const [getBoundingClientRect] = [
-    jest.spyOn(Element.prototype, 'getBoundingClientRect'),
-    jest.spyOn(document, 'createNodeIterator'),
-    jest.spyOn(document, 'createTreeWalker'),
-    jest.spyOn(window, 'scrollBy')
-];
+jest.spyOn(document, 'createNodeIterator');
+jest.spyOn(document, 'createTreeWalker');
 
-beforeAll(() => {
-    root.scrollBy = mockFn();
-    root.style.overflowX = 'auto';
-    root.style.overflowY = 'auto';
-    body.style.overflowX = 'auto';
-    body.style.overflowY = 'auto';
-});
+setInitialScreenSize(100, 100);
 
 describe('combineNodeFilters', () => {
     /** @type {() => 1} */
@@ -88,9 +81,7 @@ describe('comparePosition', () => {
 
 describe('isVisible', () => {
     it('should return true when element has non-zero sized bounding rect', () => {
-        const { node } = initBody(`<div id="node"></div>`);
-        jest.spyOn(node, 'offsetWidth', 'get').mockReturnValue(10);
-        jest.spyOn(node, 'offsetHeight', 'get').mockReturnValue(10);
+        const { node } = initBody(`<div id="node" x-rect="0 0 10 10"></div>`);
         expect(isVisible(node)).toBe(true);
     });
 
@@ -699,57 +690,21 @@ describe('scrollBy', () => {
     });
 
     it('should set scrollLeft and scrollTop property for element when overflow is set to scroll', () => {
-        var scrollLeft = 0;
-        var scrollTop = 0;
-        const setScrollLeft = mockFn(() => { scrollLeft = 10; });
-        const setScrollTop = mockFn(() => { scrollTop = 10; });
-
-        const node = document.createElement('div');
-        node.style.overflowX = 'scroll';
-        node.style.overflowY = 'scroll';
-        Object.defineProperties(node, {
-            scrollLeft: {
-                configurable: true,
-                enumerable: true,
-                get: function () { return scrollLeft; },
-                set: setScrollLeft
-            },
-            scrollTop: {
-                configurable: true,
-                enumerable: true,
-                get: function () { return scrollTop; },
-                set: setScrollTop
-            }
+        const { node } = initBody(`<div id="node" x-rect="0 0 100 100" x-scroll="0 0 110 110"></div>`);
+        node.scrollBy = mockFn(() => {
+            node.setAttribute('x-scroll', '110 110 110 110');
         });
         expect(scrollBy(node, 20, 30)).toEqual({ x: 10, y: 10 });
-        expect(setScrollLeft).toBeCalledWith(20);
-        expect(setScrollTop).toBeCalledWith(30);
+        expect(node.scrollBy).toBeCalledWith({ behavior: 'instant', left: 20, top: 30 });
     });
 
     it('should not set scrollLeft and scrollTop property for element when overflow is not set to scroll', () => {
-        var scrollLeft = 0;
-        var scrollTop = 0;
-        const setScrollLeft = mockFn(() => { scrollLeft = 10; });
-        const setScrollTop = mockFn(() => { scrollTop = 10; });
-
-        const node = document.createElement('div');
-        Object.defineProperties(node, {
-            scrollLeft: {
-                configurable: true,
-                enumerable: true,
-                get: function () { return scrollLeft; },
-                set: setScrollLeft
-            },
-            scrollTop: {
-                configurable: true,
-                enumerable: true,
-                get: function () { return scrollTop; },
-                set: setScrollTop
-            }
+        const { node } = initBody(`<div id="node" style="overflow-x: visible; overflow-y: visible" x-rect="0 0 100 100" x-scroll="0 0 110 110"></div>`);
+        node.scrollBy = mockFn(() => {
+            node.setAttribute('x-scroll', '110 110 110 110');
         });
         expect(scrollBy(node, 20, 30)).toEqual({ x: 0, y: 0 });
-        expect(setScrollLeft).not.toBeCalled();
-        expect(setScrollTop).not.toBeCalled();
+        expect(node.scrollBy).not.toBeCalled();
     });
 });
 
@@ -763,18 +718,29 @@ describe('getContentRect', () => {
     });
 
     it('should deduct scrollbar size if overflow is not visible', () => {
-        const { node } = initBody(`<div id="node" style="overflow-x: auto; overflow-y: auto;"></div>`);
-        jest.spyOn(node, 'clientWidth', 'get').mockReturnValue(90);
-        jest.spyOn(node, 'clientHeight', 'get').mockReturnValue(90);
-        jest.spyOn(node, 'offsetWidth', 'get').mockReturnValue(100);
-        jest.spyOn(node, 'offsetHeight', 'get').mockReturnValue(100);
+        const { node } = initBody(`<div id="node" x-rect="0 0 100 100" x-rect-inner="0 0 90 90"></div>`);
         getBoundingClientRect.mockReturnValueOnce(toPlainRect(0, 0, 100, 100));
         expect(getContentRect(node)).toEqual(toPlainRect(0, 0, 90, 90));
 
-        jest.spyOn(node, 'clientTop', 'get').mockReturnValue(10);
-        jest.spyOn(node, 'clientLeft', 'get').mockReturnValue(10);
+        node.setAttribute('x-rect-inner', '10 10 90 90');
         getBoundingClientRect.mockReturnValueOnce(toPlainRect(0, 0, 100, 100));
         expect(getContentRect(node)).toEqual(toPlainRect(10, 10, 100, 100));
+    });
+
+    it('should return correct rect for root when it is scrollable', () => {
+        setRootSize(200, 200);
+        getBoundingClientRect.mockReturnValueOnce(root.getBoundingClientRect());
+        expect(getContentRect(root)).toEqual(toPlainRect(0, 0, 100, 100));
+    });
+
+    it('should return correct rect for root with scroll padding when viewport is shifted', () => {
+        setBoxStyle(root, 'scrollPadding', '20px');
+        getBoundingClientRect.mockReturnValueOnce(root.getBoundingClientRect());
+        expect(getContentRect(root)).toEqual(toPlainRect(20, 20, 80, 80));
+
+        // bounding rect of root element is shifted up when scrolled
+        getBoundingClientRect.mockReturnValueOnce(toPlainRect(root.getBoundingClientRect()).translate(0, -50));
+        expect(getContentRect(root)).toEqual(toPlainRect(20, 0, 80, 30));
     });
 });
 
@@ -799,10 +765,13 @@ describe('getRect', () => {
     });
 
     it('should return rect representating viewport of the current window', () => {
-        const result = toPlainRect(0, 0, root.offsetWidth, root.offsetHeight);
+        const result = toPlainRect(0, 0, root.clientWidth, root.clientHeight);
         expect(getRect()).toEqual(result);
-        expect(getRect(root)).toEqual(result);
         expect(getRect(window)).toEqual(result);
+
+        setViewportSize(60, 60);
+        expect(getRect()).toEqual(toPlainRect(0, 0, 60, 60));
+        expect(getRect(window)).toEqual(toPlainRect(0, 0, 60, 60));
     });
 
     it('should return a zero rect at (0, 0) for detached element', () => {
@@ -810,21 +779,22 @@ describe('getRect', () => {
     });
 
     it('should call getBoundingClientRect for element', () => {
-        expect(getRect(body)).toEqual(toPlainRect(0, 0, 0, 0));
+        const { node } = initBody(`<div id="node"></div>`);
+        expect(getRect(node)).toEqual(toPlainRect(0, 0, 0, 0));
         expect(getBoundingClientRect).toBeCalledTimes(1);
         getBoundingClientRect.mockClear();
 
         // normal case
-        getRect(body);
-        getRect(body, 10);
-        getRect(body, true);
-        getRect(body, 'margin-box');
-        getRect(body, 'border-box');
-        getRect(body, 'padding-box');
-        getRect(body, 'content-box');
+        getRect(node);
+        getRect(node, 10);
+        getRect(node, true);
+        getRect(node, 'margin-box');
+        getRect(node, 'border-box');
+        getRect(node, 'padding-box');
+        getRect(node, 'content-box');
 
         const arr0 = getBoundingClientRect.mock.instances;
-        expect(arr0.at(-1)).toBe(body);
+        expect(arr0.at(-1)).toBe(node);
         expect(arr0).toEqual(new Array(arr0.length).fill(arr0.at(-1)));
         getBoundingClientRect.mockClear();
 
@@ -857,39 +827,25 @@ describe('getRect', () => {
     });
 
     it('should return a rect expanded by the specified amount', () => {
+        const { node } = initBody(`<div id="node"></div>`);
         const cb = mockFn().mockReturnValue(toPlainRect(0, 0, 0, 0));
-        expect(getRect(body, 10)).toEqual(toPlainRect(-10, -10, 10, 10));
+        expect(getRect(node, 10)).toEqual(toPlainRect(-10, -10, 10, 10));
         expect(getRect({ getRect: cb }, 10)).toEqual(toPlainRect(-10, -10, 10, 10));
     });
 
     it('should return a rect representating the specified box of an element', () => {
-        const { node } = initBody(`<div id="node"></div>`);
-        for (let v of ['Top', 'Left', 'Right', 'Bottom']) {
-            Object.assign(node.style, {
-                [`margin${v}`]: '10px',
-                [`padding${v}`]: '10px',
-                [`border${v}Width`]: '10px',
-                [`border${v}Style`]: 'solid',
-            });
-        }
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
+        const { node } = initBody(`<div id="node" x-rect="100 100 100 100"></div>`);
+        setBoxStyle(node, 'margin', '10px');
+        setBoxStyle(node, 'padding', '10px');
+        setBoxStyle(node, 'borderWidth', '10px');
+        setBoxStyle(node, 'borderStyle', 'solid');
+
         expect(getRect(node, 'border-box')).toEqual(toPlainRect(100, 100, 200, 200));
-
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
         expect(getRect(node, 'padding-box')).toEqual(toPlainRect(110, 110, 190, 190));
-
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
         expect(getRect(node, 'content-box')).toEqual(toPlainRect(120, 120, 180, 180));
-
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
         expect(getRect(node, 'margin-box')).toEqual(toPlainRect(90, 90, 210, 210));
 
-        for (let v of ['Top', 'Left', 'Right', 'Bottom']) {
-            Object.assign(node.style, {
-                [`margin${v}`]: '-5px',
-            });
-        }
-        getBoundingClientRect.mockReturnValueOnce(toPlainRect(100, 100, 200, 200));
+        setBoxStyle(node, 'margin', '-5px');
         expect(getRect(node, 'margin-box')).toEqual(toPlainRect(105, 105, 195, 195));
     });
 

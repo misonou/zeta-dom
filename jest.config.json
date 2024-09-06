@@ -4,6 +4,9 @@
     "clearMocks": true,
     "setupFilesAfterEnv": [
         "@misonou/test-utils/mock/console",
+        "@misonou/test-utils/mock/scrollBy",
+        "@misonou/test-utils/mock/boxModel",
+        "@misonou/test-utils/mock/visualViewport",
         "<rootDir>/tests/setup.js"
     ],
     "modulePathIgnorePatterns": [
