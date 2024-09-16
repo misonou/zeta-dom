@@ -1,0 +1,9 @@
+{
+    "extends": "./jsconfig",
+    "compilerOptions": {
+        "esModuleInterop": true,
+        "types": [
+            "jquery"
+        ]
+    }
+}
