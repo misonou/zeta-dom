@@ -1,6 +1,6 @@
 import $ from "./include/jquery.js";
 import { root, reportError } from "./env.js";
-import { arrRemove, createPrivateStore, deferrable, definePrototype, each, executeOnce, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, keys, kv, mapGet, mapRemove, noop, randomId, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { arrRemove, createPrivateStore, deferrable, defineHiddenProperty, definePrototype, each, executeOnce, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, kv, map, mapGet, mapRemove, noop, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { registerCleanup } from "./observe.js";
 import dom, { iterateFocusPath } from "./dom.js";
@@ -191,7 +191,7 @@ definePrototype(ZetaEventEmitter, {
         var components = _(container).components;
         single(targets, function (v) {
             var component = components.get(v);
-            return component && emitterCallHandlers(self, component, emitting.eventName, eventName, emitting.data);
+            return component && emitterCallHandlers(self, container, component, emitting.eventName, eventName, emitting.data);
         });
         return self.result;
     }
@@ -210,30 +210,28 @@ function emitterIterateTargets(emitter, container, target) {
     return targets;
 }
 
-function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
+function emitterCallHandlers(emitter, container, component, eventName, handlerName, data) {
     var shouldForward = eventName === emitter.eventName;
     var forwardEvent = function (entries) {
         return single(entries, function (v) {
-            return emitterCallHandlers(emitter, component, v.eventName || v, handlerName, v.data);
+            return emitterCallHandlers(emitter, container, component, v.eventName || v, handlerName, v.data);
         });
     };
     if (!handlerName && shouldForward && forwardEvent(emitter.preAlias)) {
         return true;
     }
-    var sourceContainer = component.container;
     var handlers = component.handlers[handlerName || eventName];
     var handled;
-    if (handlers) {
+    if (handlers && handlers.count) {
         emitter.current.unshift({ eventName, data });
-        handled = single(handlers, function (v, i) {
-            var context = component.contexts[i];
-            var event = new ZetaEvent(emitter, eventName, component, context, data);
-            var contextContainer = is(context, ZetaEventContainer) || sourceContainer;
+        handled = single(handlers, function (v) {
+            var event = new ZetaEvent(emitter, eventName, component, v.context, data);
+            var contextContainer = is(v.context, ZetaEventContainer) || container;
             var prevEvent = contextContainer.event;
-            sourceContainer.initEvent(event);
+            container.initEvent(event);
             contextContainer.event = event;
             try {
-                var returnValue = v.call(event.context, event, event.context);
+                var returnValue = v.callback.call(event.context, event, event.context);
                 if (returnValue !== undefined) {
                     event.handled(returnValue);
                 }
@@ -340,20 +338,21 @@ definePrototype(ZetaEventContainer, {
     getContexts: function (element) {
         var state = _(this).components.get(element);
         var visited = new Set();
-        return grep(state && state.contexts, function (v) {
-            return v !== element && setAdd(visited, v);
+        return map(state && state.handlers, function (v) {
+            return map(v, function (v) {
+                return v.context !== element && setAdd(visited, v.context) ? v.context : null;
+            });
         });
     },
     add: function (target, event, handler) {
         var self = this;
-        var key = randomId();
         var element = is(target.element, Node);
         if (element && self.captureDOMEvents) {
             containers.set(element, self);
         }
         return containerCreateDispose(
-            containerRegisterHandler(self, target, key, target, event, handler),
-            element && containerRegisterHandler(self, element, key, target, event, handler));
+            containerRegisterHandler(self, target, target, event, handler),
+            element && containerRegisterHandler(self, element, target, event, handler));
     },
     delete: function (target) {
         var self = this;
@@ -392,46 +391,40 @@ function containerCreateDispose(ref, ref2) {
     });
 }
 
-function containerRegisterHandler(container, target, key, context, event, handler) {
-    var cur = mapGet(_(container).components, target, function () {
-        return {
-            container: container,
-            target: target.element || target,
-            refs: new Set(),
-            contexts: {},
-            handlers: {}
-        };
-    });
+function ContainerComponent(target) {
+    var self = this;
+    self.target = target.element || target;
+    self.refs = new Set();
+    self.index = 0;
+    self.handlers = {};
+}
+
+function containerRegisterHandler(container, target, context, event, handler) {
+    var cur = mapGet(_(container).components, target, ContainerComponent, true);
+    var key = cur.index++;
     var handlers = cur.handlers;
     var dispose = function () {
         cur.refs.delete(controller);
-        containerRemoveHandler(container, target, key);
+        each(handlers, function (i, v) {
+            if (v[key]) {
+                v.count -= delete v[key];
+            }
+        });
     };
     each(isPlainObject(event) || kv(event, handler), function (i, v) {
-        (handlers[i] || (handlers[i] = {}))[key] = throwNotFunction(v);
+        var dict = handlers[i] || (handlers[i] = {});
+        if (dict.count === undefined) {
+            defineHiddenProperty(dict, 'count', 0);
+        }
+        dict[key] = {
+            context: context,
+            callback: throwNotFunction(v)
+        };
+        dict.count++;
     });
     var controller = { dispose };
     cur.refs.add(controller);
-    cur.contexts[key] = context;
     return controller;
-}
-
-function containerRemoveHandler(container, target, key) {
-    var cur = mapGet(_(container).components, target);
-    if (!cur) {
-        return;
-    }
-    var handlers = cur.handlers;
-    each(handlers, function (i, v) {
-        delete v[key];
-        if (!keys(v)[0]) {
-            delete handlers[i];
-        }
-    });
-    delete cur.contexts[key];
-    if (!keys(handlers)[0]) {
-        container.delete(target);
-    }
 }
 
 export {

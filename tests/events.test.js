@@ -33,6 +33,22 @@ describe('ZetaEventContainer.event', () => {
     });
 });
 
+describe('ZetaEventContainer.getContexts', () => {
+    it('should return context objects associated with given element', () => {
+        const container = new ZetaEventContainer();
+        const target1 = { element: body };
+        const target2 = { element: body };
+        const target3 = { element: root };
+        container.add(target1, 'customEvent', () => { });
+        container.add(target2, 'customEvent', () => { });
+        container.add(target3, 'customEvent', () => { });
+        container.add(target2, 'anotherEvent', () => { });
+
+        expect(container.getContexts(body)).toEqual([target1, target2]);
+        expect(container.getContexts(root)).toEqual([target3]);
+    });
+});
+
 describe('ZetaEventContainer.add', () => {
     it('should return a callback to unregister handlers', () => {
         const container = new ZetaEventContainer();
@@ -103,6 +119,25 @@ describe('ZetaEventContainer.delete', () => {
 });
 
 describe('ZetaEventContainer.emit', () => {
+    it('should emit to handlers properly', () => {
+        const container = new ZetaEventContainer();
+        const target = {};
+
+        const cb1 = mockFn();
+        const cb2 = mockFn();
+        const cb3 = mockFn();
+
+        container.add(target, 'customEvent', cb1);
+        const unbind = container.add(target, 'customEvent', cb2);
+        container.add(target, 'customEvent', cb3);
+        unbind();
+
+        container.emit('customEvent', target);
+        expect(cb1).toBeCalledTimes(1);
+        expect(cb3).toBeCalledTimes(1);
+        expect(cb2).not.toBeCalled();
+    });
+
     it('should emit bubbling event to ancestors by default', () => {
         const { node1, node2, node3 } = initBody(`
             <div id="node1">
