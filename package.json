@@ -8,7 +8,7 @@
   "unpkg": "dist/zeta.min.js",
   "scripts": {
     "build": "webpack",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest",
+    "test": "node --experimental-vm-modules --allow-natives-syntax node_modules/jest/bin/jest.js",
     "test:dts": "npx check-dts tests/**/*.ts",
     "version": "npm run build && git add -A dist",
     "release": "npx @misonou/build-utils publish"

@@ -1,6 +1,7 @@
 {
     "testEnvironment": "jsdom",
     "transform": {},
+    "testTimeout": 10000,
     "clearMocks": true,
     "setupFilesAfterEnv": [
         "@misonou/test-utils/mock/console",

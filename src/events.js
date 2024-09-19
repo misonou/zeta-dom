@@ -348,25 +348,22 @@ definePrototype(ZetaEventContainer, {
         var self = this;
         var key = randomId();
         var element = is(target.element, Node);
-        containerRegisterHandler(self, target, key, target, event, handler);
-        if (element) {
-            containerRegisterHandler(self, element, key, target, event, handler);
-            if (self.captureDOMEvents) {
-                containers.set(element, self);
-            }
+        if (element && self.captureDOMEvents) {
+            containers.set(element, self);
         }
-        return executeOnce(function () {
-            containerRemoveHandler(self, target, key);
-            if (element) {
-                containerRemoveHandler(self, element, key);
-            }
-        });
+        return containerCreateDispose(
+            containerRegisterHandler(self, target, key, target, event, handler),
+            element && containerRegisterHandler(self, element, key, target, event, handler));
     },
     delete: function (target) {
         var self = this;
-        if (mapRemove(_(self).components, target) && self.captureDOMEvents) {
+        var cur = mapRemove(_(self).components, target);
+        if (self.captureDOMEvents) {
             removeContainerForElement(target, self);
         }
+        each(cur && cur.refs, function (i, v) {
+            v.dispose = noop;
+        });
     },
     emit: function (eventName, target, data, bubbles) {
         var self = this;
@@ -386,20 +383,37 @@ definePrototype(ZetaEventContainer, {
     }
 });
 
+function containerCreateDispose(ref, ref2) {
+    return executeOnce(function () {
+        ref.dispose();
+        if (ref2) {
+            ref2.dispose();
+        }
+    });
+}
+
 function containerRegisterHandler(container, target, key, context, event, handler) {
     var cur = mapGet(_(container).components, target, function () {
         return {
             container: container,
             target: target.element || target,
+            refs: new Set(),
             contexts: {},
             handlers: {}
         };
     });
     var handlers = cur.handlers;
+    var dispose = function () {
+        cur.refs.delete(controller);
+        containerRemoveHandler(container, target, key);
+    };
     each(isPlainObject(event) || kv(event, handler), function (i, v) {
         (handlers[i] || (handlers[i] = {}))[key] = throwNotFunction(v);
     });
+    var controller = { dispose };
+    cur.refs.add(controller);
     cur.contexts[key] = context;
+    return controller;
 }
 
 function containerRemoveHandler(container, target, key) {
