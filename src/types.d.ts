@@ -700,6 +700,14 @@ declare namespace Zeta {
         autoDestroy?: boolean;
 
         /**
+         * Sets whether {@link ZetaEventContainer.destroy} will be called to end its lifetime.
+         *
+         * It ensures references to event targets are not held by the container even unregistering callbacks from {@link ZetaEventContainer.add} is still being referenced by consumer.
+         * Setting {@link EventContainerOptions.autoDestroy} will enable this flag automatically.
+         */
+        willDestroy?: boolean;
+
+        /**
          * @deprecated Unused option.
          */
         normalizeTouchEvents?: boolean;

@@ -314,7 +314,7 @@ function ZetaEventContainer(element, context, options) {
     }, options);
     _(self, {
         options: options,
-        components: new WeakMap()
+        components: options.willDestroy || options.autoDestroy ? new Map() : new WeakMap()
     });
     extend(self, options);
     if (element && self.captureDOMEvents) {
@@ -381,8 +381,12 @@ definePrototype(ZetaEventContainer, {
         emitAsyncEvents(this);
     },
     destroy: function () {
-        var state = _(this);
+        var self = this;
+        var state = _(self);
         domEventTrap.delete(this);
+        each(state.components, function (i) {
+            self.delete(i);
+        });
         state.destroyed = true;
         state.components = new WeakMap();
     }
