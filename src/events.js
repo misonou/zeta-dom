@@ -377,8 +377,10 @@ definePrototype(ZetaEventContainer, {
         emitAsyncEvents(this);
     },
     destroy: function () {
+        var state = _(this);
         domEventTrap.delete(this);
-        _(this).destroyed = true;
+        state.destroyed = true;
+        state.components = new WeakMap();
     }
 });
 
