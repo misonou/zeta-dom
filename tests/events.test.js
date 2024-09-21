@@ -828,6 +828,16 @@ describe('ZetaEventContainer.destroy', () => {
         container.emit('customEvent', target);
         expect(cb).not.toBeCalled();
     });
+
+    it('should prevent new event handler to be registered', () => {
+        const container = new ZetaEventContainer();
+        const target = {};
+        const cb = mockFn();
+        container.destroy();
+        container.add(target, 'customEvent', cb);
+        container.emit('customEvent', target);
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('ZetaEvent.target', () => {

@@ -346,13 +346,17 @@ definePrototype(ZetaEventContainer, {
     },
     add: function (target, event, handler) {
         var self = this;
+        var state = _(self);
+        if (state.destroyed) {
+            return noop;
+        }
         var element = is(target.element, Node);
         if (element && self.captureDOMEvents) {
             containers.set(element, self);
         }
         return containerCreateDispose(
-            containerRegisterHandler(self, target, target, event, handler),
-            element && containerRegisterHandler(self, element, target, event, handler));
+            containerRegisterHandler(state, target, target, event, handler),
+            element && containerRegisterHandler(state, element, target, event, handler));
     },
     delete: function (target) {
         var self = this;
@@ -401,8 +405,8 @@ function ContainerComponent(target) {
     self.handlers = {};
 }
 
-function containerRegisterHandler(container, target, context, event, handler) {
-    var cur = mapGet(_(container).components, target, ContainerComponent, true);
+function containerRegisterHandler(state, target, context, event, handler) {
+    var cur = mapGet(state.components, target, ContainerComponent, true);
     var key = cur.index++;
     var handlers = cur.handlers;
     var dispose = function () {
