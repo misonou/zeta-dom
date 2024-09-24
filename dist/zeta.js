@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.8 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.9 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -2931,7 +2931,7 @@ definePrototype(ZetaEventEmitter, {
     var components = _(container).components;
     single(targets, function (v) {
       var component = components.get(v);
-      return component && emitterCallHandlers(self, component, emitting.eventName, eventName, emitting.data);
+      return component && emitterCallHandlers(self, container, component, emitting.eventName, eventName, emitting.data);
     });
     return self.result;
   }
@@ -2948,33 +2948,31 @@ function emitterIterateTargets(emitter, container, target) {
   }
   return targets;
 }
-function emitterCallHandlers(emitter, component, eventName, handlerName, data) {
+function emitterCallHandlers(emitter, container, component, eventName, handlerName, data) {
   var shouldForward = eventName === emitter.eventName;
   var forwardEvent = function forwardEvent(entries) {
     return single(entries, function (v) {
-      return emitterCallHandlers(emitter, component, v.eventName || v, handlerName, v.data);
+      return emitterCallHandlers(emitter, container, component, v.eventName || v, handlerName, v.data);
     });
   };
   if (!handlerName && shouldForward && forwardEvent(emitter.preAlias)) {
     return true;
   }
-  var sourceContainer = component.container;
   var handlers = component.handlers[handlerName || eventName];
   var handled;
-  if (handlers) {
+  if (handlers && handlers.count) {
     emitter.current.unshift({
       eventName: eventName,
       data: data
     });
-    handled = single(handlers, function (v, i) {
-      var context = component.contexts[i];
-      var event = new ZetaEvent(emitter, eventName, component, context, data);
-      var contextContainer = is(context, ZetaEventContainer) || sourceContainer;
+    handled = single(handlers, function (v) {
+      var event = new ZetaEvent(emitter, eventName, component, v.context, data);
+      var contextContainer = is(v.context, ZetaEventContainer) || container;
       var prevEvent = contextContainer.event;
-      sourceContainer.initEvent(event);
+      container.initEvent(event);
       contextContainer.event = event;
       try {
-        var returnValue = v.call(event.context, event, event.context);
+        var returnValue = v.callback.call(event.context, event, event.context);
         if (returnValue !== undefined) {
           event.handled(returnValue);
         }
@@ -3054,7 +3052,7 @@ function ZetaEventContainer(element, context, options) {
   }, options);
   _(self, {
     options: options,
-    components: new WeakMap()
+    components: options.willDestroy || options.autoDestroy ? new Map() : new WeakMap()
   });
   extend(self, options);
   if (element && self.captureDOMEvents) {
@@ -3077,33 +3075,33 @@ definePrototype(ZetaEventContainer, {
   getContexts: function getContexts(element) {
     var state = _(this).components.get(element);
     var visited = new Set();
-    return grep(state && state.contexts, function (v) {
-      return v !== element && setAdd(visited, v);
+    return map(state && state.handlers, function (v) {
+      return map(v, function (v) {
+        return v.context !== element && setAdd(visited, v.context) ? v.context : null;
+      });
     });
   },
   add: function add(target, event, handler) {
     var self = this;
-    var key = randomId();
-    var element = is(target.element, Node);
-    containerRegisterHandler(self, target, key, target, event, handler);
-    if (element) {
-      containerRegisterHandler(self, element, key, target, event, handler);
-      if (self.captureDOMEvents) {
-        containers.set(element, self);
-      }
+    var state = _(self);
+    if (state.destroyed) {
+      return noop;
     }
-    return executeOnce(function () {
-      containerRemoveHandler(self, target, key);
-      if (element) {
-        containerRemoveHandler(self, element, key);
-      }
-    });
+    var element = is(target.element, Node);
+    if (element && self.captureDOMEvents) {
+      containers.set(element, self);
+    }
+    return containerCreateDispose(containerRegisterHandler(state, target, target, event, handler), element && containerRegisterHandler(state, element, target, event, handler));
   },
   delete: function _delete(target) {
     var self = this;
-    if (mapRemove(_(self).components, target) && self.captureDOMEvents) {
+    var cur = mapRemove(_(self).components, target);
+    if (self.captureDOMEvents) {
       removeContainerForElement(target, self);
     }
+    each(cur && cur.refs, function (i, v) {
+      v.dispose = noop;
+    });
   },
   emit: function emit(eventName, target, data, bubbles) {
     var self = this;
@@ -3118,41 +3116,59 @@ definePrototype(ZetaEventContainer, {
     emitAsyncEvents(this);
   },
   destroy: function destroy() {
+    var self = this;
+    var state = _(self);
     domEventTrap.delete(this);
-    _(this).destroyed = true;
+    each(state.components, function (i) {
+      self.delete(i);
+    });
+    state.destroyed = true;
+    state.components = new WeakMap();
   }
 });
-function containerRegisterHandler(container, target, key, context, event, handler) {
-  var cur = mapGet(_(container).components, target, function () {
-    return {
-      container: container,
-      target: target.element || target,
-      contexts: {},
-      handlers: {}
-    };
-  });
-  var handlers = cur.handlers;
-  each(isPlainObject(event) || kv(event, handler), function (i, v) {
-    (handlers[i] || (handlers[i] = {}))[key] = throwNotFunction(v);
-  });
-  cur.contexts[key] = context;
-}
-function containerRemoveHandler(container, target, key) {
-  var cur = mapGet(_(container).components, target);
-  if (!cur) {
-    return;
-  }
-  var handlers = cur.handlers;
-  each(handlers, function (i, v) {
-    delete v[key];
-    if (!keys(v)[0]) {
-      delete handlers[i];
+function containerCreateDispose(ref, ref2) {
+  return executeOnce(function () {
+    ref.dispose();
+    if (ref2) {
+      ref2.dispose();
     }
   });
-  delete cur.contexts[key];
-  if (!keys(handlers)[0]) {
-    container.delete(target);
-  }
+}
+function ContainerComponent(target) {
+  var self = this;
+  self.target = target.element || target;
+  self.refs = new Set();
+  self.index = 0;
+  self.handlers = {};
+}
+function containerRegisterHandler(state, target, context, event, handler) {
+  var cur = mapGet(state.components, target, ContainerComponent, true);
+  var key = cur.index++;
+  var handlers = cur.handlers;
+  var dispose = function dispose() {
+    cur.refs.delete(controller);
+    each(handlers, function (i, v) {
+      if (v[key]) {
+        v.count -= delete v[key];
+      }
+    });
+  };
+  each(isPlainObject(event) || kv(event, handler), function (i, v) {
+    var dict = handlers[i] || (handlers[i] = {});
+    if (dict.count === undefined) {
+      defineHiddenProperty(dict, 'count', 0);
+    }
+    dict[key] = {
+      context: context,
+      callback: throwNotFunction(v)
+    };
+    dict.count++;
+  });
+  var controller = {
+    dispose: dispose
+  };
+  cur.refs.add(controller);
+  return controller;
 }
 
 ;// CONCATENATED MODULE: ./src/domUtil.js
