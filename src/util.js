@@ -722,13 +722,13 @@ function getObservableState(obj, sync) {
                     if (isFunction(callback)) {
                         callback();
                     }
-                    if (getOwnPropertyNames(oldValues)[0]) {
-                        for (var i in oldValues) {
-                            if (oldValues[i] === newValues[i]) {
-                                delete oldValues[i];
-                                delete newValues[i];
-                            }
+                    for (var i in oldValues) {
+                        if (sameValueZero(oldValues[i], newValues[i])) {
+                            delete oldValues[i];
+                            delete newValues[i];
                         }
+                    }
+                    if (getOwnPropertyNames(oldValues)[0]) {
                         self.oldValues = {};
                         self.newValues = {};
                         self.handlers.slice(0).forEach(function (v) {

@@ -955,13 +955,21 @@ describe('watch', () => {
 
     it('should not fire callback if property is set to original value before callback is fired', async () => {
         const obj = {
-            prop: 1
+            prop1: 1,
+            prop2: 0,
+            prop3: NaN
         };
         const cb = mockFn();
-        watch(obj, 'prop', cb);
+        watch(obj, 'prop1', cb);
+        watch(obj, 'prop2', cb);
+        watch(obj, 'prop3', cb);
         await after(() => {
-            obj.prop = 2;
-            obj.prop = 1;
+            obj.prop1 = 2;
+            obj.prop1 = 1;
+            obj.prop2 = 1;
+            obj.prop2 = -0;
+            obj.prop3 = 1;
+            obj.prop3 = NaN;
         });
         expect(cb).not.toBeCalled();
     });
@@ -1002,6 +1010,27 @@ describe('watch', () => {
         cb.mockReset();
         await after(() => {
             obj.newProp = 'bar';
+        });
+        expect(cb).not.toBeCalled();
+    });
+
+    it('should not fire callback if all properties are set to original value', async () => {
+        const obj = {
+            prop1: 1,
+            prop2: 2,
+            prop3: 3
+        };
+        const cb = mockFn();
+        defineObservableProperty(obj, 'prop1');
+        defineObservableProperty(obj, 'prop2');
+        defineObservableProperty(obj, 'prop3');
+        watch(obj, cb);
+
+        await after(() => {
+            obj.prop1 = 41;
+            obj.prop2 = 42;
+            obj.prop1 = 1;
+            obj.prop2 = 2;
         });
         expect(cb).not.toBeCalled();
     });
