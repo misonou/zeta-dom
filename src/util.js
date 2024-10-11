@@ -714,13 +714,14 @@ function getObservableState(obj, sync) {
         handlers: [],
         handleChanges: function (callback) {
             var self = watchStore(obj);
+            var result;
             try {
                 self.lock = true;
                 do {
                     var oldValues = self.oldValues;
                     var newValues = self.newValues;
                     if (isFunction(callback)) {
-                        callback();
+                        result = callback();
                         callback = null;
                     }
                     for (var i in oldValues) {
@@ -743,6 +744,7 @@ function getObservableState(obj, sync) {
             } finally {
                 self.lock = false;
             }
+            return result;
         }
     });
 }

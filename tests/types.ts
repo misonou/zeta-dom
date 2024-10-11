@@ -276,11 +276,14 @@ expectTypeOf(makeAsync(() => resolve(1))).toEqualTypeOf<() => Promise<number>>()
 expectTypeOf(deepFreeze(1)).toEqualTypeOf<number>();
 expectTypeOf(deepFreeze(<C>_)).toEqualTypeOf<{ readonly a: Readonly<A>; readonly b: Readonly<B> }>();
 
-expectTypeOf(watch(<C>_, true)).toEqualTypeOf<((callback: () => any) => void)>();
-expectTypeOf(watch(<C>_, false)).toEqualTypeOf<((callback: () => any) => void)>();
+expectTypeOf(watch(<C>_, true)).toBeFunction();
+expectTypeOf(watch(<C>_, false)).toBeFunction();
 expectTypeOf(watch(<C>_, (_1: { oldValues: Partial<C>, newValues: Partial<C> }) => _)).toEqualTypeOf<Zeta.UnregisterCallback>();
 expectTypeOf(watch(<C>_, 'a', (_1: A, _2: A, _3: string, _4: C) => _)).toEqualTypeOf<Zeta.UnregisterCallback>();
 expectTypeOf(watch(<C>_, 'c', (_1: any, _2: any, _3: string, _4: C) => _)).toEqualTypeOf<Zeta.UnregisterCallback>();
+
+expectTypeOf(watch(<C>_, true)(() => { })).toEqualTypeOf<void>();
+expectTypeOf(watch(<C>_, true)(() => 0)).toEqualTypeOf<number>();
 
 expectTypeOf(watchOnce(<C>_, 'a')).toEqualTypeOf<Promise<A>>();
 expectTypeOf(watchOnce(<C>_, 'c')).toEqualTypeOf<Promise<any>>();

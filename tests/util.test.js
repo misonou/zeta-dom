@@ -1087,6 +1087,12 @@ describe('watch', () => {
         expect(cb).toBeCalledTimes(1);
     });
 
+    it('should return value from action callback', () => {
+        const obj = {};
+        const handleChanges = watch(obj, true);
+        expect(handleChanges(() => obj)).toBe(obj);
+    });
+
     it('should return an unregistering callback that remove the handler', async () => {
         const obj = {
             prop: 1

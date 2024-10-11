@@ -900,7 +900,7 @@ export function deepFreeze<T>(obj: T): Zeta.DeepReadonly<T>;
  * @returns A function which when called with a callback, the hooked listeners are not called until the given callback returns.
  * This is primarily for making updates to multiple properties singleton.
  */
-export function watch(obj: object, sync: boolean): ((callback: () => any) => void);
+export function watch(obj: object, sync: boolean): (<T>(callback: () => T) => T);
 
 /**
  * Hooks a listener callback which will be fired when any observed property has been changed.
