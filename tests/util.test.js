@@ -1068,6 +1068,25 @@ describe('watch', () => {
         ]);
     });
 
+    it('should invoke action callback exactly once despite further updates are made', () => {
+        const obj = {
+            prop1: 1,
+            prop2: 2,
+        };
+        const handleChanges = watch(obj, true);
+        const cb = mockFn();
+        defineObservableProperty(obj, 'prop1');
+        defineObservableProperty(obj, 'prop2');
+        watch(obj, 'prop1', () => {
+            obj.prop2 = 42;
+        });
+        cb.mockImplementationOnce(() => {
+            obj.prop1 = 41;
+        });
+        handleChanges(cb);
+        expect(cb).toBeCalledTimes(1);
+    });
+
     it('should return an unregistering callback that remove the handler', async () => {
         const obj = {
             prop: 1

@@ -721,6 +721,7 @@ function getObservableState(obj, sync) {
                     var newValues = self.newValues;
                     if (isFunction(callback)) {
                         callback();
+                        callback = null;
                     }
                     for (var i in oldValues) {
                         if (sameValueZero(oldValues[i], newValues[i])) {
