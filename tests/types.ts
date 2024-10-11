@@ -9,8 +9,9 @@ type Fn = (v: number) => void;
 type A = { __a: number; };
 type B = { __b: number; };
 type C = { a: A; b: B; };
-type D = { entries(): Iterator<[string, A]>; };
-type E = { readonly length: number;[T: number]: A; };
+
+type HasEntries<T> = { entries(): Iterator<[string, T]>; };
+type HasForEach<T> = { forEach(callback: (v: T, i: number) => void): void }
 
 class K { }
 class L { constructor(_: A) { } }
@@ -78,9 +79,9 @@ expectTypeOf(isThenable(<any>_)).toEqualTypeOf<PromiseLike<any> | false>();
 expectTypeOf(isThenable(resolve(1))).toEqualTypeOf<Promise<number>>();
 expectTypeOf(isThenable(<Promise<number> | undefined>_)).toEqualTypeOf<Promise<number> | false>();
 
-expectTypeOf(isArrayLike(_)).toEqualTypeOf<ArrayLike<any> | false>();
-expectTypeOf(isArrayLike(<any>_)).toEqualTypeOf<ArrayLike<any> | false>();
-expectTypeOf(isArrayLike(<A[] | A>_)).toEqualTypeOf<A[] | false>();
+expectTypeOf(isArrayLike(_)).toEqualTypeOf<boolean>();
+expectTypeOf(isArrayLike(<any>_)).toEqualTypeOf<boolean>();
+expectTypeOf(isArrayLike(<A[] | A>_)).toEqualTypeOf<boolean>();
 
 expectTypeOf(makeArray([])).toEqualTypeOf<never[]>();
 expectTypeOf(makeArray(undefined)).toEqualTypeOf<never[]>();
@@ -88,7 +89,10 @@ expectTypeOf(makeArray(null)).toEqualTypeOf<never[]>();
 expectTypeOf(makeArray(1)).toEqualTypeOf<number[]>();
 expectTypeOf(makeArray([1])).toEqualTypeOf<number[]>();
 expectTypeOf(makeArray(<any[]>_)).toEqualTypeOf<any[]>();
-expectTypeOf(makeArray(<E>_)).toEqualTypeOf<A[]>();
+expectTypeOf(makeArray(<Map<string, A>>_)).toEqualTypeOf<A[]>();
+expectTypeOf(makeArray(<Set<A>>_)).toEqualTypeOf<A[]>();
+expectTypeOf(makeArray(<ArrayLike<A>>_)).toEqualTypeOf<A[]>();
+expectTypeOf(makeArray(<HasForEach<A>>_)).toEqualTypeOf<A[]>();
 
 expectTypeOf(extend(<A>_)).toEqualTypeOf<A>();
 expectTypeOf(extend(<A>_, <B>_)).toEqualTypeOf<A & B>();
@@ -101,62 +105,89 @@ expectTypeOf(extend(<A>_, <B>_, '')).toEqualTypeOf<A & B>();
 
 expectTypeOf(each('a b', (_1: number, _2: 'a' | 'b') => _)).toBeVoid();
 expectTypeOf(each(<C>_, (_1: keyof C, _2: A | B) => _)).toBeVoid();
+expectTypeOf(each(<readonly string[]>_, (_1: number, _2: string) => _)).toBeVoid();
+expectTypeOf(each(<string[]>_, (_1: number, _2: string) => _)).toBeVoid();
 expectTypeOf(each([0, 'a'], (_1: number, _2: number | string) => _)).toBeVoid();
 expectTypeOf(each(<Map<A, B>>_, (_1: A, _2: B) => _)).toBeVoid();
 expectTypeOf(each(<Set<A>>_, (_1: number, _2: A) => _)).toBeVoid();
 expectTypeOf(each(<NodeIterator>_, (_1: number, _2: Node) => _)).toBeVoid();
 expectTypeOf(each(<Iterator<A>>_, (_1: number, _2: A) => _)).toBeVoid();
-expectTypeOf(each(<D>_, (_1: string, _2: A) => _)).toBeVoid();
-expectTypeOf(each(<object>_, (_1: number | string, _2: any) => _)).toBeVoid();
-expectTypeOf(each(<Zeta.Dictionary>_, (_1: string, _2: any) => _)).toBeVoid();
+expectTypeOf(each(<HasEntries<A>>_, (_1: string, _2: A) => _)).toBeVoid();
+expectTypeOf(each(<HasForEach<A>>_, (_1: number, _2: A) => _)).toBeVoid();
+expectTypeOf(each(<Zeta.Dictionary<A>>_, (_1: string, _2: A) => _)).toBeVoid();
+expectTypeOf(each(<any>_, (_1: any, _2: any) => _)).toBeVoid();
+expectTypeOf(each(<unknown>_, (_1: any, _2: any) => _)).toBeVoid();
 
-expectTypeOf(map(<C>_, (_1: A | B, _2: keyof C) => [1, 2, 3])).toMatchTypeOf<number[]>();
-expectTypeOf(map(<C>_, (_1: A | B, _2: keyof C) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<C>_, (_1: A | B, _2: keyof C) => _1 ? 1 : null)).toMatchTypeOf<number[]>();
-expectTypeOf(map([0, 'a'], (_1: number | string, _2: number) => [1, 2, 3])).toMatchTypeOf<number[]>();
-expectTypeOf(map([0, 'a'], (_1: number | string, _2: number) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();
-expectTypeOf(map([0, 'a'], (_1: number | string, _2: number) => _1 ? 1 : null)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Map<A, B>>_, (_1: B, _2: A) => [1, 2, 3])).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Map<A, B>>_, (_1: B, _2: A) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Map<A, B>>_, (_1: B, _2: A) => _1 ? 1 : null)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Set<A>>_, (_1: A, _2: number) => [1, 2, 3])).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Set<A>>_, (_1: A, _2: number) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Set<A>>_, (_1: A, _2: number) => _1 ? 1 : null)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<NodeIterator>_, (_1: Node, _2: number) => [1, 2, 3])).toMatchTypeOf<number[]>();
-expectTypeOf(map(<NodeIterator>_, (_1: Node, _2: number) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<NodeIterator>_, (_1: Node, _2: number) => _1 ? 1 : null)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Iterator<A>>_, (_1: A, _2: number) => [1, 2, 3])).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Iterator<A>>_, (_1: A, _2: number) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<Iterator<A>>_, (_1: A, _2: number) => _1 ? 1 : null)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<D>_, (_1: A, _2: string) => [1, 2, 3])).toMatchTypeOf<number[]>();
-expectTypeOf(map(<D>_, (_1: A, _2: string) => _1 ? 1 : undefined)).toMatchTypeOf<number[]>();
-expectTypeOf(map(<D>_, (_1: A, _2: string) => _1 ? 1 : null)).toMatchTypeOf<number[]>();
+each(<any>_, (i, v) => {
+    expectTypeOf(i).toBeAny();
+    expectTypeOf(v).toBeAny();
+});
+each(<unknown>_, (i, v) => {
+    expectTypeOf(i).toBeAny();
+    expectTypeOf(v).toBeAny();
+});
+
+expectTypeOf(map(<any>_, () => <number>_)).toMatchTypeOf<number[]>();
+expectTypeOf(map(<any>_, () => <number[]>_)).toMatchTypeOf<number[]>();
+expectTypeOf(map(<any>_, () => <number | number[]>_)).toMatchTypeOf<number[]>();
+expectTypeOf(map(<any>_, () => <number | undefined>_)).toMatchTypeOf<number[]>();
+expectTypeOf(map(<any>_, () => <number | null>_)).toMatchTypeOf<number[]>();
+
+expectTypeOf(map(<C>_, (_1: A | B, _2: keyof C) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<readonly string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<C[]>();
+expectTypeOf(map(<string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<C[]>();
+expectTypeOf(map([0, 'a'], (_1: number | string, _2: number) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<Map<A, B>>_, (_1: B, _2: A) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<Set<A>>_, (_1: A, _2: number) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<NodeIterator>_, (_1: Node, _2: number) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<Iterator<A>>_, (_1: A, _2: number) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<HasEntries<A>>_, (_1: A, _2: string) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<HasForEach<A>>_, (_1: A, _2: number) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<Zeta.Dictionary<A>>_, (_1: A, _2: string) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<any>_, (_1: any, _2: any) => <C>_)).toMatchTypeOf<C[]>();
+expectTypeOf(map(<unknown>_, (_1: any, _2: any) => <C>_)).toMatchTypeOf<C[]>();
 
 expectTypeOf(grep(<C>_, (_1: A | B, _2: keyof C) => _)).toEqualTypeOf<Array<A | B>>();
+expectTypeOf(grep(<readonly string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<string[]>();
+expectTypeOf(grep(<string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<string[]>();
 expectTypeOf(grep([0, 'a'], (_1: number | string, _2: number) => _)).toEqualTypeOf<Array<number | string>>();
 expectTypeOf(grep(<Map<A, B>>_, (_1: B, _2: A) => _)).toEqualTypeOf<B[]>();
 expectTypeOf(grep(<Set<A>>_, (_1: A, _2: number) => _)).toEqualTypeOf<A[]>();
 expectTypeOf(grep(<NodeIterator>_, (_1: Node, _2: number) => _)).toEqualTypeOf<Node[]>();
 expectTypeOf(grep(<Iterator<A>>_, (_1: A, _2: number) => _)).toEqualTypeOf<A[]>();
-expectTypeOf(grep(<D>_, (_1: A, _2: string) => _)).toEqualTypeOf<A[]>();
+expectTypeOf(grep(<HasEntries<A>>_, (_1: A, _2: string) => _)).toEqualTypeOf<A[]>();
+expectTypeOf(grep(<HasForEach<A>>_, (_1: A, _2: number) => _)).toEqualTypeOf<A[]>();
+expectTypeOf(grep(<Zeta.Dictionary<A>>_, (_1: A, _2: string) => _)).toEqualTypeOf<A[]>();
+expectTypeOf(grep(<any>_, (_1: any, _2: any) => _)).toEqualTypeOf<any[]>();
+expectTypeOf(grep(<unknown>_, (_1: any, _2: any) => _)).toEqualTypeOf<any[]>();
 
 expectTypeOf(any(<C>_, (_1: A | B, _2: keyof C) => <C>_)).toEqualTypeOf<A | B | false>();
+expectTypeOf(any(<readonly string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<string | false>();
+expectTypeOf(any(<string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<string | false>();
 expectTypeOf(any([0, 'a'], (_1: number | string, _2: number) => <C>_)).toEqualTypeOf<number | string | false>();
 expectTypeOf(any(<Map<A, B>>_, (_1: B, _2: A) => <C>_)).toEqualTypeOf<B | false>();
 expectTypeOf(any(<Set<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<A | false>();
 expectTypeOf(any(<NodeIterator>_, (_1: Node, _2: number) => <C>_)).toEqualTypeOf<Node | false>();
 expectTypeOf(any(<Iterator<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<A | false>();
-expectTypeOf(any(<D>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<A | false>();
-expectTypeOf(any(<object>_, (_1: any, _2: string | number) => _)).toBeAny();
-expectTypeOf(any(<Zeta.Dictionary>_, (_1: any, _2: string) => _)).toBeAny();
+expectTypeOf(any(<HasEntries<A>>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<A | false>();
+expectTypeOf(any(<HasForEach<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<A | false>();
+expectTypeOf(any(<Zeta.Dictionary<A>>_, (_1: A, _2: string) => _)).toEqualTypeOf<A | false>();
+expectTypeOf(any(<any>_, (_1: any, _2: any) => _)).toBeAny();
+expectTypeOf(any(<unknown>_, (_1: any, _2: any) => _)).toBeAny();
 
 expectTypeOf(single(<C>_, (_1: A | B, _2: keyof C) => <C>_)).toEqualTypeOf<C | false>();
+expectTypeOf(single(<readonly string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<C | false>();
+expectTypeOf(single(<string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<C | false>();
 expectTypeOf(single([0, 'a'], (_1: number | string, _2: number) => <C>_)).toEqualTypeOf<C | false>();
 expectTypeOf(single(<Map<A, B>>_, (_1: B, _2: A) => <C>_)).toEqualTypeOf<C | false>();
 expectTypeOf(single(<Set<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | false>();
 expectTypeOf(single(<NodeIterator>_, (_1: Node, _2: number) => <C>_)).toEqualTypeOf<C | false>();
 expectTypeOf(single(<Iterator<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<D>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<C | false>();
+expectTypeOf(single(<HasEntries<A>>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<C | false>();
+expectTypeOf(single(<HasForEach<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | false>();
+expectTypeOf(single(<Zeta.Dictionary<A>>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<C | false>();
+expectTypeOf(single(<any>_, (_1: any, _2: any) => <C>_)).toEqualTypeOf<C | false>();
+expectTypeOf(single(<unknown>_, (_1: any, _2: any) => <C>_)).toEqualTypeOf<C | false>();
 
 expectTypeOf(fill(['a', 'b'], 1)).toMatchTypeOf<{ a: number, b: number }>();
 expectTypeOf(fill('a b', 1)).toMatchTypeOf<{ a: number, b: number }>();
@@ -303,12 +334,12 @@ expectTypeOf((<Zeta.Watchable & C>_).watch((_: { oldValues: Partial<C>, newValue
 expectTypeOf((<Zeta.Watchable<C>>_).watch((_: { oldValues: Partial<C>, newValues: Partial<C> }) => { })).toEqualTypeOf<Zeta.UnregisterCallback>();
 
 // defineAliasProperty - basic
-expectTypeOf(defineAliasProperty(<C>_, 'a', <D>_)).toBeVoid();
-expectTypeOf(defineAliasProperty(<C>_, 'a', <D>_, 'b')).toBeVoid();
+expectTypeOf(defineAliasProperty(<C>_, 'a', <A>_)).toBeVoid();
+expectTypeOf(defineAliasProperty(<C>_, 'a', <A>_, '__a')).toBeVoid();
 
 // defineAliasProperty - unknown property
-expectTypeOf(defineAliasProperty(<C>_, 'c', <D>_)).toBeVoid();
-expectTypeOf(defineAliasProperty(<C>_, 'c', <D>_, 'b')).toBeVoid();
+expectTypeOf(defineAliasProperty(<C>_, 'c', <A>_)).toBeVoid();
+expectTypeOf(defineAliasProperty(<C>_, 'c', <A>_, '__b')).toBeVoid();
 
 // defineObservableProperty - basic
 expectTypeOf(defineObservableProperty(<C>_, 'a')).toEqualTypeOf<(value: A) => void>();
