@@ -1,5 +1,5 @@
 import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, map, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, single, splice, watch, watchable, watchOnce, delay as util_delay } from "../src/util";
-import { after, delay, mockFn, verifyCalls } from "./testUtil";
+import { _, after, delay, mockFn, verifyCalls } from "./testUtil";
 
 // avoid UnhandledPromiseRejectionWarning from node
 function createRejectPromise() {
@@ -1172,6 +1172,38 @@ describe('watch', () => {
         });
         expect(cb).toBeCalledTimes(1);
     });
+
+    it('should handle reserved property', async () => {
+        const o = Object.create(null);
+        defineObservableProperty(o, 'normal', 1);
+        defineObservableProperty(o, 'hasOwnProperty', 2);
+
+        const cb1 = mockFn();
+        const cb2 = mockFn();
+        watch(o, cb1);
+        watch(o, 'hasOwnProperty', cb2);
+
+        await after(() => {
+            o.normal = 41;
+            o.hasOwnProperty = 42;
+        });
+        expect(cb1).toBeCalledWith({
+            oldValues: { normal: 1, hasOwnProperty: 2 },
+            newValues: { normal: 41, hasOwnProperty: 42 }
+        });
+        expect(cb2).toBeCalledWith(42, 2, _, _);
+
+        cb1.mockClear();
+        cb2.mockClear();
+        await after(() => {
+            o.normal = 81;
+        });
+        expect(cb1).toBeCalledWith({
+            oldValues: { normal: 41 },
+            newValues: { normal: 81 }
+        });
+        expect(cb2).not.toBeCalled();
+    });
 });
 
 describe('watchOnce', () => {
@@ -1194,6 +1226,19 @@ describe('watchOnce', () => {
         await expect(promise).resolves.toBe(86);
         expect(cb).toBeCalledTimes(1);
         expect(cb).toBeCalledWith(42);
+    });
+
+    it('should handle reserved property', async () => {
+        const o = Object.create(null);
+        defineObservableProperty(o, 'normal', 1);
+        defineObservableProperty(o, 'hasOwnProperty', 2);
+
+        const cb = mockFn();
+        watchOnce(o, 'hasOwnProperty', cb);
+        await after(() => {
+            o.normal = 41;
+        });
+        expect(cb).not.toBeCalled();
     });
 });
 

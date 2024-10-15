@@ -710,7 +710,7 @@ function getObservableState(obj, sync) {
         values: {},
         oldValues: {},
         newValues: {},
-        alias: {},
+        alias: Object.create(null),
         handlers: [],
         handleChanges: function (callback) {
             var self = watchStore(obj);
@@ -757,7 +757,7 @@ function ensurePropertyObserved(obj, prop) {
             if (alias) {
                 return ensurePropertyObserved(alias[0], alias[1]);
             }
-            if (prop in state.values) {
+            if (hasOwnProperty(state.values, prop)) {
                 return;
             }
         }
@@ -790,7 +790,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
     if (alias) {
         return defineObservableProperty(alias[0], alias[1], initialValue, callback);
     }
-    if (!(prop in state.values)) {
+    if (!hasOwnProperty(state.values, prop)) {
         throwNotOwnDataProperty(obj, prop);
         var setter = function (value) {
             var state = getObservableState(this);
@@ -801,7 +801,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
             if (!sameValueZero(value, oldValue)) {
                 state.values[prop] = value;
                 if (state.handlers[0]) {
-                    if (!(prop in state.oldValues)) {
+                    if (!hasOwnProperty(state.oldValues, prop)) {
                         state.oldValues[prop] = oldValue;
                     }
                     state.newValues[prop] = value;
@@ -841,7 +841,7 @@ function watch(obj, prop, handler, fireInit) {
             var alias = getObservableState(obj).alias[prop] || [obj, prop];
             handlers = getObservableState(alias[0]).handlers;
             wrapper = function (e) {
-                if (alias[1] in e.newValues) {
+                if (hasOwnProperty(e.newValues, alias[1])) {
                     handler.call(obj, e.newValues[alias[1]], e.oldValues[alias[1]], prop, obj);
                 }
             };
@@ -865,7 +865,7 @@ function watchOnce(obj, prop, handler) {
         var alias = getObservableState(obj).alias[prop] || [obj, prop];
         var handlers = getObservableState(alias[0]).handlers;
         handlers.push(function fn(e) {
-            if (alias[1] in e.newValues) {
+            if (hasOwnProperty(e.newValues, alias[1])) {
                 var value = e.newValues[alias[1]];
                 var returnValue;
                 arrRemove(handlers, fn);
