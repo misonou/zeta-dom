@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.9 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.10 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -906,25 +906,27 @@ function getObservableState(obj, sync) {
     values: {},
     oldValues: {},
     newValues: {},
-    alias: {},
+    alias: Object.create(null),
     handlers: [],
     handleChanges: function handleChanges(callback) {
       var self = watchStore(obj);
+      var result;
       try {
         self.lock = true;
         do {
           var oldValues = self.oldValues;
           var newValues = self.newValues;
           if (isFunction(callback)) {
-            callback();
+            result = callback();
+            callback = null;
+          }
+          for (var i in oldValues) {
+            if (sameValueZero(oldValues[i], newValues[i])) {
+              delete oldValues[i];
+              delete newValues[i];
+            }
           }
           if (getOwnPropertyNames(oldValues)[0]) {
-            for (var i in oldValues) {
-              if (oldValues[i] === newValues[i]) {
-                delete oldValues[i];
-                delete newValues[i];
-              }
-            }
             self.oldValues = {};
             self.newValues = {};
             self.handlers.slice(0).forEach(function (v) {
@@ -938,6 +940,7 @@ function getObservableState(obj, sync) {
       } finally {
         self.lock = false;
       }
+      return result;
     }
   });
 }
@@ -949,7 +952,7 @@ function ensurePropertyObserved(obj, prop) {
       if (alias) {
         return ensurePropertyObserved(alias[0], alias[1]);
       }
-      if (prop in state.values) {
+      if (util_hasOwnProperty(state.values, prop)) {
         return;
       }
     }
@@ -979,7 +982,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
   if (alias) {
     return defineObservableProperty(alias[0], alias[1], initialValue, callback);
   }
-  if (!(prop in state.values)) {
+  if (!util_hasOwnProperty(state.values, prop)) {
     throwNotOwnDataProperty(obj, prop);
     var setter = function setter(value) {
       var state = getObservableState(this);
@@ -990,7 +993,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
       if (!sameValueZero(value, oldValue)) {
         state.values[prop] = value;
         if (state.handlers[0]) {
-          if (!(prop in state.oldValues)) {
+          if (!util_hasOwnProperty(state.oldValues, prop)) {
             state.oldValues[prop] = oldValue;
           }
           state.newValues[prop] = value;
@@ -1029,7 +1032,7 @@ function _watch(obj, prop, handler, fireInit) {
       var alias = getObservableState(obj).alias[prop] || [obj, prop];
       handlers = getObservableState(alias[0]).handlers;
       wrapper = function wrapper(e) {
-        if (alias[1] in e.newValues) {
+        if (util_hasOwnProperty(e.newValues, alias[1])) {
           handler.call(obj, e.newValues[alias[1]], e.oldValues[alias[1]], prop, obj);
         }
       };
@@ -1052,7 +1055,7 @@ function _watchOnce(obj, prop, handler) {
     var alias = getObservableState(obj).alias[prop] || [obj, prop];
     var handlers = getObservableState(alias[0]).handlers;
     handlers.push(function fn(e) {
-      if (alias[1] in e.newValues) {
+      if (util_hasOwnProperty(e.newValues, alias[1])) {
         var value = e.newValues[alias[1]];
         var returnValue;
         arrRemove(handlers, fn);
