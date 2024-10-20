@@ -85,6 +85,13 @@ export function isArray<T>(obj: T): ExtractAny<T, any[]>;
 export function isFunction<T>(obj: T): Zeta.IsAnyOrUnknown<T> extends true ? MaybeFunctionOrConstructor | false : ExtractAny<T, Zeta.AnyFunction | Zeta.AnyConstructorOrClass>;
 
 /**
+ * Tests whether the value is an `Error` object.
+ * @param obj An input value to be tested.
+ * @returns The same instance of function if it is an `Error` object; otherwise false.
+ */
+export function isError<T>(obj: T): ExtractAny<T, Error>;
+
+/**
  * Tests whether the value is thenable, i.e. can be chained as a Promise.
  * @param obj An input value to be tested.
  * @returns The same instance of function if it is thenable; otherwise false.

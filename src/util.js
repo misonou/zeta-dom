@@ -10,6 +10,7 @@ const getOwnPropertyNames = Object.getOwnPropertyNames;
 const getPrototypeOf = Object.getPrototypeOf;
 const hasOwnPropertyImpl = objectProto.hasOwnProperty;
 const propertyIsEnumerableImpl = objectProto.propertyIsEnumerable;
+const toStringImpl = objectProto.toString;
 const values = Object.values || function (obj) {
     var vals = [];
     for (var key in obj) {
@@ -68,6 +69,10 @@ function isArray(obj) {
 
 function isFunction(obj) {
     return typeof obj === 'function' && obj;
+}
+
+function isError(obj) {
+    return toStringImpl.call(obj) === '[object Error]' && obj;
 }
 
 function isThenable(obj) {
@@ -436,7 +441,7 @@ function setIntervalSafe(callback, ms) {
  * -------------------------------------- */
 
 function throws(error) {
-    throw (is(error, Error) || new Error(error));
+    throw (isError(error) || new Error(error));
 }
 
 function throwNotFunction(obj, name) {
@@ -453,7 +458,7 @@ function errorWithCode(code, message, props) {
 }
 
 function isErrorWithCode(error, code) {
-    return is(error, Error) && error.code === code;
+    return isError(error) && error.code === code;
 }
 
 
@@ -902,6 +907,7 @@ export {
     isUndefinedOrNull,
     isArray,
     isFunction,
+    isError,
     isThenable,
     isPlainObject,
     isArrayLike,
