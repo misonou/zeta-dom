@@ -1018,8 +1018,8 @@ setShortcut({
  * Exports
  * -------------------------------------- */
 
-function reportError(error, element) {
-    return emitDOMEvent('error', element || root, { error }, true) || reportErrorImpl(error);
+function reportError(error, element, source) {
+    return emitDOMEvent('error', element || root, { error }, { bubbles: true, source }) || reportErrorImpl(error);
 }
 
 function focus(element, focusInput) {

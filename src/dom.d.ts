@@ -100,9 +100,10 @@ export default dom;
  * If the event is not handled, it will raise the error by `window.reportError`.
  * @param error Any value representing the error, preferrably an `Error` object.
  * @param element Specifies the DOM element associated with the error. Defaults to the root element.
+ * @param source Specifies original source of event for asynchronous operation.
  * @returns A promise if the error is handled.
  */
-export function reportError(error: any, element?: Element): Promise<any> | undefined;
+export function reportError(error: any, element?: Element, source?: Zeta.ZetaEventSource): Promise<any> | undefined;
 
 /**
  * Determines whether the element can receive text input.

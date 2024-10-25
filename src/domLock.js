@@ -3,7 +3,7 @@ import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
 import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, isFunction, makeArray, makeAsync, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd } from "./util.js";
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
-import { emitDOMEvent, listenDOMEvent } from "./events.js";
+import { emitDOMEvent, listenDOMEvent, ZetaEventSource } from "./events.js";
 import { createAutoCleanupMap } from "./observe.js";
 import { iterateFocusPath, reportError } from "./dom.js";
 
@@ -53,11 +53,12 @@ function handlePromise(source, element, oncancel, sendAsync) {
         source.then(resolve, reject);
     });
     if (sendAsync) {
+        var eventSource = window.event ? new ZetaEventSource() : null;
         source.catch(function (error) {
             // avoid firing error event for the same error for multiple target
             // while propagating through the promise chain
             if (error && (typeof error !== 'object' || setAdd(handledErrors, error))) {
-                reportError(error, element);
+                reportError(error, element, eventSource);
             }
         });
         var targets = new Map();
