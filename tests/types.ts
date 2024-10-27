@@ -1,5 +1,7 @@
 import { expectTypeOf } from "expect-type";
 import { always, any, arrRemove, catchAsync, combineFn, deepFreeze, deferrable, defineAliasProperty, defineObservableProperty, delay, each, equal, exclude, executeOnce, extend, fill, grep, is, isArray, isArrayLike, isFunction, isThenable, makeArray, makeAsync, map, mapGet, mapObject, mapRemove, matchWord, matchWordMulti, pick, resolve, resolveAll, retryable, setAdd, setPromiseTimeout, single, throwNotFunction, watch, watchOnce, watchable } from "../src/util";
+import dom from "../src/dom";
+import { bind } from "../src/domUtil";
 
 // -------------------------------------
 // helper declarations
@@ -9,6 +11,7 @@ type Fn = (v: number) => void;
 type A = { __a: number; };
 type B = { __b: number; };
 type C = { a: A; b: B; };
+type D = { element: HTMLElement };
 
 type HasEntries<T> = { entries(): Iterator<[string, T]>; };
 type HasForEach<T> = { forEach(callback: (v: T, i: number) => void): void }
@@ -351,3 +354,236 @@ expectTypeOf(defineObservableProperty(<C>_, 'c')).toEqualTypeOf<(value: unknown)
 expectTypeOf(defineObservableProperty(<C>_, 'c', 1)).toEqualTypeOf<(value: number) => void>();
 expectTypeOf(defineObservableProperty(<C>_, 'c', 1, true)).toEqualTypeOf<(value: number) => void>();
 expectTypeOf(defineObservableProperty(<C>_, 'c', 1, (_1: number, _2: number) => _1)).toEqualTypeOf<(value: number) => void>();
+
+// -------------------------------------
+// domUtil.d.ts
+
+bind(window, 'focus', (_1: FocusEvent) => _);
+bind(window, 'focus', (_1: FocusEvent) => _, true);
+bind(window, 'focus', (_1: FocusEvent) => _, false);
+bind(window, 'focus', (_1: FocusEvent) => _, { capture: true, passive: true });
+bind(window, 'unknown', (_1: Event) => _);
+bind(window, 'popstate mousedown', (_1: PopStateEvent | MouseEvent) => _);
+// @ts-expect-error
+bind(window, 'popstate', (_1: FocusEvent) => _);
+// @ts-expect-error
+bind(window, 'popstate mousedown', (_1: PopStateEvent) => _);
+
+bind(window, 'focus', e => {
+    expectTypeOf(e).toEqualTypeOf<FocusEvent>();
+});
+bind(window, 'popstate mousedown', e => {
+    expectTypeOf(e).toEqualTypeOf<PopStateEvent | MouseEvent>();
+});
+
+// bind - multiple event handlers
+bind(window, {
+    focus(_1: FocusEvent) { },
+    popstate(_1: PopStateEvent) { },
+    unknown(_1: any) { },
+});
+bind(window, {
+    focus(_1: FocusEvent) { },
+    // @ts-expect-error
+    popstate(_1: FocusEvent) { },
+});
+
+// bind - event listener options
+bind(window, { focus() { } }, true);
+bind(window, { focus() { } }, false);
+bind(window, { focus() { } }, { capture: true, passive: true });
+
+// -------------------------------------
+// events.d.ts
+
+interface EventMap<T> {
+    basic: Zeta.ZetaEventBase<T>;
+    async: Zeta.ZetaAsyncHandleableEvent<A, T>;
+    sync: Zeta.ZetaHandleableEvent<A, T>;
+    defer: Zeta.ZetaDeferrableEvent<T>;
+    objectData: DataEvent<T, B>;
+    nonObjectData: DataEvent<T, string>;
+    anyData: DataEvent<T, any>;
+}
+
+interface DataEvent<T, V> extends Zeta.ZetaEventBase<T> {
+    data: V;
+}
+
+declare const container: Zeta.ZetaEventContainer<C, EventMap<C>>;
+declare const target: Zeta.ZetaEventDispatcher<EventMap<C>, C>;
+
+// on - return type
+expectTypeOf(target.on('basic', () => _)).toEqualTypeOf<Zeta.UnregisterCallback>();
+expectTypeOf(target.on('unknown', () => _)).toEqualTypeOf<Zeta.UnregisterCallback>();
+
+// on - callback's argument type
+target.on('basic', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaEventBase<C>>();
+    expectTypeOf(e.context).toEqualTypeOf<C>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<C>();
+    expectTypeOf(self).toEqualTypeOf<C>();
+});
+target.on('async', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaAsyncHandleableEvent<A, C>>();
+    expectTypeOf(e.context).toEqualTypeOf<C>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<C>();
+    expectTypeOf(self).toEqualTypeOf<C>();
+});
+target.on('sync', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaHandleableEvent<A, C>>();
+    expectTypeOf(e.context).toEqualTypeOf<C>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<C>();
+    expectTypeOf(self).toEqualTypeOf<C>();
+});
+target.on('defer', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaDeferrableEvent<C>>();
+    expectTypeOf(e.context).toEqualTypeOf<C>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<C>();
+    expectTypeOf(self).toEqualTypeOf<C>();
+});
+target.on('unknown', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaEvent<C>>();
+    expectTypeOf(e.context).toEqualTypeOf<C>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<C>();
+    expectTypeOf(self).toEqualTypeOf<C>();
+});
+(<Zeta.ZetaEventDispatcher<EventMap<D>, D>>_).on('basic', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaEventBase<D>>();
+    expectTypeOf(e.context).toEqualTypeOf<D>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<HTMLElement>();
+    expectTypeOf(self).toEqualTypeOf<D>();
+});
+
+// on - callback's return type
+target.on('async', () => void 0);
+target.on('async', () => <A>_);
+target.on('async', () => resolve(<A>_));
+target.on('async', e => e.handled());
+target.on('async', e => e.handled(<A>_));
+target.on('async', e => e.handled(resolve(<A>_)));
+
+target.on('sync', () => void 0);
+target.on('sync', () => <A>_);
+// @ts-expect-error
+target.on('sync', () => resolve(<A>_)); // sync event does not accept promise
+// @ts-expect-error
+target.on('sync', e => e.handled()); // sync event require argument
+target.on('sync', e => e.handled(<A>_));
+// @ts-expect-error
+target.on('sync', e => e.handled(resolve(<A>_))); // sync event does not accept promise
+
+// on - multiple handlers
+target.on({
+    basic(_1: Zeta.ZetaEventBase<C>, _2: C) { },
+    async(_1: Zeta.ZetaAsyncHandleableEvent<A, C>, _2: C) { },
+    sync(_1: Zeta.ZetaHandleableEvent<A, C>, _2: C) { },
+    defer(_1: Zeta.ZetaDeferrableEvent<C>, _2: C) { },
+    unknown(_1: Zeta.ZetaEvent<C>, _2: C) { },
+});
+
+target.on({
+    basic(...args) {
+        expectTypeOf(args).toEqualTypeOf<[Zeta.ZetaEventBase<C>, C]>();
+    },
+    async(...args) {
+        expectTypeOf(args).toEqualTypeOf<[Zeta.ZetaAsyncHandleableEvent<A, C>, C]>();
+    },
+    sync(...args) {
+        expectTypeOf(args).toEqualTypeOf<[Zeta.ZetaHandleableEvent<A, C>, C]>();
+    },
+    defer(...args) {
+        expectTypeOf(args).toEqualTypeOf<[Zeta.ZetaDeferrableEvent<C>, C]>();
+    },
+    unknown(...args) {
+        expectTypeOf(args).toEqualTypeOf<any[]>();
+    },
+});
+
+// emit - return type of known event
+expectTypeOf(container.emit('basic', <C>_)).toEqualTypeOf<any>();
+expectTypeOf(container.emit('async', <C>_)).toEqualTypeOf<Promise<A> | undefined>();
+// @ts-expect-error
+expectTypeOf(container.emit('sync', <C>_)).toEqualTypeOf<A | undefined>(); // must specify asynResult options
+expectTypeOf(container.emit('defer', <C>_, null, { deferrable: true })).toEqualTypeOf<Promise<void>>();
+// @ts-expect-error
+expectTypeOf(container.emit('defer', <C>_, null, { deferrable: false })).toEqualTypeOf<Promise<void>>(); // must specify deferrable options
+// @ts-expect-error
+expectTypeOf(container.emit('defer', <C>_)).toEqualTypeOf<Promise<void>>(); // must specify deferrable options
+expectTypeOf(container.emit('unknown', <C>_)).toEqualTypeOf<Promise<any> | undefined>();
+
+// emit - return type of unknown event
+expectTypeOf(container.emit('unknown', <C>_, null, { deferrable: true })).toEqualTypeOf<Promise<void>>();
+expectTypeOf(container.emit('unknown', <C>_, null, { asyncResult: false })).toEqualTypeOf<any>();
+expectTypeOf(container.emit('unknown', <C>_, null, { handleable: false })).toEqualTypeOf<void>();
+expectTypeOf(container.emit('unknown', <C>_, null, { deferrable: false })).toEqualTypeOf<Promise<any> | undefined>();
+expectTypeOf(container.emit('unknown', <C>_, null, true)).toEqualTypeOf<Promise<any> | undefined>();
+expectTypeOf(container.emit('unknown', <C>_, null, false)).toEqualTypeOf<Promise<any> | undefined>();
+expectTypeOf(container.emit('unknown', <C>_, null)).toEqualTypeOf<Promise<any> | undefined>();
+
+// emit - data argument
+container.emit('objectData', <C>_, { data: <B>_ });
+// @ts-expect-error
+container.emit('objectData', <C>_, { data: <A>_ }); // incorrect data type
+// @ts-expect-error
+container.emit('objectData', <C>_, <B>_); // must be supplied by data property
+
+container.emit('nonObjectData', <C>_, '');
+container.emit('nonObjectData', <C>_, { data: '' });
+// @ts-expect-error
+container.emit('nonObjectData', <C>_, 0); // incorrect data type
+// @ts-expect-error
+container.emit('nonObjectData', <C>_, { data: <A>_ }); // incorrect data type
+
+container.emit('anyData', <C>_, '');
+container.emit('anyData', <C>_, { data: '' });
+// @ts-expect-error
+container.emit('anyData', <C>_, <B>_); // must be supplied by data property
+
+container.emit('unknown', <C>_, { customProps: true });
+// @ts-expect-error
+container.emit('basic', <C>_, { customProps: true }); // custom props are only allowed in unknown event
+
+// emit - event as first argument
+container.emit(<Zeta.ZetaEventBase>_, <C>_);
+container.emit(<Zeta.ZetaEventBase>_, <C>_, { customProps: true });
+
+// -------------------------------------
+// dom.d.ts
+
+expectTypeOf<Zeta.ZetaMouseEvent<HTMLInputElement>>().toMatchTypeOf<Zeta.ZetaMouseEvent>();
+
+dom.on('click', (_1: Zeta.ZetaMouseEvent) => _);
+dom.on('unknown', (_1: Zeta.ZetaEvent) => _);
+// @ts-expect-error
+dom.on('click', (_1: Zeta.ZetaKeystrokeEvent) => _); // incorrect argument type
+
+dom.on('click', 'button', (_1: Zeta.ZetaMouseEvent) => _);
+dom.on('unknown', 'button', (_1: Zeta.ZetaEvent) => _);
+
+dom.on('click', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaMouseEvent<HTMLHtmlElement>>();
+    expectTypeOf(e.target).toEqualTypeOf<HTMLElement>();
+    expectTypeOf(e.context).toEqualTypeOf<HTMLHtmlElement>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<HTMLHtmlElement>();
+    expectTypeOf(self).toEqualTypeOf<HTMLHtmlElement>();
+});
+dom.on('click', 'button', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaMouseEvent<HTMLButtonElement>>();
+    expectTypeOf(e.target).toEqualTypeOf<HTMLElement>();
+    expectTypeOf(e.context).toEqualTypeOf<HTMLButtonElement>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<HTMLButtonElement>();
+    expectTypeOf(self).toEqualTypeOf<HTMLButtonElement>();
+});
+
+dom.on({
+    focusin(_1: Zeta.ZetaFocusEvent) { },
+    focusout(_1: Zeta.ZetaFocusEvent) { },
+    unknown(_1: any) { },
+});
+
+dom.on({
+    focusin(...args) {
+        expectTypeOf(args).toEqualTypeOf<[Zeta.ZetaFocusEvent<HTMLHtmlElement>, HTMLHtmlElement]>();
+    }
+});

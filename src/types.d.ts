@@ -8,6 +8,7 @@ declare namespace Zeta {
     type ElementLike = Element | HasElement;
     type HtmlContent = string | Node | Node[] | NodeList | JQuery<any> | JQuery.htmlString;
 
+    type Primitive = number | string | boolean | symbol | undefined | null;
     type Dictionary<T = any> = Record<string, T>;
     type ArrayMember<T> = { [P in Extract<keyof T, number>]: T[P] }[Extract<keyof T, number>];
     type KeyOf<T> = T extends (any[] | ArrayLike<any>) ? number :
@@ -23,13 +24,14 @@ declare namespace Zeta {
         T extends WeakSet<infer V> ? V :
         object extends T ? any :
         T extends object ? T[Exclude<keyof T, symbol>] : never;
+    type StringKeyOf<T> = Extract<keyof T, string>;
     type PropertyTypeOrAny<T, P> = P extends keyof T ? T[P] : any;
     type HintedString<T extends string> = string & {} | T;
     type HintedKeyOf<T> = string & {} | keyof T;
     type HintedStringKeyOf<T> = string & {} | Extract<keyof T, string>;
 
     type WhitespaceDelimited<T extends string> = T extends `${infer L} ${infer R}` ? Exclude<L, ''> | WhitespaceDelimited<R> : Exclude<T, ''>;
-    type DeepReadonly<T> = T extends number | string | boolean | symbol | undefined | null ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
+    type DeepReadonly<T> = T extends Primitive ? T : T extends (infer V)[] ? readonly V[] : { readonly [P in keyof T]: DeepReadonly<T[P]> };
     /** @deprecated Use the built-in {@link Awaited} instead */
     type PromiseResult<T> = T extends PromiseLike<infer U> ? PromiseResult<U> : T;
     type WatchableInstance<T, K = keyof T> = T & Watchable<T, K>;
@@ -41,11 +43,12 @@ declare namespace Zeta {
 
     type If<T extends boolean, U, V> = T extends true ? U : V;
     type Not<T extends boolean> = If<T, false, true>;
-    type IsAny<T> = (1 | 2) extends (T extends never ? 1 : 2) ? true : false;
-    type IsAnyOrUnknown<T> = unknown extends T ? true : false;
+    type IsAny<T> = ((x: T extends never ? true : false) => void) extends (x: boolean) => void ? true : false;
+    type IsAnyOrUnknown<T> = ((x: T) => void) extends (x: unknown) => void ? true : false;
     type IsUnknown<T> = If<IsAnyOrUnknown<T>, Not<IsAny<T>>, false>;
     type IsNever<T> = [T] extends [never] ? true : false;
     type Default<T, U> = If<IsUnknown<T>, U, T>;
+    type ExtractAny<T, U> = If<Zeta.IsAnyOrUnknown<T>, U, Extract<T, U>>;
 
     type AnyFunction = (...args: any[]) => any;
     type AnyConstructor = new (...args: any[]) => any;
@@ -365,22 +368,37 @@ declare namespace Zeta {
         gesture: ZetaGestureEvent<T>;
         textInput: ZetaTextInputEvent<T>;
         input: ZetaInputEvent<T>;
-        error: ZetaErrorEvent;
+        error: ZetaErrorEvent<HTMLElement, T>;
         scrollBy: ZetaScrollByEvent<T>;
         getContentRect: ZetaGetContentRectEvent<T>;
     };
 
-    type ZetaEventType<E extends string, M, T = Element> = (M & { [s: string]: ZetaEvent })[E] & ZetaEventContext<T>;
+    type ZetaEventType<E extends string, M, T = any> = E extends keyof M ?
+        M[E] & (M[E] extends ZetaEventContext<T> ? unknown : ZetaEventContext<T>) :
+        ZetaEvent<T>;
 
-    type ZetaEventEmitDataType<E extends string, M> = Exclude<ZetaEventType<E, M>['data'], object>;
+    type ZetaEventEmitDataType<E extends string, M> = ExtractAny<PropertyTypeOrAny<ZetaEventType<E, M>, 'data'>, Primitive>;
+    type ZetaEventInit<E extends string, M> = E extends keyof M ? Partial<M[E]> | ZetaEventEmitDataType<E, M> : ZetaEventGenericInit;
+    type ZetaEventGenericInit = ({ [s: string]: any } & Partial<ZetaEvent<any>>) | Primitive;
+
+    type ZetaEventEmitOptionType<E extends string, M> =
+        ZetaEventType<E, M> extends ZetaDeferrableEvent<any> ? EventEmitOptions & { deferrable: true } :
+        ZetaEventType<E, M> extends ZetaHandleableEvent<any, any> ? EventEmitOptions & { asyncResult: false } :
+        boolean | EventEmitOptions;
 
     type ZetaEventEmitReturnType<E extends string, M> =
-        ZetaEventType<E, M> extends ZetaHandleableEvent<infer R> ? R | false :
-        ZetaEventType<E, M> extends ZetaAsyncHandleableEvent<infer R> ? Promise<R> | false : any;
+        ZetaEventType<E, M> extends ZetaDeferrableEvent<any> ? Promise<void> :
+        ZetaEventType<E, M> extends ZetaHandleableEvent<infer R, any> ? R | undefined :
+        ZetaEventType<E, M> extends ZetaAsyncHandleableEvent<infer R, any> ? Promise<R> | undefined : any;
+
+    type ZetaEventEmitReturnTypeByOptions<T> =
+        T extends { handleable: false } ? void :
+        T extends { deferrable: true } ? Promise<void> :
+        T extends { asyncResult: false } ? any : Promise<any> | undefined;
 
     type ZetaEventHandlerReturnType<E extends string, M> =
-        ZetaEventType<E, M> extends ZetaHandleableEvent<infer R> ? R | undefined | void :
-        ZetaEventType<E, M> extends ZetaAsyncHandleableEvent<infer R> ? Promise<R> | R | undefined | void : any;
+        ZetaEventType<E, M> extends ZetaHandleableEvent<infer R, any> ? R | undefined | void :
+        ZetaEventType<E, M> extends ZetaAsyncHandleableEvent<infer R, any> ? Promise<R> | R | undefined | void : any;
 
     type ZetaEventHandler<E extends string, M, T = Element> = { bivarianceHack(this: T, e: ZetaEventType<E, M, T>, self: T): ZetaEventHandlerReturnType<E, M> }['bivarianceHack'];
 
@@ -390,9 +408,10 @@ declare namespace Zeta {
 
     type ZetaDOMEventHandlers<T = Element> = ZetaEventHandlers<ZetaDOMEventMap<T>, T>;
 
-    type ZetaEventContext<T> = T extends ZetaEventContextBase<any> ? T : ZetaEventContextBase<T>;
+    /** @deprecated */
+    type ZetaEventContextBase<T> = ZetaEventContext<T>;
 
-    interface ZetaEventContextBase<T> {
+    interface ZetaEventContext<T> {
         /**
          * Gets a custom object that represents a functional sub-component.
          */
@@ -402,8 +421,6 @@ declare namespace Zeta {
          * Gets the HTML element represented by the context object, or the context object itself.
          */
         readonly currentTarget: T extends HasElement<infer V> ? V : T;
-
-        readonly θ__dummy__: any;
     }
 
     interface ZetaEventDispatcher<M, T = Element> {
@@ -465,7 +482,7 @@ declare namespace Zeta {
         readonly clientY: number | undefined;
     }
 
-    interface ZetaEventBase<T = HTMLElement> extends ZetaEventData<T> {
+    interface ZetaEventBase<T = unknown, U = unknown> extends ZetaEventData<Default<T, HTMLElement>>, ZetaEventContext<Default<U, T>> {
         /**
          * Gets the event name.
          * @alias {@link ZetaEventData.eventName}
@@ -489,15 +506,15 @@ declare namespace Zeta {
         isDefaultPrevented(): boolean;
     }
 
-    interface ZetaDeferrableEvent extends ZetaEventBase, Deferrable {
+    interface ZetaDeferrableEvent<T = unknown, U = unknown> extends ZetaEventBase<T, U>, Deferrable {
     }
 
-    interface ZetaHandleableEvent<T = any> extends ZetaEventBase {
+    interface ZetaHandleableEvent<V = any, T = unknown, U = unknown> extends ZetaEventBase<T, U> {
         /**
          * Signals that this event or user action is already handled and should not be observed by other components.
          * @param value A value for handling.
          */
-        handled(value: T): void;
+        handled(value: V): void;
 
         /**
          * Gets whether this event or user action is already handled.
@@ -508,12 +525,12 @@ declare namespace Zeta {
         readonly θ__dummy__handlable: any;
     }
 
-    interface ZetaAsyncHandleableEvent<T = any> extends ZetaEventBase {
+    interface ZetaAsyncHandleableEvent<V = any, T = unknown, U = unknown> extends ZetaEventBase<T, U> {
         /**
          * Signals that this event or user action is already handled and should not be observed by other components.
          * @param promise A value or a promise object for async handling.
          */
-        handled(promise?: Promise<T> | T): void;
+        handled(promise?: Promise<V> | V): void;
 
         /**
          * Gets whether this event or user action is already handled.
@@ -524,25 +541,25 @@ declare namespace Zeta {
         readonly θ__dummy__async_handlable: any;
     }
 
-    interface ZetaEvent extends ZetaAsyncHandleableEvent {
+    interface ZetaEvent<T = unknown, U = unknown> extends ZetaAsyncHandleableEvent<any, T, U> {
     }
 
-    interface ZetaErrorEvent extends ZetaAsyncHandleableEvent {
+    interface ZetaErrorEvent<T = unknown, U = unknown> extends ZetaAsyncHandleableEvent<any, T, U> {
         readonly error: any;
     }
 
-    interface ZetaDOMEvent<T = Element> extends ZetaAsyncHandleableEvent, ZetaEventContextBase<T> {
+    interface ZetaDOMEvent<T = Element> extends ZetaAsyncHandleableEvent<any, HTMLElement, T> {
     }
 
-    interface ZetaNativeUIEvent<T = Element, E extends UIEvent = UIEvent> extends ZetaAsyncHandleableEvent, ZetaEventContextBase<T> {
+    interface ZetaNativeUIEvent<T = Element, E extends UIEvent = UIEvent> extends ZetaDOMEvent<T> {
         readonly originalEvent: E;
     }
 
-    interface ZetaFocusEvent<T = Element> extends ZetaEventBase, ZetaEventContextBase<T> {
+    interface ZetaFocusEvent<T = Element> extends ZetaEventBase<HTMLElement, T> {
         readonly relatedTarget: HTMLElement;
     }
 
-    interface ZetaModalChangeEvent<T = Element> extends ZetaEventBase, ZetaEventContextBase<T> {
+    interface ZetaModalChangeEvent<T = Element> extends ZetaEventBase<HTMLElement, T> {
         readonly modalElement: Element;
     }
 
@@ -580,13 +597,13 @@ declare namespace Zeta {
     interface ZetaInputEvent<T = Element> extends ZetaNativeUIEvent<T, InputEvent> {
     }
 
-    interface ZetaScrollByEvent<T = Element> extends ZetaHandleableEvent<{ x: number, y: number } | false>, ZetaEventContextBase<T> {
+    interface ZetaScrollByEvent<T = Element> extends ZetaHandleableEvent<{ x: number, y: number } | false, HTMLElement, T> {
         readonly x: number;
         readonly y: number;
         readonly behavior: ScrollBehavior;
     }
 
-    interface ZetaGetContentRectEvent<T = Element> extends ZetaHandleableEvent<RectLike>, ZetaEventContextBase<T> {
+    interface ZetaGetContentRectEvent<T = Element> extends ZetaHandleableEvent<RectLike, HTMLElement, T> {
     }
 
     class ZetaEventSource {
@@ -721,10 +738,10 @@ declare namespace Zeta {
         /**
          * Process event object before event is dispatched to handlers registered on this container.
          */
-        initEvent?: (e: ZetaEventBase & ZetaEventContext<T>) => void;
+        initEvent?: (e: ZetaEventBase<T>) => void;
     }
 
-    class ZetaEventContainer<T = Element, M = ZetaDOMEventMap> implements HasElement {
+    class ZetaEventContainer<T = Element, M = ZetaDOMEventMap<T>> implements HasElement {
         /**
          * Createa a new event container for listening or dispatching events.
          * @param root A DOM element of which DOM events fired on descedant elements will be captured.
@@ -746,7 +763,7 @@ declare namespace Zeta {
         /**
          * Gets the event currently being fired within this container.
          */
-        readonly event: ZetaEventBase & ZetaEventContext<T> | null;
+        readonly event: ZetaEventBase<T> | null;
 
         /**
          * Gets whether all event handlers are automatically removed when the root element is detached.
@@ -809,37 +826,65 @@ declare namespace Zeta {
          * Re-emits an event to components.
          * If the event is handled by component, a promise object is returned.
          * @param event An instance of ZetaEvent representing the event to be re-emitted.
+         * @param target Event target. If target is not specified, {@link ZetaEventBase.target} from the `event` parameter will be used.
+         * @param data Data to be set on {@link ZetaEventBase.data} property. If an object is given, the properties will be copied to the {@link ZetaEvent} object during dispatch.
+         */
+        emit(event: ZetaEventBase<any>, target?: T, data?: Primitive | ZetaEventGenericInit): any;
+
+        /**
+         * Re-emits an event to components.
+         * If the event is handled by component, a promise object is returned.
+         * @param event An instance of ZetaEvent representing the event to be re-emitted.
          * @param target Event target.
-         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param data Data to be set on {@link ZetaEventBase.data} property. If an object is given, the properties will be copied to the {@link ZetaEvent} object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit(event: ZetaEventBase, target?: T, data?: any, options?: boolean | EventEmitOptions): any;
+        emit<U extends boolean | EventEmitOptions>(event: ZetaEventBase<any>, target: T, data: Primitive | ZetaEventGenericInit, options: boolean | EventEmitOptions): ZetaEventEmitReturnTypeByOptions<U>;
 
         /**
          * Emits an event to components synchronously.
          * If the event is handled by component, a promise object is returned.
          * @param eventName Event name.
          * @param target Event target.
-         * @param data Any data to be set on ZetaEvent#data property.
+         * @param data Data to be set on {@link ZetaEventBase.data} property. If an object is given, properties will be copied to the {@link ZetaEvent} object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit<E extends HintedStringKeyOf<M>>(eventName: E, target?: T, data?: Zeta.ZetaEventEmitDataType<E, M>, options?: boolean | EventEmitOptions): ZetaEventEmitReturnType<E, M>;
+        emit<E extends { [E in StringKeyOf<M>]: boolean extends ZetaEventEmitOptionType<E, M> ? E : never }[StringKeyOf<M>]>(eventName: E, target?: T, data?: ZetaEventInit<E, M>): ZetaEventEmitReturnType<E, M>;
 
         /**
          * Emits an event to components synchronously.
          * If the event is handled by component, a promise object is returned.
          * @param eventName Event name.
          * @param target Event target.
-         * @param props Properties that will be copied to the ZetaEvent object during dispatch.
+         * @param data Data to be set on {@link ZetaEventBase.data} property. If an object is given, properties will be copied to the {@link ZetaEvent} object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          */
-        emit<E extends HintedStringKeyOf<M>>(eventName: E, target?: T, props?: Partial<ZetaEventType<E, M>>, options?: boolean | EventEmitOptions): ZetaEventEmitReturnType<E, M>;
+        emit<E extends StringKeyOf<M>>(eventName: E, target: T, data: ZetaEventInit<E, M>, options: ZetaEventEmitOptionType<E, M>): ZetaEventEmitReturnType<E, M>;
+
+        /**
+         * Emits an event to components synchronously.
+         * If the event is handled by component, a promise object is returned.
+         * @param eventName Event name.
+         * @param target Event target.
+         * @param data Data to be set on {@link ZetaEventBase.data} property. If an object is given, properties will be copied to the {@link ZetaEvent} object during dispatch.
+         */
+        emit<E extends string>(eventName: Exclude<E, keyof M>, target?: T, data?: Primitive | ZetaEventGenericInit): Promise<any> | undefined;
+
+        /**
+         * Emits an event to components synchronously.
+         * If the event is handled by component, a promise object is returned.
+         * @param eventName Event name.
+         * @param target Event target.
+         * @param data Data to be set on {@link ZetaEventBase.data} property. If an object is given, properties will be copied to the {@link ZetaEvent} object during dispatch.
+         * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
+         */
+        emit<E extends string, U extends boolean | EventEmitOptions>(eventName: Exclude<E, keyof M>, target: T, data: Primitive | ZetaEventGenericInit, options: U): ZetaEventEmitReturnTypeByOptions<U>;
 
         /**
          * Emits an event to components asynchronously.
          * @param eventName Event name.
          * @param target Event target.
-         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param data Data to be set on {@link ZetaEventBase.data} property. If an object is given, properties will be copied to the {@link ZetaEvent} object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
          * @deprecated
@@ -850,7 +895,7 @@ declare namespace Zeta {
          * Emits an event to components asynchronously.
          * @param eventName Event name.
          * @param target Event target.
-         * @param data Any data to be set on ZetaEvent#data property. If an object is given, the properties will be copied to the ZetaEvent object during dispatch.
+         * @param data Data to be set on {@link ZetaEventBase.data} property. If an object is given, properties will be copied to the {@link ZetaEvent} object during dispatch.
          * @param options Specifies how the event should be emitted. If boolean is given, it specified fills the `bubbles` option.
          * @param mergeData A callback to aggregates data from the previous undispatched event of the same name on the same target.
          * @deprecated
