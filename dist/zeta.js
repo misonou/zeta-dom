@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.10 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.11 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -137,6 +137,7 @@ __webpack_require__.d(util_namespaceObject, {
   is: function() { return is; },
   isArray: function() { return isArray; },
   isArrayLike: function() { return isArrayLike; },
+  isError: function() { return isError; },
   isErrorWithCode: function() { return isErrorWithCode; },
   isFunction: function() { return isFunction; },
   isPlainObject: function() { return isPlainObject; },
@@ -282,6 +283,7 @@ var getOwnPropertyNames = Object.getOwnPropertyNames;
 var getPrototypeOf = Object.getPrototypeOf;
 var hasOwnPropertyImpl = objectProto.hasOwnProperty;
 var propertyIsEnumerableImpl = objectProto.propertyIsEnumerable;
+var toStringImpl = objectProto.toString;
 var values = Object.values || function (obj) {
   var vals = [];
   for (var key in obj) {
@@ -333,6 +335,9 @@ function isArray(obj) {
 }
 function isFunction(obj) {
   return typeof obj === 'function' && obj;
+}
+function isError(obj) {
+  return toStringImpl.call(obj) === '[object Error]' && obj;
 }
 function isThenable(obj) {
   return !!obj && isFunction(obj.then) && obj;
@@ -668,7 +673,7 @@ function setIntervalSafe(callback, ms) {
  * -------------------------------------- */
 
 function util_throws(error) {
-  throw is(error, Error) || new Error(error);
+  throw isError(error) || new Error(error);
 }
 function throwNotFunction(obj, name) {
   if (!isFunction(obj)) {
@@ -682,7 +687,7 @@ function errorWithCode(code, message, props) {
   });
 }
 function isErrorWithCode(error, code) {
-  return is(error, Error) && error.code === code;
+  return isError(error) && error.code === code;
 }
 
 /* --------------------------------------
@@ -1562,11 +1567,12 @@ function handlePromise(source, element, oncancel, sendAsync) {
     source.then(resolve, reject);
   });
   if (sendAsync) {
+    var eventSource = env_window.event ? new ZetaEventSource() : null;
     source.catch(function (error) {
       // avoid firing error event for the same error for multiple target
       // while propagating through the promise chain
       if (error && (domLock_typeof(error) !== 'object' || setAdd(handledErrors, error))) {
-        dom_reportError(error, element);
+        dom_reportError(error, element, eventSource);
       }
     });
     var targets = new Map();
@@ -1737,6 +1743,7 @@ var currentEvent = null;
 var currentKeyName = '';
 var currentMetaKey = '';
 var currentTabRoot = root;
+var lastKeyName = '';
 var eventSource;
 var trustedEvent;
 var trackPromise;
@@ -1752,7 +1759,7 @@ fill(sourceDict, 'pointerdown', function (e) {
   return touchedClick ? 'touch' : 'mouse';
 });
 fill(sourceDict, 'mousedown mouseup mousemove click contextmenu dblclick', function (e) {
-  return touchedClick ? 'touch' : e.type !== 'mousemove' || e.button || e.buttons ? 'mouse' : 'script';
+  return touchedClick ? 'touch' : e.pointerId < 0 ? 'keyboard' : e.type !== 'mousemove' || e.button || e.buttons ? 'mouse' : 'script';
 });
 
 /* --------------------------------------
@@ -2458,6 +2465,7 @@ domReady.then(function () {
       modifierCount *= !data.meta && (!data.char || modifierCount > 2 || modifierCount > 1 && !e.shiftKey);
       modifiedKeyCode = data.meta ? modifiedKeyCode : data.key;
       currentKeyName = getEventName(e, modifiedKeyCode);
+      lastKeyName = currentKeyName;
       if (!imeNode && modifierCount) {
         triggerKeystrokeEvent(currentKeyName, '');
       }
@@ -2667,10 +2675,13 @@ setShortcut({
  * Exports
  * -------------------------------------- */
 
-function dom_reportError(error, element) {
+function dom_reportError(error, element, source) {
   return emitDOMEvent('error', element || root, {
     error: error
-  }, true) || reportError(error);
+  }, {
+    bubbles: true,
+    source: source
+  }) || reportError(error);
 }
 function dom_focus(element, focusInput) {
   if (focusInput !== false && !matchSelector(element, SELECTOR_FOCUSABLE)) {
@@ -2691,7 +2702,7 @@ function dom_blur(element) {
     return currentMetaKey;
   },
   get pressedKey() {
-    return currentKeyName;
+    return trustedEvent && currentEvent.pointerId < 0 ? lastKeyName : currentKeyName;
   },
   get context() {
     return getEventContext(getActiveElement()).context;
