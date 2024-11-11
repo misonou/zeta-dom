@@ -134,12 +134,19 @@ function notifyAsync(element, promise, oncancel) {
 }
 
 function runAsync(element, callback) {
+    var delegated, resolve = noop;
     var controller = { abort: noop };
     var promise = makeAsync(callback)({
         get signal() {
             return controller.signal || (controller = new AbortController()).signal;
+        },
+        get promise() {
+            return delegated || promise || (delegated = new Promise(function (res) {
+                resolve = res;
+            }));
         }
     });
+    resolve(promise);
     return handlePromise(promise, element, function (error) {
         controller.abort(error);
     }, true);

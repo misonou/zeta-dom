@@ -222,6 +222,10 @@ declare namespace Zeta {
          * Gets a signal object that get notified when operation has been cancelled.
          */
         readonly signal: AbortSignal;
+        /**
+         * Gets a promise that resolves with callback result.
+         */
+        readonly promise: Promise<any>;
     }
 
     interface PrivateStore<K extends object, V> {

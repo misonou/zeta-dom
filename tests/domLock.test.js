@@ -497,6 +497,39 @@ describe('runAsync', () => {
         await after(() => cancelLock(div));
         expect(cb).not.toBeCalled();
     });
+
+    it('should expose a promise that resolves according to callback result', async () => {
+        await Promise.allSettled([
+            runAsync(root, async ({ promise }) => {
+                (async () => await expect(promise).resolves.toBe(42))();
+                return 42;
+            }),
+            runAsync(root, async ({ promise }) => {
+                await delay();
+                (async () => await expect(promise).resolves.toBe(84))();
+                return 84;
+            }),
+            runAsync(root, async ({ promise }) => {
+                (async () => await expect(promise).rejects.toBe(42))();
+                throw 42;
+            }),
+            runAsync(root, async ({ promise }) => {
+                await delay();
+                (async () => await expect(promise).rejects.toBe(84))();
+                throw 84;
+            }),
+        ]);
+        expect.assertions(4);
+    });
+
+    it('should expose the same promise object before and after await', async () => {
+        await runAsync(root, async (context) => {
+            const promise = context.promise;
+            await delay();
+            expect(context.promise).toBe(promise);
+        });
+        expect.assertions(1);
+    });
 });
 
 describe('preventLeave', () => {
