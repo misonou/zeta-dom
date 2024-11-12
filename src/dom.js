@@ -538,6 +538,10 @@ function trackPointer(callback) {
             root.releaseCapture();
         }
     });
+    trackPromise.preventScroll = function () {
+        stopScroll();
+        startScroll = noop;
+    };
     return trackPromise;
 }
 

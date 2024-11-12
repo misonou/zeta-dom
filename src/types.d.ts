@@ -344,6 +344,10 @@ declare namespace Zeta {
         nextSibling(): T | null;
     }
 
+    interface PointerTracking {
+        preventScroll(): void;
+    }
+
 
     /* --------------------------------------
      * events.js

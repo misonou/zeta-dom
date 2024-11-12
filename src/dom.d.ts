@@ -212,14 +212,14 @@ export function setShortcut(command: string, keystroke: string | string[]): void
 
 export function setShortcut(setting: Zeta.Dictionary<string | string[]>): void;
 
-export function beginDrag(progressCallback?: (x: number, y: number, dx: number, dy: number) => void): Promise<void>;
+export function beginDrag(progressCallback?: (x: number, y: number, dx: number, dy: number) => void): Promise<void> & Zeta.PointerTracking;
 
 /**
  * @deprecated `within` parameter has no effect
  */
-export function beginDrag(within: Element, progressCallback?: (x: number, y: number, dx: number, dy: number) => void): Promise<void>;
+export function beginDrag(within: Element, progressCallback?: (x: number, y: number, dx: number, dy: number) => void): Promise<void> & Zeta.PointerTracking;
 
-export function beginPinchZoom(progressCallback?: (deg: number, scale: number, translateX: number, translateY: number) => void): Promise<void>;
+export function beginPinchZoom(progressCallback?: (deg: number, scale: number, translateX: number, translateY: number) => void): Promise<void> & Zeta.PointerTracking;
 
 /**
  * Inserts text an input element, where text currently highlighted will be replaced.
