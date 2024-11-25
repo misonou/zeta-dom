@@ -1,5 +1,26 @@
 /// <reference path="types.d.ts" />
 
+export class CancellationRequest {
+    /**
+     * @param reason A canonical string that describes the reason.
+     * @param eventSource When specified, it overrides current event source values.
+     */
+    constructor(reason: string, eventSource?: Zeta.ZetaEventSource);
+
+    /**
+     * A canonical string that describes the reason.
+     */
+    readonly reason: string;
+    /**
+     * Gets the type of user interaction that triggers the event.
+     */
+    readonly source: Zeta.ZetaEventSourceName;
+    /**
+     * Gets the keystroke that triggers the event, or `null` if the event is not triggered by keyboard.
+     */
+    readonly sourceKeyName: string | null;
+}
+
 /**
  * Enables listening of `asyncStart` and `asyncEnd` events that is triggered by descedant elements.
  * @param element A DOM element.
@@ -27,7 +48,7 @@ export declare function lock<T>(element: Element, promise: Promise<T>, cancellab
  * @param oncancel A handler which handles request of cancellation by {@link cancelLock}.
  * @returns A callback that remove the lock.
  */
-export declare function lock<T>(element: Element, oncancel: () => any): Zeta.UnregisterCallback;
+export declare function lock<T>(element: Element, oncancel: (reason: CancellationRequest) => any): Zeta.UnregisterCallback;
 
 /**
  * Associates an asynchronous operation with the specified element.
@@ -41,7 +62,7 @@ export declare function lock<T>(element: Element, oncancel: () => any): Zeta.Unr
  * @param oncancel A handler which handles request of cancellation by {@link cancelLock}.
  * @returns A promise which, when the operation was not cancelled, forwards the result of the given promise; or rejects if the operation was cancelled; or the DOM element was detached before the operation completed.
  */
-export declare function lock<T>(element: Element, promise: Promise<T>, oncancel?: () => any): Promise<T>;
+export declare function lock<T>(element: Element, promise: Promise<T>, oncancel?: (reason: CancellationRequest) => any): Promise<T>;
 
 /**
  * Gets whether there are any pending operations associated, i.e. being locked.
@@ -60,6 +81,14 @@ export declare function locked(element: Element, parents?: boolean): boolean;
  * @returns A promise which is fulfilled when all operations are cancelled; or is rejected otherwise.
  */
 export declare function cancelLock(): Promise<void>;
+
+/**
+ * Requests cancellation of asynchronous operations associated with any descendant elements
+ * @param element A DOM element.
+ * @param reason Reason that will be passed to cancellation handling callback.
+ * @returns A promise which is fulfilled when all operations are cancelled; or is rejected otherwise.
+ */
+export declare function cancelLock(element: Element, reason?: string | CancellationRequest): Promise<void>;
 
 /**
  * Requests cancellation of asynchronous operations associated with any descendant elements.
@@ -127,4 +156,4 @@ export declare function preventLeave(promise: Promise<any>): void;
  * @param oncancel A handler which handles request of cancellation by {@link cancelLock}.
  * @deprecated Use {@link lock} instead.
  */
-export declare function preventLeave<T>(element: Element, promise: Promise<T>, oncancel?: () => Promise<any>): void;
+export declare function preventLeave<T>(element: Element, promise: Promise<T>, oncancel?: (reason: CancellationRequest) => Promise<any>): void;

@@ -1,7 +1,7 @@
 import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
 import { window, root } from "./env.js";
-import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, isFunction, makeArray, makeAsync, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, is, isFunction, makeArray, makeAsync, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd } from "./util.js";
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent, listenDOMEvent, ZetaEventSource } from "./events.js";
 import { createAutoCleanupMap } from "./observe.js";
@@ -13,6 +13,14 @@ const locks = createAutoCleanupMap(clearLock);
 
 var leaveCounter = 0;
 
+function CancellationRequest(reason, eventSource) {
+    var self = this;
+    eventSource = eventSource || new ZetaEventSource();
+    self.reason = String(reason || '');
+    self.source = eventSource.source;
+    self.sourceKeyName = eventSource.sourceKeyName;
+}
+
 function muteAndReturn(error) {
     handledErrors.add(error);
     return error;
@@ -22,10 +30,10 @@ function ensureLock(element) {
     var promises = mapGet(locks, element, Map);
     if (!promises.cancel) {
         promises.element = element;
-        promises.cancel = retryable(function () {
+        promises.cancel = retryable(function (reason) {
             // request user cancellation for each async task in sequence
             return makeArray(promises).reduce(function (a, v) {
-                return a.then(v.bind(0, false));
+                return a.then(v.bind(0, false, reason));
             }, resolve()).catch(function () {
                 throw muteAndReturn(errorWithCode(ErrorCode.cancellationRejected));
             });
@@ -104,8 +112,8 @@ function lock(element, promise, oncancel) {
     var promises = ensureLock(element);
     promise = handlePromise(promise, element);
     oncancel = isFunction(oncancel) ? retryable(oncancel) : oncancel ? noop : reject;
-    promises.set(promise, function (force) {
-        return resolve(force || oncancel()).then(promise.cancel);
+    promises.set(promise, function (force, reason) {
+        return resolve(force || oncancel(reason)).then(promise.cancel);
     });
     always(promise, function () {
         promises.delete(promise);
@@ -173,7 +181,7 @@ function locked(element, parents) {
     });
 }
 
-function cancelLock(element, force) {
+function cancelLock(element, reason) {
     var targets = element ? grep(locks, function (v, i) {
         return containsOrEquals(element, i);
     }) : makeArray(locks);
@@ -182,11 +190,12 @@ function cancelLock(element, force) {
             clearLock(v.element);
         });
     };
-    if (force) {
+    if (reason === true) {
         return resolve(finalize());
     }
+    reason = is(reason, CancellationRequest) || new CancellationRequest(reason);
     return targets.reduce(function (a, v) {
-        return a.then(v.cancel);
+        return a.then(v.cancel.bind(v, reason));
     }, resolve()).then(finalize);
 }
 
@@ -199,6 +208,7 @@ bind(window, 'beforeunload', function (e) {
 subscribeAsync(root);
 
 export {
+    CancellationRequest,
     lock,
     locked,
     cancelLock,

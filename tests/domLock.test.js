@@ -1,5 +1,5 @@
 import { after, body, delay, initBody, mockFn, root, verifyCalls, _, cleanup } from "./testUtil";
-import { cancelLock, lock, locked, notifyAsync, preventLeave, runAsync, subscribeAsync } from "../src/domLock";
+import { CancellationRequest, cancelLock, lock, locked, notifyAsync, preventLeave, runAsync, subscribeAsync } from "../src/domLock";
 import { catchAsync, combineFn, noop, throws } from "../src/util";
 import { removeNode } from "../src/domUtil";
 import dom from "../src/dom";
@@ -663,6 +663,47 @@ describe('cancelLock', () => {
 
         await expect(lockResult).rejects.toBeErrorWithCode(ErrorCode.cancelled);
         expect(cb).toBeCalledTimes(1);
+    });
+
+    it('should call oncancel callback with reason', async () => {
+        const cb = mockFn().mockResolvedValue(true);
+        {
+            catchAsync(lock(root, delay(100), cb));
+            await cancelLock(root);
+            expect(cb).toBeCalledTimes(1);
+            verifyCalls(cb, [
+                [expect.any(CancellationRequest)]
+            ]);
+            cb.mockClear();
+        }
+        {
+            catchAsync(lock(root, delay(100), cb));
+            await cancelLock(root, 'reason');
+            expect(cb).toBeCalledTimes(1);
+            verifyCalls(cb, [
+                [expect.any(CancellationRequest)]
+            ]);
+            expect(cb.mock.calls[0][0]).toMatchObject({ reason: 'reason' });
+            cb.mockClear();
+        }
+        {
+            const reason = new CancellationRequest('reason');
+            catchAsync(lock(root, delay(100), cb));
+            await cancelLock(root, reason);
+            expect(cb).toBeCalledTimes(1);
+            expect(cb.mock.calls[0][0]).toBe(reason);
+            cb.mockClear();
+        }
+        {
+            catchAsync(lock(root, delay(100), cb));
+            await cancelLock(root, {});
+            expect(cb).toBeCalledTimes(1);
+            verifyCalls(cb, [
+                [expect.any(CancellationRequest)]
+            ]);
+            expect(cb.mock.calls[0][0]).toMatchObject({ reason: '[object Object]' });
+            cb.mockClear();
+        }
     });
 
     it('should call oncancel again if cancellation was previously rejected', async () => {

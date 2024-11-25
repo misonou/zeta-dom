@@ -1,7 +1,7 @@
 /// <reference path="types.d.ts" />
 
 import { getEventContext, getEventSource, listenDOMEvent, emitDOMEvent } from "./events";
-import * as lock from "./domLock";
+import { lock, locked, cancelLock, subscribeAsync, notifyAsync, runAsync, preventLeave } from "./domLock";
 import * as observe from "./observe";
 
 // @ts-ignore
@@ -34,7 +34,18 @@ declare const events = {
     emit: emitDOMEvent
 };
 
-declare const dom: typeof lock & typeof observe & typeof events & typeof methods & Zeta.ZetaEventDispatcher<Zeta.ZetaDOMEventMap, HTMLHtmlElement> & {
+// @ts-ignore
+declare const domLock = {
+    lock,
+    locked,
+    cancelLock,
+    subscribeAsync,
+    notifyAsync,
+    runAsync,
+    preventLeave,
+};
+
+declare const dom: typeof domLock & typeof observe & typeof events & typeof methods & Zeta.ZetaEventDispatcher<Zeta.ZetaDOMEventMap, HTMLHtmlElement> & {
     /**
      * Gets the DOM event which triggers the current event loop.
      */
