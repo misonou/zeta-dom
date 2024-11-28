@@ -61,16 +61,34 @@ describe('isPlainObject', () => {
 });
 
 describe('isArrayLike', () => {
-    it('should return truthy value if length is 0', () => {
-        expect(isArrayLike([])).toBeTruthy();
-        expect(isArrayLike({ length: 0 })).toBeTruthy();
+    it('should return truthy value if object is array', () => {
+        expect(isArrayLike([])).toBe(true);
     });
 
-    it('should return false for primitives other than string', () => {
+    it('should return truthy value if object has length property and slice method', () => {
+        function A() { }
+        A.prototype = new Array();
+        expect(isArrayLike(new A)).toBe(true);
+        expect(isArrayLike($(window))).toBe(true);
+    });
+
+    it('should return truthy value if object is argument object', () => {
+        (function () {
+            expect(isArrayLike(arguments)).toBe(true);
+        })();
+    });
+
+    it('should return truthy value if object is DOM object with length property except window', () => {
+        expect(isArrayLike(document.childNodes)).toBe(true);
+    });
+
+    it('should return false for primitives', () => {
         expect(isArrayLike(0)).toBe(false);
         expect(isArrayLike(1)).toBe(false);
         expect(isArrayLike(NaN)).toBe(false);
         expect(isArrayLike(true)).toBe(false);
+        expect(isArrayLike('')).toBe(false);
+        expect(isArrayLike('foo')).toBe(false);
     });
 
     it('should return false for function', () => {
@@ -79,6 +97,11 @@ describe('isArrayLike', () => {
 
     it('should return false for window object', () => {
         expect(isArrayLike(window)).toBe(false);
+    });
+
+    it('should return false for normal object', () => {
+        expect(isArrayLike({ length: 0 })).toBe(false);
+        expect(isArrayLike({ 0: true, length: 1 })).toBe(false);
     });
 });
 

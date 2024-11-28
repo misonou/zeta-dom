@@ -105,6 +105,20 @@ export function isThenable<T>(obj: T): ExtractAny<T, PromiseLike<any>>;
  */
 export function isPlainObject<T>(obj: T): ExtractAny<T, object>;
 
+/**
+ * Tests whether the object should be treated as array and enumerate elements from numeric indexes instead.
+ * @param obj An input value to be tested.
+ *
+ * @description
+ * It is primarily used by {@link makeArray}, {@link each} and related collection utilities.
+ *
+ * It returns `true` if value is an array, and `false` if it is a primitive value or the `window` object.
+ * Otherwise, the object must 1) contain `length` property with non-negative numeric value, and 2) either contain `slice` method;
+ * or have value other than `[object Object]` being returned when called with `Object.prototype.toString`.
+ *
+ * Traditionally there are collection of host objects that is semantically a list of elements like an array but does not implement {@link Array} inferface,
+ * like `arguments` and {@link Node.childNodes}. The use of {@link JQuery} also demands test for array-like objects.
+ */
 export function isArrayLike(obj: any): boolean;
 
 /**

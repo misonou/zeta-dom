@@ -85,19 +85,19 @@ function isPlainObject(obj) {
 }
 
 function isArrayLike(obj) {
-    if (isFunction(obj) || obj === window) {
+    if (!obj || typeof obj !== 'object' || obj === window) {
         return false;
     }
-    var length = !!obj && obj.length;
-    return isArray(obj) || length === 0 || (typeof length === 'number' && length > 0 && (length - 1) in obj);
+    if (isArray(obj)) {
+        return true;
+    }
+    var length = obj.length;
+    return typeof length === 'number' && length >= 0 && (isFunction(obj.slice) !== false || toStringImpl.call(obj) !== '[object Object]');
 }
 
 function makeArray(obj) {
     if (isArray(obj)) {
         return obj.slice(0);
-    }
-    if (typeof obj === 'string') {
-        return [obj];
     }
     if (obj && (isArrayLike(obj) || isFunction(obj.forEach))) {
         var arr = [];
