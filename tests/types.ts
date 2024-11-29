@@ -12,6 +12,7 @@ type A = { __a: number; };
 type B = { __b: number; };
 type C = { a: A; b: B; };
 type D = { element: HTMLElement };
+type E = { element: HTMLElement } & Zeta.ZetaDelegatedEventTarget<HTMLElement>;
 
 type HasEntries<T> = { entries(): Iterator<[string, T]>; };
 type HasForEach<T> = { forEach(callback: (v: T, i: number) => void): void }
@@ -451,8 +452,14 @@ target.on('unknown', (e, self) => {
 (<Zeta.ZetaEventDispatcher<EventMap<D>, D>>_).on('basic', (e, self) => {
     expectTypeOf(e).toEqualTypeOf<Zeta.ZetaEventBase<D>>();
     expectTypeOf(e.context).toEqualTypeOf<D>();
-    expectTypeOf(e.currentTarget).toEqualTypeOf<HTMLElement>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<D>();
     expectTypeOf(self).toEqualTypeOf<D>();
+});
+(<Zeta.ZetaEventDispatcher<EventMap<E>, E>>_).on('basic', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaEventBase<E>>();
+    expectTypeOf(e.context).toEqualTypeOf<E>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<HTMLElement>();
+    expectTypeOf(self).toEqualTypeOf<E>();
 });
 
 // on - callback's return type

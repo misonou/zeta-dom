@@ -58,6 +58,10 @@ function getEventContext(element) {
     return _(container || domContainer).options;
 }
 
+function normalizeEventTarget(container, target) {
+    return (container.captureDOMEvents && is(target.element, Node)) || target;
+}
+
 function normalizeEventOptions(options, overrides) {
     if (typeof options === 'boolean') {
         options = { bubbles: options };
@@ -152,7 +156,7 @@ function emitAsyncEvents(container) {
 function ZetaEventEmitter(eventName, container, target, data, options) {
     target = target || container.element;
     var self = this;
-    var element = is(target.element, Node) || target;
+    var element = normalizeEventTarget(container, target);
     var source = options.source || new ZetaEventSource();
     var result = options.deferrable ? deferrable() : undefined;
     var properties = {
@@ -269,7 +273,7 @@ function ZetaEvent(event, eventName, component, context, data) {
     self.eventName = eventName;
     self.type = eventName;
     self.context = context;
-    self.currentTarget = component.target;
+    self.currentTarget = normalizeEventTarget(event.container, component.target);
     self.target = event.element;
     self.data = null;
     if (isPlainObject(data)) {
@@ -351,13 +355,13 @@ definePrototype(ZetaEventContainer, {
         if (state.destroyed) {
             return noop;
         }
-        var element = is(target.element, Node);
-        if (element && self.captureDOMEvents) {
+        var element = normalizeEventTarget(self, target);
+        if (element !== target) {
             containers.set(element, self);
         }
         return containerCreateDispose(
             containerRegisterHandler(state, target, target, event, handler),
-            element && containerRegisterHandler(state, element, target, event, handler));
+            element !== target && containerRegisterHandler(state, element, target, event, handler));
     },
     delete: function (target) {
         var self = this;
@@ -404,7 +408,7 @@ function containerCreateDispose(ref, ref2) {
 
 function ContainerComponent(target) {
     var self = this;
-    self.target = target.element || target;
+    self.target = target;
     self.refs = new Set();
     self.index = 0;
     self.handlers = {};

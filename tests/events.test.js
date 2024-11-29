@@ -34,8 +34,8 @@ describe('ZetaEventContainer.event', () => {
 });
 
 describe('ZetaEventContainer.getContexts', () => {
-    it('should return context objects associated with given element', () => {
-        const container = new ZetaEventContainer();
+    it('should return context objects associated with given element when captureDOMEvents is true', () => {
+        const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target1 = { element: body };
         const target2 = { element: body };
         const target3 = { element: root };
@@ -257,7 +257,7 @@ describe('ZetaEventContainer.emit', () => {
 
     it('should emit event with context object when emitting on associated element', () => {
         /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
-        const container = new ZetaEventContainer();
+        const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target = container.element;
         const context = { element: target };
         const cb = mockFn();
@@ -271,7 +271,7 @@ describe('ZetaEventContainer.emit', () => {
 
     it('should emit event with different context objects', () => {
         /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
-        const container = new ZetaEventContainer();
+        const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target = container.element;
         const context1 = { element: target };
         const context2 = { element: target };
@@ -713,7 +713,7 @@ describe('ZetaEventContainer.emitAsync', () => {
 
     it('should emit event with different context objects', async () => {
         /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
-        const container = new ZetaEventContainer();
+        const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target = container.element;
         const context1 = { element: target };
         const context2 = { element: target };
@@ -841,7 +841,21 @@ describe('ZetaEventContainer.destroy', () => {
 });
 
 describe('ZetaEvent.target', () => {
-    it('should always be Element when possible', () => {
+    it('should always be Element when possible when captureDOMEvents is true', () => {
+        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
+        const target = container.element;
+        const context = { element: target };
+        const cb = mockFn();
+        container.add(context, 'customEvent', cb);
+
+        container.emit('customEvent', context);
+        verifyCalls(cb, [
+            [objectContaining({ target: target }), _]
+        ]);
+    });
+
+    it('should always be target passed to container.emit', () => {
         /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
@@ -849,15 +863,29 @@ describe('ZetaEvent.target', () => {
         const cb = mockFn();
         container.add(context, 'customEvent', cb);
 
-        container.emit('customEvent', target);
+        container.emit('customEvent', context);
         verifyCalls(cb, [
-            [objectContaining({ target: target }), _]
+            [objectContaining({ target: context }), _]
         ]);
     });
 });
 
 describe('ZetaEvent.currentTarget', () => {
-    it('should always be Element when possible', () => {
+    it('should always be Element when possible when captureDOMEvents is true', () => {
+        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
+        const target = container.element;
+        const context = { element: target };
+        const cb = mockFn();
+        container.add(context, 'customEvent', cb);
+
+        container.emit('customEvent', context);
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: target }), _]
+        ]);
+    });
+
+    it('should always be target passed to container.add', () => {
         /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
@@ -865,9 +893,9 @@ describe('ZetaEvent.currentTarget', () => {
         const cb = mockFn();
         container.add(context, 'customEvent', cb);
 
-        container.emit('customEvent', target);
+        container.emit('customEvent', context);
         verifyCalls(cb, [
-            [objectContaining({ currentTarget: target }), _]
+            [objectContaining({ currentTarget: context }), _]
         ]);
     });
 });

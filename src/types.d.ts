@@ -419,6 +419,10 @@ declare namespace Zeta {
     /** @deprecated */
     type ZetaEventContextBase<T> = ZetaEventContext<T>;
 
+    interface ZetaDelegatedEventTarget<T> extends HasElement<T> {
+        readonly θ__dummy_delegated_target: unknown;
+    }
+
     interface ZetaEventContext<T> {
         /**
          * Gets a custom object that represents a functional sub-component.
@@ -428,7 +432,7 @@ declare namespace Zeta {
         /**
          * Gets the HTML element represented by the context object, or the context object itself.
          */
-        readonly currentTarget: T extends HasElement<infer V> ? V : T;
+        readonly currentTarget: T extends ZetaDelegatedEventTarget<infer V> ? V : T;
     }
 
     interface ZetaEventDispatcher<M, T = Element> {
