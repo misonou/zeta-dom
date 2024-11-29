@@ -1,5 +1,6 @@
 import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, map, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, single, splice, watch, watchable, watchOnce, delay as util_delay } from "../src/util";
 import { _, after, delay, mockFn, verifyCalls } from "./testUtil";
+import $ from "jquery";
 
 // avoid UnhandledPromiseRejectionWarning from node
 function createRejectPromise() {
@@ -460,6 +461,11 @@ describe('equal', () => {
         expect(equal({ a: 1, b: obj }, { a: 1 })).toBe(false);
         expect(equal({ a: 1 }, { a: 1, b: obj })).toBe(false);
         expect(equal({ a: 1 }, { b: obj })).toBe(false);
+
+        // always compare keys
+        const a = { forEach: (cb) => { cb(1, 'a') } };
+        expect(equal({ a: 1 }, a)).toBe(false);
+        expect(equal(a, { a: 1 })).toBe(false);
     });
 
     it('should return if two arrays are sequentially equal', () => {
@@ -471,6 +477,17 @@ describe('equal', () => {
         expect(equal([1, obj], [1])).toBe(false);
         expect(equal([1], [1, obj])).toBe(false);
         expect(equal([1], [obj])).toBe(false);
+    });
+
+    it('should return if two array-like objects are sequentially equal', () => {
+        expect(equal($([1, obj]), $([1, obj]))).toBe(true);
+        expect(equal($([NaN]), $([NaN]))).toBe(true);
+        expect(equal($([]), $([]))).toBe(true);
+
+        expect(equal($([1, obj]), $([1, {}]))).toBe(false);
+        expect(equal($([1, obj]), $([1]))).toBe(false);
+        expect(equal($([1]), $([1, obj]))).toBe(false);
+        expect(equal($([1]), $([obj]))).toBe(false);
     });
 
     it('should return if two maps are have the same keys and values', () => {

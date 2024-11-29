@@ -335,11 +335,14 @@ function equal(a, b) {
     if (!a || !b || typeof a !== 'object' || a.constructor !== b.constructor) {
         return sameValueZero(a, b);
     }
-    var type = (a instanceof Map && 1) || (a instanceof Set && 2) || (isArray(a) && 3) || 0;
-    if (a.length !== b.length || a.size !== b.size || (!type && keys(a).length !== keys(b).length)) {
-        return false;
+    var type = (a instanceof Map && 1) || (a instanceof Set && 2) || (isArrayLike(a) && 3) || 0;
+    if (type) {
+        return a.length === b.length && a.size === b.size && !single(a, compareFn[type % 3].bind(0, b));
     }
-    return !single(a, (compareFn[type] || compareFn[0]).bind(0, b));
+    var needles = keys(a);
+    return needles.length === keys(b).length && !single(needles, function (v) {
+        return !hasOwnPropertyImpl.call(b, v) || !propertyIsEnumerableImpl.call(b, v) || !sameValueZero(a[v], b[v]);
+    });
 }
 
 function combineFn(arr) {

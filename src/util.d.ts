@@ -355,7 +355,7 @@ export function equal(a: Set<any>, b: Set<any>): boolean;
  * @param a An array to compare.
  * @param b An array to compare.
  */
-export function equal(a: readonly any[], b: readonly any[]): boolean;
+export function equal(a: ArrayLike<any>, b: ArrayLike<any>): boolean;
 
 /**
  * Determines whether two objects have the same properties and each property associates the same value.
