@@ -462,6 +462,19 @@ target.on('unknown', (e, self) => {
     expectTypeOf(self).toEqualTypeOf<E>();
 });
 
+// on - callback's argument type, whitespace-delimited event name
+target.on('basic async', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaEventBase<C> | Zeta.ZetaAsyncHandleableEvent<A, C>>();
+    expectTypeOf(e.context).toEqualTypeOf<C>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<C>();
+    expectTypeOf(self).toEqualTypeOf<C>();
+});
+
+// on - backward compatible generic signature
+(<E extends keyof EventMap<C>>(event: E, handler: Zeta.ZetaEventHandler<E, EventMap<C>, C>) => {
+    return target.on(event, handler);
+});
+
 // on - callback's return type
 target.on('async', () => void 0);
 target.on('async', () => <A>_);
@@ -505,6 +518,11 @@ target.on({
     unknown(...args) {
         expectTypeOf(args).toEqualTypeOf<any[]>();
     },
+});
+
+// add - backward compatible generic signature
+(<E extends keyof EventMap<C>>(event: E, handler: Zeta.ZetaEventHandler<E, EventMap<C>, C>) => {
+    return container.add(<C>_, event, handler);
 });
 
 // emit - return type of known event
@@ -582,6 +600,22 @@ dom.on('click', 'button', (e, self) => {
     expectTypeOf(e.currentTarget).toEqualTypeOf<HTMLButtonElement>();
     expectTypeOf(self).toEqualTypeOf<HTMLButtonElement>();
 });
+
+dom.on('click keystroke', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaMouseEvent<HTMLHtmlElement> | Zeta.ZetaKeystrokeEvent<HTMLHtmlElement>>();
+    expectTypeOf(e.target).toEqualTypeOf<HTMLElement>();
+    expectTypeOf(e.context).toEqualTypeOf<HTMLHtmlElement>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<HTMLHtmlElement>();
+    expectTypeOf(self).toEqualTypeOf<HTMLHtmlElement>();
+});
+dom.on('click keystroke', 'button', (e, self) => {
+    expectTypeOf(e).toEqualTypeOf<Zeta.ZetaMouseEvent<HTMLButtonElement> | Zeta.ZetaKeystrokeEvent<HTMLButtonElement>>();
+    expectTypeOf(e.target).toEqualTypeOf<HTMLElement>();
+    expectTypeOf(e.context).toEqualTypeOf<HTMLButtonElement>();
+    expectTypeOf(e.currentTarget).toEqualTypeOf<HTMLButtonElement>();
+    expectTypeOf(self).toEqualTypeOf<HTMLButtonElement>();
+});
+
 
 dom.on({
     focusin(_1: Zeta.ZetaFocusEvent) { },

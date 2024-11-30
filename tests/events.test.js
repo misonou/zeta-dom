@@ -87,6 +87,26 @@ describe('ZetaEventContainer.add', () => {
             [objectContaining({ type: 'customEvent', data: 'string' }), _]
         ]);
     });
+
+    it('should accept whitespace-delimited event names', () => {
+        const container = new ZetaEventContainer();
+        const target = {};
+        const cb = mockFn();
+        const unregister = container.add(target, 'customEvent anotherEvent', cb);
+
+        container.emit('customEvent', target);
+        container.emit('anotherEvent', target);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'customEvent' }), _],
+            [objectContaining({ type: 'anotherEvent', }), _]
+        ]);
+        unregister();
+        cb.mockClear();
+
+        container.emit('customEvent', target);
+        container.emit('anotherEvent', target);
+        expect(cb).not.toBeCalled();
+    });
 });
 
 describe('ZetaEventContainer.delete', () => {

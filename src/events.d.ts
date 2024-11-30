@@ -48,23 +48,6 @@ export declare function emitDOMEvent<E extends Zeta.ZetaDOMEventName>(eventName:
 export declare function listenDOMEvent(handlers: Zeta.ZetaDOMEventHandlers<HTMLHtmlElement>): Zeta.UnregisterCallback;
 
 /**
- * Registers event handlers to the root element.
- * @param event Name of the event.
- * @param handler A callback function to be fired when the specified event is triggered.
- * @returns A function that will unregister the handlers when called.
- */
-export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName>(event: E, handler: Zeta.ZetaDOMEventHandler<E, HTMLHtmlElement>): Zeta.UnregisterCallback;
-
-/**
- * Registers event handlers to the root element, where the handler is fired only when there exists an ancestor of the event target matches the specified selector.
- * @param event Name of the event.
- * @param selector A valid CSS selector.
- * @param handler A callback function to be fired when the specified event is triggered.
- * @returns A function that will unregister the handlers when called.
- */
-export declare function listenDOMEvent<E extends Zeta.ZetaDOMEventName, K extends string>(event: E, selector: K, handler: Zeta.ZetaDOMEventHandler<E, Zeta.ElementType<K>>): Zeta.UnregisterCallback;
-
-/**
  * Registers event handlers to a DOM element.
  * @param element A DOM element.
  * @param handlers An object which each entry represent the handler to be registered on the event.
@@ -79,7 +62,7 @@ export declare function listenDOMEvent<T extends Element>(element: T, handlers: 
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOMEventName>(element: T, event: E, handler: Zeta.ZetaDOMEventHandler<E, T>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<T extends Element, E extends Zeta.HintedString<Zeta.ZetaDOMEventName>>(element: T, event: E, handler: Zeta.ZetaDOMEventHandler<Zeta.WhitespaceDelimited<E>, T>): Zeta.UnregisterCallback;
 
 /**
  * Registers event handlers to a DOM element, where the handler is fired only when there exists an ancestor of the event target matches the specified selector.
@@ -89,4 +72,21 @@ export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOM
  * @param handler A callback function to be fired when the specified event is triggered.
  * @returns A function that will unregister the handlers when called.
  */
-export declare function listenDOMEvent<T extends Element, E extends Zeta.ZetaDOMEventName, K extends string>(element: T, event: E, selector: K, handler: Zeta.ZetaDOMEventHandler<E, Zeta.ElementType<K>>): Zeta.UnregisterCallback;
+export declare function listenDOMEvent<T extends Element, E extends Zeta.HintedString<Zeta.ZetaDOMEventName>, K extends string>(element: T, event: E, selector: K, handler: Zeta.ZetaDOMEventHandler<Zeta.WhitespaceDelimited<E>, Zeta.ElementType<K>>): Zeta.UnregisterCallback;
+
+/**
+ * Registers event handlers to the root element.
+ * @param event Name of the event.
+ * @param handler A callback function to be fired when the specified event is triggered.
+ * @returns A function that will unregister the handlers when called.
+ */
+export declare function listenDOMEvent<E extends Zeta.HintedString<Zeta.ZetaDOMEventName>>(event: E, handler: Zeta.ZetaDOMEventHandler<Zeta.WhitespaceDelimited<E>, HTMLHtmlElement>): Zeta.UnregisterCallback;
+
+/**
+ * Registers event handlers to the root element, where the handler is fired only when there exists an ancestor of the event target matches the specified selector.
+ * @param event Name of the event.
+ * @param selector A valid CSS selector.
+ * @param handler A callback function to be fired when the specified event is triggered.
+ * @returns A function that will unregister the handlers when called.
+ */
+export declare function listenDOMEvent<E extends Zeta.HintedString<Zeta.ZetaDOMEventName>, K extends string>(event: E, selector: K, handler: Zeta.ZetaDOMEventHandler<Zeta.WhitespaceDelimited<E>, Zeta.ElementType<K>>): Zeta.UnregisterCallback;

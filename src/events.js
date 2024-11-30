@@ -1,6 +1,6 @@
 import $ from "./include/jquery.js";
 import { root, reportError } from "./env.js";
-import { arrRemove, createPrivateStore, deferrable, defineHiddenProperty, definePrototype, each, executeOnce, extend, grep, is, isFunction, isPlainObject, isUndefinedOrNull, kv, map, mapGet, mapRemove, noop, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
+import { arrRemove, createPrivateStore, deferrable, defineHiddenProperty, definePrototype, each, executeOnce, extend, fill, grep, is, isFunction, isPlainObject, isUndefinedOrNull, kv, map, mapGet, mapRemove, noop, reject, resolve, setAdd, setImmediateOnce, single, splice, throwNotFunction } from "./util.js";
 import { containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { registerCleanup } from "./observe.js";
 import dom, { iterateFocusPath } from "./dom.js";
@@ -359,9 +359,10 @@ definePrototype(ZetaEventContainer, {
         if (element !== target) {
             containers.set(element, self);
         }
+        var handlers = isPlainObject(event) || fill(event, handler);
         return containerCreateDispose(
-            containerRegisterHandler(state, target, target, event, handler),
-            element !== target && containerRegisterHandler(state, element, target, event, handler));
+            containerRegisterHandler(state, target, target, handlers),
+            element !== target && containerRegisterHandler(state, element, target, handlers));
     },
     delete: function (target) {
         var self = this;
@@ -414,7 +415,7 @@ function ContainerComponent(target) {
     self.handlers = {};
 }
 
-function containerRegisterHandler(state, target, context, event, handler) {
+function containerRegisterHandler(state, target, context, callbacks) {
     var cur = mapGet(state.components, target, ContainerComponent, true);
     var key = cur.index++;
     var handlers = cur.handlers;
@@ -426,7 +427,7 @@ function containerRegisterHandler(state, target, context, event, handler) {
             }
         });
     };
-    each(isPlainObject(event) || kv(event, handler), function (i, v) {
+    each(callbacks, function (i, v) {
         var dict = handlers[i] || (handlers[i] = {});
         if (dict.count === undefined) {
             defineHiddenProperty(dict, 'count', 0);

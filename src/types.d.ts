@@ -447,7 +447,14 @@ declare namespace Zeta {
          * @param event Name of the event.
          * @param handler A callback function to be fired when the specified event is triggered.
          */
-        on<E extends HintedStringKeyOf<M>>(event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
+        on<E extends StringKeyOf<M>>(event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
+
+        /**
+         * Adds an event handler to a specific event.
+         * @param event Name of the event.
+         * @param handler A callback function to be fired when the specified event is triggered.
+         */
+        on<E extends HintedStringKeyOf<M>>(event: E, handler: ZetaEventHandler<WhitespaceDelimited<E>, M, T>): UnregisterCallback;
     }
 
     interface ZetaEventData<T> {
@@ -823,7 +830,16 @@ declare namespace Zeta {
          * @param handler A callback function to be fired when the specified event is triggered.
          * @returns A function that will unregister the handlers when called.
          */
-        add<E extends HintedStringKeyOf<M>>(target: T, event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
+        add<E extends StringKeyOf<M>>(target: T, event: E, handler: ZetaEventHandler<E, M, T>): UnregisterCallback;
+
+        /**
+         * Registers event handlers to a DOM element or a custom event target.
+         * @param target An event target.
+         * @param event Name of the event.
+         * @param handler A callback function to be fired when the specified event is triggered.
+         * @returns A function that will unregister the handlers when called.
+         */
+        add<E extends HintedStringKeyOf<M>>(target: T, event: E, handler: ZetaEventHandler<WhitespaceDelimited<E>, M, T>): UnregisterCallback;
 
         /**
          * Removes the DOM element or custom event target from the container.
