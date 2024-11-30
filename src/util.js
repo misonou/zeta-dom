@@ -158,6 +158,10 @@ function each(obj, callback) {
         var cur, i = 0;
         callback = callback.bind(obj);
         if (typeof obj === 'string') {
+            if (obj.indexOf(' ') < 0) {
+                callback(0, obj);
+                return;
+            }
             obj = obj.split(' ');
         } else if (obj instanceof Set) {
             // would be less useful if key and value refers to the same object

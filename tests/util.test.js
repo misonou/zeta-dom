@@ -145,6 +145,16 @@ describe('makeArray', () => {
 });
 
 describe('each', () => {
+    it('should iterate string as white-spaced delimited', () => {
+        const cb = mockFn();
+        each('foo', cb);
+        verifyCalls(cb, [[0, 'foo']]);
+        cb.mockClear();
+
+        each('foo bar', cb);
+        verifyCalls(cb, [[0, 'foo'], [1, 'bar']]);
+    });
+
     it('should stop invocating callback after false is returned - forEach', () => {
         const cb = mockFn();
         cb.mockReturnValueOnce(false);
@@ -340,6 +350,9 @@ describe('fill', () => {
         const sym = Symbol();
         expect(fill({}, ['a', 0, sym], 1)).toEqual({ a: 1, 0: 1, [sym]: 1 });
         expect(fill([], [0, 1, 2], 1).length).toBe(3);
+
+        expect(fill({}, 'a', 1)).toEqual({ a: 1 });
+        expect(fill({}, 'a b c', 1)).toEqual({ a: 1, b: 1, c: 1 });
     });
 
     it('should overwrite existing properties', () => {
