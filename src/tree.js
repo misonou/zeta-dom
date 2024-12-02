@@ -636,6 +636,8 @@ definePrototype(TreeWalker, {
 });
 
 export {
+    VirtualNode,
+    NodeTree,
     TraversableNode,
     TraversableNodeTree,
     InheritedNode,

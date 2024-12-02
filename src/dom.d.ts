@@ -64,7 +64,6 @@ declare const dom: typeof domLock & typeof observe & typeof events & typeof meth
 
     /**
      * Gets the active component registered through event container.
-     * @see Zeta.ZetaEventContainer<T>
      */
     readonly context: any;
 

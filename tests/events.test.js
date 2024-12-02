@@ -262,7 +262,7 @@ describe('ZetaEventContainer.emit', () => {
     });
 
     it('should emit event with context object', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
         const context = { element: target };
@@ -276,7 +276,7 @@ describe('ZetaEventContainer.emit', () => {
     });
 
     it('should emit event with context object when emitting on associated element', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target = container.element;
         const context = { element: target };
@@ -290,7 +290,7 @@ describe('ZetaEventContainer.emit', () => {
     });
 
     it('should emit event with different context objects', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target = container.element;
         const context1 = { element: target };
@@ -307,7 +307,7 @@ describe('ZetaEventContainer.emit', () => {
     });
 
     it('should emit event to specified context object only', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
         const context1 = { element: target };
@@ -323,7 +323,7 @@ describe('ZetaEventContainer.emit', () => {
     });
 
     it('should emit event correctly when element property of context object is not a DOM Node', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: string }>} */
+        /** @type {ZetaEventContainer<{ element: string }>} */
         const container = new ZetaEventContainer();
         const context1 = { element: 'foo' };
         const context2 = { element: 'bar', parent: context1 };
@@ -700,7 +700,7 @@ describe('ZetaEventContainer.emitAsync', () => {
     });
 
     it('should emit event with context object', async () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
         const context = { element: target };
@@ -716,7 +716,7 @@ describe('ZetaEventContainer.emitAsync', () => {
     });
 
     it('should emit event with context object when emitting on associated element', async () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
         const context = { element: target };
@@ -732,7 +732,7 @@ describe('ZetaEventContainer.emitAsync', () => {
     });
 
     it('should emit event with different context objects', async () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target = container.element;
         const context1 = { element: target };
@@ -751,7 +751,7 @@ describe('ZetaEventContainer.emitAsync', () => {
     });
 
     it('should emit event to specified context object only', async () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
         const context1 = { element: target };
@@ -769,7 +769,7 @@ describe('ZetaEventContainer.emitAsync', () => {
     });
 
     it('should emit event correctly when element property of context object is not a DOM Node', async () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: string }>} */
+        /** @type {ZetaEventContainer<{ element: string }>} */
         const container = new ZetaEventContainer();
         const context1 = { element: 'foo' };
         const context2 = { element: 'bar', parent: context1 };
@@ -862,7 +862,7 @@ describe('ZetaEventContainer.destroy', () => {
 
 describe('ZetaEvent.target', () => {
     it('should always be Element when possible when captureDOMEvents is true', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target = container.element;
         const context = { element: target };
@@ -876,7 +876,7 @@ describe('ZetaEvent.target', () => {
     });
 
     it('should always be target passed to container.emit', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
         const context = { element: target };
@@ -892,7 +892,7 @@ describe('ZetaEvent.target', () => {
 
 describe('ZetaEvent.currentTarget', () => {
     it('should always be Element when possible when captureDOMEvents is true', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer(root, null, { captureDOMEvents: true });
         const target = container.element;
         const context = { element: target };
@@ -906,7 +906,7 @@ describe('ZetaEvent.currentTarget', () => {
     });
 
     it('should always be target passed to container.add', () => {
-        /** @type {Zeta.ZetaEventContainer<{ element: HTMLElement }>} */
+        /** @type {ZetaEventContainer<{ element: HTMLElement }>} */
         const container = new ZetaEventContainer();
         const target = container.element;
         const context = { element: target };

@@ -1273,7 +1273,7 @@ describe('keystroke event', () => {
             <input id="input" type="text" />
         `);
         const cb = mockFn();
-        /** @type {Zeta.ZetaEventContainer<Zeta.HasElement>} */
+        /** @type {ZetaEventContainer<Zeta.HasElement>} */
         const container = new ZetaEventContainer(body, {}, {
             captureDOMEvents: true
         });

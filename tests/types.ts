@@ -2,6 +2,7 @@ import { expectTypeOf } from "expect-type";
 import { always, any, arrRemove, catchAsync, combineFn, deepFreeze, deferrable, defineAliasProperty, defineObservableProperty, delay, each, equal, exclude, executeOnce, extend, fill, grep, is, isArray, isArrayLike, isFunction, isThenable, makeArray, makeAsync, map, mapGet, mapObject, mapRemove, matchWord, matchWordMulti, pick, resolve, resolveAll, retryable, setAdd, setPromiseTimeout, single, throwNotFunction, watch, watchOnce, watchable } from "../src/util";
 import dom from "../src/dom";
 import { bind } from "../src/domUtil";
+import { ZetaEventContainer } from "../src/events";
 
 // -------------------------------------
 // helper declarations
@@ -411,7 +412,7 @@ interface DataEvent<T, V> extends Zeta.ZetaEventBase<T> {
     data: V;
 }
 
-declare const container: Zeta.ZetaEventContainer<C, EventMap<C>>;
+declare const container: ZetaEventContainer<C, EventMap<C>>;
 declare const target: Zeta.ZetaEventDispatcher<EventMap<C>, C>;
 
 // on - return type
