@@ -21,9 +21,10 @@ export var lastEventSource;
  * -------------------------------------- */
 
 function ZetaEventSource() {
-    this.path = dom.eventSourcePath;
-    this.source = dom.eventSource;
-    this.sourceKeyName = dom.pressedKey || null;
+    var self = this;
+    self.path = dom.eventSourcePath;
+    self.source = dom.eventSource;
+    self.sourceKeyName = self.source === 'keyboard' ? dom.pressedKey : null;
 }
 
 function setLastEventSource() {
