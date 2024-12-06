@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.11 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.12 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -579,11 +579,14 @@ function equal(a, b) {
   if (!a || !b || _typeof(a) !== 'object' || a.constructor !== b.constructor) {
     return sameValueZero(a, b);
   }
-  var type = a instanceof Map && 1 || a instanceof Set && 2 || isArray(a) && 3 || 0;
-  if (a.length !== b.length || a.size !== b.size || !type && keys(a).length !== keys(b).length) {
-    return false;
+  var type = a instanceof Map && 1 || a instanceof Set && 2 || isArrayLike(a) && 3 || 0;
+  if (type) {
+    return a.length === b.length && a.size === b.size && !single(a, compareFn[type % 3].bind(0, b));
   }
-  return !single(a, (compareFn[type] || compareFn[0]).bind(0, b));
+  var needles = keys(a);
+  return needles.length === keys(b).length && !single(needles, function (v) {
+    return !hasOwnPropertyImpl.call(b, v) || !propertyIsEnumerableImpl.call(b, v) || !sameValueZero(a[v], b[v]);
+  });
 }
 function combineFn(arr) {
   arr = isFunction(arr) ? [].slice.call(arguments, 0) : arr;
@@ -1646,14 +1649,22 @@ function notifyAsync(element, promise, oncancel) {
   handlePromise(promise, element, oncancel, true);
 }
 function runAsync(element, callback) {
+  var delegated,
+    resolve = noop;
   var controller = {
     abort: noop
   };
   var promise = makeAsync(callback)({
     get signal() {
       return controller.signal || (controller = new AbortController()).signal;
+    },
+    get promise() {
+      return delegated || promise || (delegated = new promise_polyfill(function (res) {
+        resolve = res;
+      }));
     }
   });
+  resolve(promise);
   return handlePromise(promise, element, function (error) {
     controller.abort(error);
   }, true);
@@ -2209,6 +2220,10 @@ function trackPointer(callback) {
       root.releaseCapture();
     }
   });
+  trackPromise.preventScroll = function () {
+    stopScroll();
+    startScroll = noop;
+  };
   return trackPromise;
 }
 function beginDrag(within, callback) {
@@ -2784,9 +2799,10 @@ var lastEventSource;
  * -------------------------------------- */
 
 function ZetaEventSource() {
-  this.path = dom.eventSourcePath;
-  this.source = dom.eventSource;
-  this.sourceKeyName = dom.pressedKey || null;
+  var self = this;
+  self.path = dom.eventSourcePath;
+  self.source = dom.eventSource;
+  self.sourceKeyName = self.source === 'keyboard' ? dom.pressedKey : null;
 }
 function setLastEventSource() {}
 function prepEventSource(promise) {
