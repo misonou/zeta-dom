@@ -43,7 +43,9 @@ var currentKeyName = '';
 var currentMetaKey = '';
 var currentTabRoot = root;
 var lastKey = {};
+var lastClickTarget;
 var eventSource;
+var eventPath;
 var trustedEvent;
 var trackPromise;
 var trackCallbacks;
@@ -704,9 +706,13 @@ domReady.then(function () {
                 clearTimeout(eventTimeout);
                 trustedEvent = e;
                 eventSource = getEventSource(e);
+                eventPath = null;
                 eventTimeout = setTimeout(function () {
                     eventSource = '';
                 }, 20);
+                if (type === 'click' && e.pointerId >= 0) {
+                    lastClickTarget = e.target;
+                }
             }
             setTimeout(function () {
                 currentEvent = currentEvent === e ? null : currentEvent;
@@ -1069,7 +1075,18 @@ export default {
         return trustedEvent ? eventSource : 'script';
     },
     get eventSourcePath() {
-        return !trustedEvent || eventSource === 'keyboard' ? this.focusedElements : grep(parentsAndSelf(trustedEvent.target), focusable);
+        if (!trustedEvent) {
+            return this.focusedElements;
+        }
+        if (!eventPath) {
+            if (eventSource === 'keyboard') {
+                eventPath = focusPath.slice(0);
+            } else {
+                var target = eventSource === 'mouse' && trustedEvent.pointerId < 0 && lastClickTarget ? lastClickTarget : trustedEvent.target;
+                eventPath = grep(parentsAndSelf(target), focusable);
+            }
+        }
+        return eventPath.slice(0);
     },
     root,
     ready: domReady,

@@ -947,6 +947,29 @@ describe('pressedKey', () => {
     });
 });
 
+describe('eventSourcePath', () => {
+    it('should return same result during the same trusted event', async () => {
+        const cb = mockFn();
+        const { node, button } = initBody(`
+            <div id="node">
+                <button id="button"></button>
+            </div>
+        `);
+        cleanup(dom.on(button, 'keystroke', () => {
+            cb(...dom.eventSourcePath);
+            dom.blur(button);
+            cb(...dom.eventSourcePath);
+        }));
+        dom.focus(button);
+
+        await fireEventAsTrusted(() => type(button, '[enter]'));
+        verifyCalls(cb, [
+            [button, node, body, root],
+            [button, node, body, root],
+        ]);
+    });
+});
+
 describe('UI event', () => {
     it('should be call preventDefault on associated native event when handled', async () => {
         const { node } = initBody(`
