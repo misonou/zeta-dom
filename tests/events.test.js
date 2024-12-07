@@ -976,6 +976,21 @@ describe('ZetaEvent.source', () => {
         ]);
     });
 
+    it('should return wheel in mousewheel event', async () => {
+        const event = new WheelEvent('wheel', {
+            deltaX: 0,
+            deltaY: 100,
+            deltaZ: 0,
+            cancelable: true
+        });
+        const cb = mockFn();
+        bindEvent(body, 'mousewheel', cb);
+        fireEventAsTrusted(body, event);
+        verifyCalls(cb, [
+            [objectContaining({ source: 'wheel', target: body }), _]
+        ]);
+    });
+
     it('should return script in manually dispatched event', async () => {
         const cb = mockFn();
         bindEvent(body, 'mousedown', cb);

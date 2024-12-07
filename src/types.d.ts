@@ -353,7 +353,7 @@ declare namespace Zeta {
      * events.js
      * -------------------------------------- */
 
-    type ZetaEventSourceName = 'script' | 'mouse' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
+    type ZetaEventSourceName = 'script' | 'mouse' | 'wheel' | 'keyboard' | 'touch' | 'input' | 'cut' | 'copy' | 'paste' | 'drop';
 
     type ZetaDOMEventName = HintedString<keyof ZetaDOMEventMap>;
 

@@ -34,7 +34,7 @@ const sourceDict = {
     copy: 'copy',
     drop: 'drop',
     paste: 'paste',
-    wheel: 'mouse'
+    wheel: 'wheel'
 };
 
 var windowFocusedOut;
