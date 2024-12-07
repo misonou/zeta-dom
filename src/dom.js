@@ -55,7 +55,7 @@ fill(sourceDict, 'beforeinput input textInput', function (e) {
     return beforeInputType[e.inputType] || eventSource || 'input';
 });
 fill(sourceDict, 'pointerdown', function (e) {
-    touchedClick = e.pointerType === 'touch' || (e.pointerType === 'pen' && IS_TOUCH);
+    touchedClick = e.pointerType === 'touch' || (e.pointerType === 'pen' && (e.sourceCapabilities || { firesTouchEvents: IS_TOUCH }).firesTouchEvents);
     return touchedClick ? 'touch' : 'mouse';
 });
 fill(sourceDict, 'mousedown mouseup mousemove click contextmenu dblclick', function (e) {
