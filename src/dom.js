@@ -42,7 +42,7 @@ var currentEvent = null;
 var currentKeyName = '';
 var currentMetaKey = '';
 var currentTabRoot = root;
-var lastKeyName = '';
+var lastKey = {};
 var eventSource;
 var trustedEvent;
 var trackPromise;
@@ -59,7 +59,7 @@ fill(sourceDict, 'pointerdown', function (e) {
     return touchedClick ? 'touch' : 'mouse';
 });
 fill(sourceDict, 'mousedown mouseup mousemove click contextmenu dblclick', function (e) {
-    return touchedClick ? 'touch' : e.pointerId < 0 ? 'keyboard' : e.type !== 'mousemove' || e.button || e.buttons ? 'mouse' : 'script';
+    return touchedClick ? 'touch' : e.pointerId < 0 && e.target === lastKey.target ? 'keyboard' : e.type !== 'mousemove' || e.button || e.buttons ? 'mouse' : 'script';
 });
 
 /* --------------------------------------
@@ -811,7 +811,10 @@ domReady.then(function () {
             modifierCount *= !data.meta && (!data.char || modifierCount > 2 || (modifierCount > 1 && !e.shiftKey));
             modifiedKeyCode = data.meta ? modifiedKeyCode : data.key;
             currentKeyName = getEventName(e, modifiedKeyCode);
-            lastKeyName = currentKeyName;
+            lastKey = {
+                key: currentKeyName,
+                target: e.target
+            };
             if (!imeNode && modifierCount) {
                 triggerKeystrokeEvent(currentKeyName, '');
             }
@@ -1047,7 +1050,7 @@ export default {
         return currentMetaKey;
     },
     get pressedKey() {
-        return trustedEvent && currentEvent.pointerId < 0 ? lastKeyName : currentKeyName;
+        return trustedEvent && trustedEvent.pointerId < 0 && eventSource === 'keyboard' ? lastKey.key : currentKeyName;
     },
     get context() {
         return getEventContext(getActiveElement()).context;
