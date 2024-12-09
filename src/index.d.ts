@@ -6,7 +6,7 @@ export var util: typeof _util & typeof _domUtil;
 export { default as dom } from "./dom";
 export * as css from "./cssUtil";
 export * as ErrorCode from "./errorCode";
-export { ZetaEventContainer as EventContainer } from "./events";
+export { ZetaEventContainer as EventContainer, ZetaEventSource as EventSource } from "./events";
 export * from "./tree";
 
 export as namespace zeta;

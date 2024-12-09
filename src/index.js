@@ -3,7 +3,7 @@ import * as ErrorCode from "./errorCode.js";
 import * as _util from "./util.js";
 import * as _domUtil from "./domUtil.js";
 import * as cssUtil from "./cssUtil.js";
-import { ZetaEventContainer } from "./events.js";
+import { ZetaEventContainer, ZetaEventSource } from "./events.js";
 import { InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree, TreeWalker } from "./tree.js";
 import dom from "./dom.js";
 
@@ -20,6 +20,7 @@ export default {
     css: cssUtil,
     ErrorCode,
     EventContainer: ZetaEventContainer,
+    EventSource: ZetaEventSource,
     InheritedNode,
     InheritedNodeTree,
     TraversableNode,
@@ -38,6 +39,7 @@ export {
     cssUtil as css,
     ErrorCode,
     ZetaEventContainer as EventContainer,
+    ZetaEventSource as EventSource,
     InheritedNode,
     InheritedNodeTree,
     TraversableNode,
