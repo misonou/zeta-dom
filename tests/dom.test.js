@@ -1086,6 +1086,22 @@ describe('focus event', () => {
     });
 });
 
+describe('mousedown event', () => {
+    it('should have metakey defined when triggered by touch', () => {
+        const cb = mockFn();
+        bindEvent(root, 'mousedown', cb);
+        body.dispatchEvent(new TouchEvent('touchstart', {
+            touches: [{ clientX: 10, clientY: 10, identifier: 1, target: body }]
+        }));
+        expect(cb).toBeCalledWith(expect.objectContaining({
+            type: 'mousedown',
+            clientX: 10,
+            clientY: 10,
+            metakey: ''
+        }), _);
+    });
+});
+
 describe('click event', () => {
     it('should be emitted when native click event is directly dispatched', () => {
         const cb = mockFn();

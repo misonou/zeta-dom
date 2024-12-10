@@ -686,7 +686,7 @@ domReady.then(function () {
         return triggerUIEvent(eventName, data, true, point.target, {
             clientX: point.clientX,
             clientY: point.clientY,
-            postAlias: extraEvent
+            postAlias: extraEvent && [{ eventName: extraEvent, data }]
         });
     }
 
@@ -873,7 +873,7 @@ domReady.then(function () {
         touchstart: function (e) {
             var singleTouch = !e.touches[1];
             mouseInitialPoint = extend({}, e.touches[0]);
-            triggerMouseEvent('touchstart', mouseInitialPoint, null, singleTouch && ['mousedown']);
+            triggerMouseEvent('touchstart', mouseInitialPoint, null, singleTouch && 'mousedown');
             if (singleTouch) {
                 pressTimeout = setTimeout(function () {
                     triggerMouseEvent('longPress', mouseInitialPoint);
