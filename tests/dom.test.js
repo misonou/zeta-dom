@@ -1102,6 +1102,20 @@ describe('mousedown event', () => {
     });
 });
 
+describe('mousewheel event', () => {
+    it('should report pressed meta keys', async () => {
+        const cb = mockFn();
+        bindEvent(root, 'mousewheel', cb);
+        fireEventAsTrusted(body, new WheelEvent('wheel', {
+            deltaX: 0,
+            deltaY: 100,
+            deltaZ: 0,
+            ctrlKey: true
+        }));
+        expect(cb).toBeCalledWith(expect.objectContaining({ type: 'mousewheel', metakey: 'ctrl' }), _);
+    });
+});
+
 describe('click event', () => {
     it('should be emitted when native click event is directly dispatched', () => {
         const cb = mockFn();

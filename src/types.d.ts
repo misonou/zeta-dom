@@ -587,6 +587,9 @@ declare namespace Zeta {
     }
 
     interface ZetaWheelEvent<T = Element> extends ZetaNativeUIEvent<T, WheelEvent> {
+        readonly clientX: number;
+        readonly clientY: number;
+        readonly metakey: '' | KeyNameModifier;
         readonly data: -1 | 1;
     }
 

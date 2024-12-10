@@ -679,7 +679,8 @@ domReady.then(function () {
 
     function triggerMouseEvent(eventName, point, data, extraEvent) {
         point = point || currentEvent;
-        data = data || {
+        data = {
+            data: data || null,
             target: point.target,
             metakey: getEventName(point) || ''
         };
