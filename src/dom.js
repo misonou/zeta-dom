@@ -1079,7 +1079,7 @@ export default {
     },
     get eventSourcePath() {
         if (!trustedEvent) {
-            return this.focusedElements;
+            return [root];
         }
         if (!eventPath) {
             if (eventSource === 'keyboard') {
