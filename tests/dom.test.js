@@ -1169,6 +1169,25 @@ describe('click event', () => {
         }));
         expect(dom.activeElement).toBe(node);
     });
+
+    it('should be emitted after prefixed event', async () => {
+        const cb = mockFn();
+        bindEvent(root, 'ctrlShiftClick', cb);
+        bindEvent(root, 'click', cb);
+
+        fireEventAsTrusted(body, new MouseEvent('click', {
+            clientX: 0,
+            clientY: 0,
+            ctrlKey: true,
+            shiftKey: true,
+            bubbles: true,
+            cancelable: true
+        }));
+        verifyCalls(cb, [
+            [objectContaining({ type: 'ctrlShiftClick', metakey: 'ctrlShift' }), _],
+            [objectContaining({ type: 'click', metakey: 'ctrlShift' }), _],
+        ]);
+    });
 });
 
 describe('keystroke event', () => {
