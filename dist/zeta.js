@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.12 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.5.13 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -85,7 +85,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": function() { return /* binding */ src; }
 });
 
-// UNUSED EXPORTS: ErrorCode, EventContainer, IS_IE, IS_IE10, IS_IOS, IS_MAC, IS_TOUCH, InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree, TreeWalker, css, dom, util
+// UNUSED EXPORTS: ErrorCode, EventContainer, EventSource, IS_IE, IS_IE10, IS_IOS, IS_MAC, IS_TOUCH, InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree, TreeWalker, css, dom, util
 
 // NAMESPACE OBJECT: ./src/errorCode.js
 var errorCode_namespaceObject = {};
@@ -1754,8 +1754,10 @@ var currentEvent = null;
 var currentKeyName = '';
 var currentMetaKey = '';
 var currentTabRoot = root;
-var lastKeyName = '';
+var lastKey = {};
+var lastClickTarget;
 var eventSource;
+var eventPath;
 var trustedEvent;
 var trackPromise;
 var trackCallbacks;
@@ -1766,11 +1768,13 @@ fill(sourceDict, 'beforeinput input textInput', function (e) {
   return beforeInputType[e.inputType] || eventSource || 'input';
 });
 fill(sourceDict, 'pointerdown', function (e) {
-  touchedClick = e.pointerType === 'touch' || e.pointerType === 'pen' && IS_TOUCH;
+  touchedClick = e.pointerType === 'touch' || e.pointerType === 'pen' && (e.sourceCapabilities || {
+    firesTouchEvents: IS_TOUCH
+  }).firesTouchEvents;
   return touchedClick ? 'touch' : 'mouse';
 });
 fill(sourceDict, 'mousedown mouseup mousemove click contextmenu dblclick', function (e) {
-  return touchedClick ? 'touch' : e.pointerId < 0 ? 'keyboard' : e.type !== 'mousemove' || e.button || e.buttons ? 'mouse' : 'script';
+  return touchedClick ? 'touch' : e.pointerId < 0 && e.target === lastKey.target ? 'keyboard' : e.type !== 'mousemove' || e.button || e.buttons ? 'mouse' : 'script';
 });
 
 /* --------------------------------------
@@ -2352,14 +2356,18 @@ domReady.then(function () {
   }
   function triggerMouseEvent(eventName, point, data, extraEvent) {
     point = point || currentEvent;
-    data = data || {
+    data = {
+      data: data || null,
       target: point.target,
       metakey: getEventName(point) || ''
     };
     return triggerUIEvent(eventName, data, true, point.target, {
       clientX: point.clientX,
       clientY: point.clientY,
-      postAlias: extraEvent
+      postAlias: extraEvent && [{
+        eventName: extraEvent,
+        data: data
+      }]
     });
   }
   function triggerGestureEvent(gesture) {
@@ -2377,9 +2385,13 @@ domReady.then(function () {
         clearTimeout(eventTimeout);
         trustedEvent = e;
         eventSource = getEventSource(e);
+        eventPath = null;
         eventTimeout = setTimeout(function () {
           eventSource = '';
         }, 20);
+        if (type === 'click' && e.pointerId >= 0) {
+          lastClickTarget = e.target;
+        }
       }
       setTimeout(function () {
         currentEvent = currentEvent === e ? null : currentEvent;
@@ -2480,7 +2492,10 @@ domReady.then(function () {
       modifierCount *= !data.meta && (!data.char || modifierCount > 2 || modifierCount > 1 && !e.shiftKey);
       modifiedKeyCode = data.meta ? modifiedKeyCode : data.key;
       currentKeyName = getEventName(e, modifiedKeyCode);
-      lastKeyName = currentKeyName;
+      lastKey = {
+        key: currentKeyName,
+        target: e.target
+      };
       if (!imeNode && modifierCount) {
         triggerKeystrokeEvent(currentKeyName, '');
       }
@@ -2533,7 +2548,7 @@ domReady.then(function () {
     touchstart: function touchstart(e) {
       var singleTouch = !e.touches[1];
       mouseInitialPoint = extend({}, e.touches[0]);
-      triggerMouseEvent('touchstart', mouseInitialPoint, null, singleTouch && ['mousedown']);
+      triggerMouseEvent('touchstart', mouseInitialPoint, null, singleTouch && 'mousedown');
       if (singleTouch) {
         pressTimeout = setTimeout(function () {
           triggerMouseEvent('longPress', mouseInitialPoint);
@@ -2717,7 +2732,7 @@ function dom_blur(element) {
     return currentMetaKey;
   },
   get pressedKey() {
-    return trustedEvent && currentEvent.pointerId < 0 ? lastKeyName : currentKeyName;
+    return trustedEvent && trustedEvent.pointerId < 0 && eventSource === 'keyboard' ? lastKey.key : currentKeyName;
   },
   get context() {
     return getEventContext(getActiveElement()).context;
@@ -2736,7 +2751,18 @@ function dom_blur(element) {
     return trustedEvent ? eventSource : 'script';
   },
   get eventSourcePath() {
-    return !trustedEvent || eventSource === 'keyboard' ? this.focusedElements : grep(parentsAndSelf(trustedEvent.target), focusable);
+    if (!trustedEvent) {
+      return this.focusedElements;
+    }
+    if (!eventPath) {
+      if (eventSource === 'keyboard') {
+        eventPath = focusPath.slice(0);
+      } else {
+        var target = eventSource === 'mouse' && trustedEvent.pointerId < 0 && lastClickTarget ? lastClickTarget : trustedEvent.target;
+        eventPath = grep(parentsAndSelf(target), focusable);
+      }
+    }
+    return eventPath.slice(0);
   },
   root: root,
   ready: domReady,
@@ -4595,6 +4621,7 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
   css: cssUtil_namespaceObject,
   ErrorCode: errorCode_namespaceObject,
   EventContainer: ZetaEventContainer,
+  EventSource: ZetaEventSource,
   InheritedNode: InheritedNode,
   InheritedNodeTree: InheritedNodeTree,
   TraversableNode: TraversableNode,
