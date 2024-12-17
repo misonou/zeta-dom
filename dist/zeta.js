@@ -1,4 +1,4 @@
-/*! zeta-dom v0.5.13 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.6.0 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -85,7 +85,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": function() { return /* binding */ src; }
 });
 
-// UNUSED EXPORTS: ErrorCode, EventContainer, EventSource, IS_IE, IS_IE10, IS_IOS, IS_MAC, IS_TOUCH, InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree, TreeWalker, css, dom, util
+// UNUSED EXPORTS: CancellationRequest, ErrorCode, EventContainer, EventSource, IS_IE, IS_IE10, IS_IOS, IS_MAC, IS_TOUCH, InheritedNode, InheritedNodeTree, TraversableNode, TraversableNodeTree, TreeWalker, css, dom, util
 
 // NAMESPACE OBJECT: ./src/errorCode.js
 var errorCode_namespaceObject = {};
@@ -347,18 +347,18 @@ function isPlainObject(obj) {
   return (proto === objectProto || proto === null) && obj;
 }
 function isArrayLike(obj) {
-  if (isFunction(obj) || obj === env_window) {
+  if (!obj || _typeof(obj) !== 'object' || obj === env_window) {
     return false;
   }
-  var length = !!obj && obj.length;
-  return isArray(obj) || length === 0 || typeof length === 'number' && length > 0 && length - 1 in obj;
+  if (isArray(obj)) {
+    return true;
+  }
+  var length = obj.length;
+  return typeof length === 'number' && length >= 0 && (isFunction(obj.slice) !== false || toStringImpl.call(obj) !== '[object Object]');
 }
 function makeArray(obj) {
   if (isArray(obj)) {
     return obj.slice(0);
-  }
-  if (typeof obj === 'string') {
-    return [obj];
   }
   if (obj && (isArrayLike(obj) || isFunction(obj.forEach))) {
     var arr = [];
@@ -417,6 +417,10 @@ function each(obj, callback) {
       i = 0;
     callback = callback.bind(obj);
     if (typeof obj === 'string') {
+      if (obj.indexOf(' ') < 0) {
+        callback(0, obj);
+        return;
+      }
       obj = obj.split(' ');
     } else if (obj instanceof Set) {
       // would be less useful if key and value refers to the same object
@@ -1533,6 +1537,13 @@ var handledErrors = new WeakSet();
 var subscribers = new WeakMap();
 var locks = createAutoCleanupMap(clearLock);
 var leaveCounter = 0;
+function CancellationRequest(reason, eventSource) {
+  var self = this;
+  eventSource = eventSource || new ZetaEventSource();
+  self.reason = String(reason || '');
+  self.source = eventSource.source;
+  self.sourceKeyName = eventSource.sourceKeyName;
+}
 function muteAndReturn(error) {
   handledErrors.add(error);
   return error;
@@ -1541,10 +1552,10 @@ function ensureLock(element) {
   var promises = mapGet(locks, element, Map);
   if (!promises.cancel) {
     promises.element = element;
-    promises.cancel = retryable(function () {
+    promises.cancel = retryable(function (reason) {
       // request user cancellation for each async task in sequence
       return makeArray(promises).reduce(function (a, v) {
-        return a.then(v.bind(0, false));
+        return a.then(v.bind(0, false, reason));
       }, util_resolve()).catch(function () {
         throw muteAndReturn(errorWithCode(cancellationRejected));
       });
@@ -1622,8 +1633,8 @@ function lock(element, promise, oncancel) {
   var promises = ensureLock(element);
   promise = handlePromise(promise, element);
   oncancel = isFunction(oncancel) ? retryable(oncancel) : oncancel ? noop : reject;
-  promises.set(promise, function (force) {
-    return util_resolve(force || oncancel()).then(promise.cancel);
+  promises.set(promise, function (force, reason) {
+    return util_resolve(force || oncancel(reason)).then(promise.cancel);
   });
   always(promise, function () {
     promises.delete(promise);
@@ -1688,7 +1699,7 @@ function locked(element, parents) {
     return (locks.get(v) || '').size;
   });
 }
-function cancelLock(element, force) {
+function cancelLock(element, reason) {
   var targets = element ? grep(locks, function (v, i) {
     return containsOrEquals(element, i);
   }) : makeArray(locks);
@@ -1697,11 +1708,12 @@ function cancelLock(element, force) {
       clearLock(v.element);
     });
   };
-  if (force) {
+  if (reason === true) {
     return util_resolve(finalize());
   }
+  reason = is(reason, CancellationRequest) || new CancellationRequest(reason);
   return targets.reduce(function (a, v) {
-    return a.then(v.cancel);
+    return a.then(v.cancel.bind(v, reason));
   }, util_resolve()).then(finalize);
 }
 bind(env_window, 'beforeunload', function (e) {
@@ -1747,7 +1759,7 @@ var sourceDict = {
   copy: 'copy',
   drop: 'drop',
   paste: 'paste',
-  wheel: 'mouse'
+  wheel: 'wheel'
 };
 var windowFocusedOut;
 var currentEvent = null;
@@ -2354,7 +2366,7 @@ domReady.then(function () {
       postAlias: extraEvent.concat(getShortcut(keyName))
     });
   }
-  function triggerMouseEvent(eventName, point, data, extraEvent) {
+  function triggerMouseEvent(eventName, point, data, preAlias, postAlias) {
     point = point || currentEvent;
     data = {
       data: data || null,
@@ -2364,8 +2376,12 @@ domReady.then(function () {
     return triggerUIEvent(eventName, data, true, point.target, {
       clientX: point.clientX,
       clientY: point.clientY,
-      postAlias: extraEvent && [{
-        eventName: extraEvent,
+      preAlias: preAlias && [{
+        eventName: preAlias,
+        data: data
+      }],
+      postAlias: postAlias && [{
+        eventName: postAlias,
         data: data
       }]
     });
@@ -2548,7 +2564,7 @@ domReady.then(function () {
     touchstart: function touchstart(e) {
       var singleTouch = !e.touches[1];
       mouseInitialPoint = extend({}, e.touches[0]);
-      triggerMouseEvent('touchstart', mouseInitialPoint, null, singleTouch && 'mousedown');
+      triggerMouseEvent('touchstart', mouseInitialPoint, null, null, singleTouch && 'mousedown');
       if (singleTouch) {
         pressTimeout = setTimeout(function () {
           triggerMouseEvent('longPress', mouseInitialPoint);
@@ -2605,7 +2621,8 @@ domReady.then(function () {
         if (e.isTrusted !== false) {
           setFocus(e.target);
         }
-        triggerMouseEvent(getEventName(e, 'click'));
+        var alias = getEventName(e, 'click');
+        triggerMouseEvent('click', e, null, alias !== 'click' && alias);
       }
       preventClick = false;
     },
@@ -2752,7 +2769,7 @@ function dom_blur(element) {
   },
   get eventSourcePath() {
     if (!trustedEvent) {
-      return this.focusedElements;
+      return [root];
     }
     if (!eventPath) {
       if (eventSource === 'keyboard') {
@@ -2854,6 +2871,9 @@ function getEventContext(element) {
   }
   return _(container || domContainer).options;
 }
+function normalizeEventTarget(container, target) {
+  return container.captureDOMEvents && is(target.element, Node) || target;
+}
 function normalizeEventOptions(options, overrides) {
   if (typeof options === 'boolean') {
     options = {
@@ -2948,7 +2968,7 @@ function emitAsyncEvents(container) {
 function ZetaEventEmitter(eventName, container, target, data, options) {
   target = target || container.element;
   var self = this;
-  var element = is(target.element, Node) || target;
+  var element = normalizeEventTarget(container, target);
   var source = options.source || new ZetaEventSource();
   var result = options.deferrable ? deferrable() : undefined;
   var properties = {
@@ -3064,7 +3084,7 @@ function ZetaEvent(event, eventName, component, context, data) {
   self.eventName = eventName;
   self.type = eventName;
   self.context = context;
-  self.currentTarget = component.target;
+  self.currentTarget = normalizeEventTarget(event.container, component.target);
   self.target = event.element;
   self.data = null;
   if (isPlainObject(data)) {
@@ -3143,11 +3163,12 @@ definePrototype(ZetaEventContainer, {
     if (state.destroyed) {
       return noop;
     }
-    var element = is(target.element, Node);
-    if (element && self.captureDOMEvents) {
+    var element = normalizeEventTarget(self, target);
+    if (element !== target) {
       containers.set(element, self);
     }
-    return containerCreateDispose(containerRegisterHandler(state, target, target, event, handler), element && containerRegisterHandler(state, element, target, event, handler));
+    var handlers = isPlainObject(event) || fill(event, handler);
+    return containerCreateDispose(containerRegisterHandler(state, target, target, handlers), element !== target && containerRegisterHandler(state, element, target, handlers));
   },
   delete: function _delete(target) {
     var self = this;
@@ -3192,12 +3213,12 @@ function containerCreateDispose(ref, ref2) {
 }
 function ContainerComponent(target) {
   var self = this;
-  self.target = target.element || target;
+  self.target = target;
   self.refs = new Set();
   self.index = 0;
   self.handlers = {};
 }
-function containerRegisterHandler(state, target, context, event, handler) {
+function containerRegisterHandler(state, target, context, callbacks) {
   var cur = mapGet(state.components, target, ContainerComponent, true);
   var key = cur.index++;
   var handlers = cur.handlers;
@@ -3209,7 +3230,7 @@ function containerRegisterHandler(state, target, context, event, handler) {
       }
     });
   };
-  each(isPlainObject(event) || kv(event, handler), function (i, v) {
+  each(callbacks, function (i, v) {
     var dict = handlers[i] || (handlers[i] = {});
     if (dict.count === undefined) {
       defineHiddenProperty(dict, 'count', 0);
@@ -4609,6 +4630,7 @@ definePrototype(TreeWalker, {
 
 
 
+
 var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
 /* harmony default export */ var src = ({
   IS_IOS: IS_IOS,
@@ -4622,6 +4644,7 @@ var util = extend({}, util_namespaceObject, domUtil_namespaceObject);
   ErrorCode: errorCode_namespaceObject,
   EventContainer: ZetaEventContainer,
   EventSource: ZetaEventSource,
+  CancellationRequest: CancellationRequest,
   InheritedNode: InheritedNode,
   InheritedNodeTree: InheritedNodeTree,
   TraversableNode: TraversableNode,
