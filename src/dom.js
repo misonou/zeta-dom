@@ -914,11 +914,13 @@ domReady.then(function () {
         mousemove: function (e) {
             if (mouseInitialPoint && measureLine(e, mouseInitialPoint).length > 5) {
                 var target = mouseInitialPoint.target;
-                if (isMouseDown(e) && containsOrEquals(target, elementFromPoint(mouseInitialPoint.clientX, mouseInitialPoint.clientY))) {
-                    triggerMouseEvent('drag', mouseInitialPoint);
+                if (isMouseDown(e)) {
+                    preventClick = true;
+                    if (containsOrEquals(target, elementFromPoint(mouseInitialPoint.clientX, mouseInitialPoint.clientY))) {
+                        triggerMouseEvent('drag', mouseInitialPoint);
+                    }
                 }
                 mouseInitialPoint = null;
-                preventClick = true;
             }
         },
         wheel: function (e) {
