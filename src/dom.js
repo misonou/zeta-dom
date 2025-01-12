@@ -106,7 +106,7 @@ function normalizeKey(e) {
     var key = KEYNAMES[e.code || e.keyCode];
     return {
         key: key || lcfirst(e.code) || e.key,
-        char: e.char || ((e.key || '').length === 1 && e.key) || (e.charCode && String.fromCharCode(e.charCode)) || (key === 'enter' ? '\r' : ''),
+        char: e.char || ((e.key || '').length === 1 && e.key) || (key === 'enter' && '\n') || (e.charCode && String.fromCharCode(e.charCode)) || '',
         meta: !!metaKeys[key]
     };
 }

@@ -1257,11 +1257,13 @@ describe('keystroke event', () => {
     });
 
     it('should be followed by textInput event for typed character on element allowing text input', async () => {
-        const { input } = initBody(`
+        const { input, textarea } = initBody(`
             <input id="input" type="text" />
+            <textarea id="textarea"></textarea>
         `);
         const cb = mockFn();
         dom.on(input, { keystroke: cb, textInput: cb });
+        dom.on(textarea, { keystroke: cb, textInput: cb });
 
         await type(input, 'a');
         verifyCalls(cb, [
@@ -1274,6 +1276,13 @@ describe('keystroke event', () => {
         verifyCalls(cb, [
             [objectContaining({ currentTarget: input, type: 'keystroke', data: 'semiColon' }), _],
             [objectContaining({ currentTarget: input, type: 'textInput', data: ';' }), _]
+        ]);
+        cb.mockReset();
+
+        await type(textarea, '[enter]');
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: textarea, type: 'keystroke', data: 'enter' }), _],
+            [objectContaining({ currentTarget: textarea, type: 'textInput', data: '\n' }), _]
         ]);
         cb.mockReset();
 
