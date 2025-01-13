@@ -1277,6 +1277,13 @@ describe('keystroke event', () => {
         ]);
         cb.mockReset();
 
+        // special case: enter key in normal input
+        await type(input, '[enter]');
+        verifyCalls(cb, [
+            [objectContaining({ currentTarget: input, type: 'keystroke', data: 'enter' }), _],
+        ]);
+        cb.mockReset();
+
         // this test is skipped in simulated DOM environment
         // the syn library did not report 'A' in e.key as in real browser
         //

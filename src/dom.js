@@ -83,15 +83,19 @@ function measureLine(p1, p2) {
     };
 }
 
-function textInputAllowed(v) {
+function getTextInputMode(v) {
     if (v.disabled || v.readOnly) {
         return false;
     }
     if (v.isContentEditable) {
-        return true;
+        return 3;
     }
     var kind = tagName(v);
-    return kind === 'input' ? v.selectionStart !== null : kind === 'textarea';
+    return kind === 'input' ? v.selectionStart !== null : kind === 'textarea' && 3;
+}
+
+function textInputAllowed(v) {
+    return !!getTextInputMode(v);
 }
 
 function isMouseDown(e) {
@@ -666,7 +670,7 @@ domReady.then(function () {
             char: char
         };
         var extraEvent = [];
-        if (char && textInputAllowed(getActiveElement())) {
+        if (char && (getTextInputMode(getActiveElement()) & (keyName === 'enter' ? 2 : 1))) {
             extraEvent.push({ eventName: 'textInput', data: char });
         }
         return triggerUIEvent('keystroke', data, true, null, {
