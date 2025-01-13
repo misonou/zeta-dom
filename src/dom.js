@@ -90,10 +90,8 @@ function textInputAllowed(v) {
     if (v.isContentEditable) {
         return true;
     }
-    if (tagName(v) === 'input') {
-        return !matchWord(v.type, 'button checkbox color file image radio range reset submit');
-    }
-    return matchSelector(v, 'textarea,select');
+    var kind = tagName(v);
+    return kind === 'input' ? v.selectionStart !== null : kind === 'textarea';
 }
 
 function isMouseDown(e) {
