@@ -823,6 +823,7 @@ domReady.then(function () {
             currentKeyName = getEventName(e, modifiedKeyCode);
             lastKey = {
                 key: currentKeyName,
+                keyCode: e.keyCode,
                 target: e.target
             };
             if (!imeNode && modifierCount) {
@@ -849,7 +850,7 @@ domReady.then(function () {
             }
             if (!imeNode && e.cancelable) {
                 hasBeforeInput = true;
-                if (!currentKeyName || beforeInputType[e.inputType]) {
+                if (!currentKeyName || lastKey.keyCode === 229 || beforeInputType[e.inputType]) {
                     switch (e.inputType) {
                         case 'insertText':
                         case 'insertFromPaste':
