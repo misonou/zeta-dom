@@ -54,7 +54,7 @@ var touchedClick;
 fill(sourceDict, 'touchstart touchend touchmove', 'touch');
 fill(sourceDict, 'compositionstart compositionupdate compositionend keydown keyup keypress', 'keyboard');
 fill(sourceDict, 'beforeinput input textInput', function (e) {
-    return beforeInputType[e.inputType] || eventSource || 'input';
+    return beforeInputType[e.inputType] || 'input';
 });
 fill(sourceDict, 'pointerdown', function (e) {
     touchedClick = e.pointerType === 'touch' || (e.pointerType === 'pen' && (e.sourceCapabilities || { firesTouchEvents: IS_TOUCH }).firesTouchEvents);
