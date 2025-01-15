@@ -1,4 +1,4 @@
-/*! zeta-dom v0.6.0 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.6.1 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -1777,7 +1777,7 @@ var touchedClick;
 fill(sourceDict, 'touchstart touchend touchmove', 'touch');
 fill(sourceDict, 'compositionstart compositionupdate compositionend keydown keyup keypress', 'keyboard');
 fill(sourceDict, 'beforeinput input textInput', function (e) {
-  return beforeInputType[e.inputType] || eventSource || 'input';
+  return beforeInputType[e.inputType] || 'input';
 });
 fill(sourceDict, 'pointerdown', function (e) {
   touchedClick = e.pointerType === 'touch' || e.pointerType === 'pen' && (e.sourceCapabilities || {
@@ -1806,17 +1806,18 @@ function measureLine(p1, p2) {
     length: Math.sqrt(dx * dx + dy * dy)
   };
 }
-function textInputAllowed(v) {
+function getTextInputMode(v) {
   if (v.disabled || v.readOnly) {
     return false;
   }
   if (v.isContentEditable) {
-    return true;
+    return 3;
   }
-  if (tagName(v) === 'input') {
-    return !matchWord(v.type, 'button checkbox color file image radio range reset submit');
-  }
-  return matchSelector(v, 'textarea,select');
+  var kind = tagName(v);
+  return kind === 'input' ? v.selectionStart !== null : kind === 'textarea' && 3;
+}
+function textInputAllowed(v) {
+  return !!getTextInputMode(v);
 }
 function isMouseDown(e) {
   return (isUndefinedOrNull(e.buttons) ? e.which : e.buttons) === 1;
@@ -1825,7 +1826,7 @@ function normalizeKey(e) {
   var key = KEYNAMES[e.code || e.keyCode];
   return {
     key: key || lcfirst(e.code) || e.key,
-    char: e.char || (e.key || '').length === 1 && e.key || e.charCode && String.fromCharCode(e.charCode) || (key === 'enter' ? '\r' : ''),
+    char: e.char || (e.key || '').length === 1 && e.key || key === 'enter' && '\n' || e.charCode && String.fromCharCode(e.charCode) || '',
     meta: !!metaKeys[key]
   };
 }
@@ -2355,7 +2356,7 @@ domReady.then(function () {
       char: char
     };
     var extraEvent = [];
-    if (char && textInputAllowed(getActiveElement())) {
+    if (char && getTextInputMode(getActiveElement()) & (keyName === 'enter' ? 2 : 1)) {
       extraEvent.push({
         eventName: 'textInput',
         data: char
@@ -2510,6 +2511,7 @@ domReady.then(function () {
       currentKeyName = getEventName(e, modifiedKeyCode);
       lastKey = {
         key: currentKeyName,
+        keyCode: e.keyCode,
         target: e.target
       };
       if (!imeNode && modifierCount) {
@@ -2536,7 +2538,7 @@ domReady.then(function () {
       }
       if (!imeNode && e.cancelable) {
         hasBeforeInput = true;
-        if (!currentKeyName || beforeInputType[e.inputType]) {
+        if (!currentKeyName || lastKey.keyCode === 229 || beforeInputType[e.inputType]) {
           switch (e.inputType) {
             case 'insertText':
             case 'insertFromPaste':
@@ -2603,11 +2605,13 @@ domReady.then(function () {
     mousemove: function mousemove(e) {
       if (mouseInitialPoint && measureLine(e, mouseInitialPoint).length > 5) {
         var target = mouseInitialPoint.target;
-        if (isMouseDown(e) && containsOrEquals(target, elementFromPoint(mouseInitialPoint.clientX, mouseInitialPoint.clientY))) {
-          triggerMouseEvent('drag', mouseInitialPoint);
+        if (isMouseDown(e)) {
+          preventClick = true;
+          if (containsOrEquals(target, elementFromPoint(mouseInitialPoint.clientX, mouseInitialPoint.clientY))) {
+            triggerMouseEvent('drag', mouseInitialPoint);
+          }
         }
         mouseInitialPoint = null;
-        preventClick = true;
       }
     },
     wheel: function wheel(e) {
