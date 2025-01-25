@@ -467,9 +467,9 @@ function trackPointer(callback) {
     }
     var target = currentEvent.target;
     var lastPoint = currentEvent;
-    var scrollWithin = grep(focusPath, function (v) {
+    var scrollWithin = getModalElement() && grep(focusPath, function (v) {
         return containsOrEquals(v, target);
-    }).slice(-1)[0];
+    }).slice(-2)[0];
     var scrollParent = getScrollParent(target);
     var scrollTimeout;
     var resolve, reject;
