@@ -1,4 +1,4 @@
-/*! zeta-dom v0.6.2 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.6.3 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
