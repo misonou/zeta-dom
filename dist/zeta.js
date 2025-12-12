@@ -1,4 +1,4 @@
-/*! zeta-dom v0.6.1 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.6.2 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -2164,9 +2164,9 @@ function trackPointer(callback) {
   }
   var target = currentEvent.target;
   var lastPoint = currentEvent;
-  var scrollWithin = grep(focusPath, function (v) {
+  var scrollWithin = getModalElement() && grep(focusPath, function (v) {
     return containsOrEquals(v, target);
-  }).slice(-1)[0];
+  }).slice(-2)[0];
   var scrollParent = getScrollParent(target);
   var scrollTimeout;
   var resolve, reject;
