@@ -180,19 +180,19 @@ expectTypeOf(any(<Zeta.Dictionary<A>>_, (_1: A, _2: string) => _)).toEqualTypeOf
 expectTypeOf(any(<any>_, (_1: any, _2: any) => _)).toBeAny();
 expectTypeOf(any(<unknown>_, (_1: any, _2: any) => _)).toBeAny();
 
-expectTypeOf(single(<C>_, (_1: A | B, _2: keyof C) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<readonly string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single([0, 'a'], (_1: number | string, _2: number) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<Map<A, B>>_, (_1: B, _2: A) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<Set<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<NodeIterator>_, (_1: Node, _2: number) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<Iterator<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<HasEntries<A>>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<HasForEach<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<Zeta.Dictionary<A>>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<any>_, (_1: any, _2: any) => <C>_)).toEqualTypeOf<C | false>();
-expectTypeOf(single(<unknown>_, (_1: any, _2: any) => <C>_)).toEqualTypeOf<C | false>();
+expectTypeOf(single(<C>_, (_1: A | B, _2: keyof C) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<readonly string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<string[]>_, (_1: string, _2: number) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single([0, 'a'], (_1: number | string, _2: number) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<Map<A, B>>_, (_1: B, _2: A) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<Set<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<NodeIterator>_, (_1: Node, _2: number) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<Iterator<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<HasEntries<A>>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<HasForEach<A>>_, (_1: A, _2: number) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<Zeta.Dictionary<A>>_, (_1: A, _2: string) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<any>_, (_1: any, _2: any) => <C>_)).toEqualTypeOf<C | undefined>();
+expectTypeOf(single(<unknown>_, (_1: any, _2: any) => <C>_)).toEqualTypeOf<C | undefined>();
 
 expectTypeOf(fill(['a', 'b'], 1)).toMatchTypeOf<{ a: number, b: number }>();
 expectTypeOf(fill('a b', 1)).toMatchTypeOf<{ a: number, b: number }>();

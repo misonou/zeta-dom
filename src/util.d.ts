@@ -214,7 +214,7 @@ export function any<T>(obj: T, callback?: (this: T, v: CollectionValueOf<T>, i: 
  * @returns The non-falsy value returned by the last invocation of the given callback.
  * @see {@link each} for enumerated keys and values.
  */
-export function single<T, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: CollectionKeyOf<T>) => R): R | false;
+export function single<T, R>(obj: T, callback: (this: T, v: CollectionValueOf<T>, i: CollectionKeyOf<T>) => R): R | undefined;
 
 /**
  * Creates an object with a single property with the specified name and value.
@@ -656,14 +656,14 @@ export function defineHiddenProperty(obj: object, name: string, value: any, read
  * @param parentClass A function which serves as the parent class.
  * @param proto An object containing values, getters, setters or methods which will be defined on the prototype object.
  */
-export function definePrototype<T extends Function, U extends Function, V extends Zeta.Dictionary<number | string | boolean | undefined | null | Zeta.AnyFunction>>(fn: T, parentClass: U, proto?: Zeta.AdditionalMembers<InstanceTypeOrObject<T> & InstanceTypeOrObject<U>, V>): void;
+export function definePrototype<T extends Function, U extends Function, V extends Zeta.Dictionary>(fn: T, parentClass: U, proto?: Zeta.AdditionalMembers<InstanceTypeOrObject<T> & InstanceTypeOrObject<U>, V>): void;
 
 /**
  * Define properties on the prototype object of a function.
  * @param fn A function which its prototype object will have specified properties defined.
  * @param proto An object containing values, getters, setters or methods which will be defined on the prototype object.
  */
-export function definePrototype<T extends Function, U extends Zeta.Dictionary<number | string | boolean | undefined | null | Zeta.AnyFunction>>(fn: T, proto: Zeta.AdditionalMembers<InstanceTypeOrObject<T>, U>): void;
+export function definePrototype<T extends Function, U extends Zeta.Dictionary>(fn: T, proto: Zeta.AdditionalMembers<InstanceTypeOrObject<T>, U>): void;
 
 /**
  * Creates an object which its prototype is set to the given function's prototype object.
@@ -749,7 +749,7 @@ export function watchable<T extends object>(obj: T): Zeta.WatchableInstance<T>;
 
 /**
  * Defines a property that gets and sets another property of the same or a different object
- * and will also get notified if that property has been changed.
+ * and will also get notified on change if that property is also observable.
  * @param obj An object which the new property is defined on.
  * @param prop Property name.
  * @param target An object which the new property will access.
