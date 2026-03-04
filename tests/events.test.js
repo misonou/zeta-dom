@@ -138,6 +138,27 @@ describe('ZetaEventContainer.delete', () => {
     });
 });
 
+describe('ZetaEventContainer.has', () => {
+    it('should whether any handlers are registered for the target', () => {
+        const container = new ZetaEventContainer();
+        const target = {};
+        const another = {};
+        expect(container.has(target)).toBe(false);
+
+        const unbind1 = container.add(target, 'customEvent', () => { });
+        expect(container.has(target)).toBe(true);
+        expect(container.has(another)).toBe(false);
+
+        const unbind2 = container.add(target, 'anotherEvent', () => { });
+        expect(container.has(target)).toBe(true);
+
+        unbind1();
+        expect(container.has(target)).toBe(true);
+        unbind2();
+        expect(container.has(target)).toBe(false);
+    });
+});
+
 describe('ZetaEventContainer.emit', () => {
     it('should emit to handlers properly', () => {
         const container = new ZetaEventContainer();

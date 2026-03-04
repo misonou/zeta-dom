@@ -188,6 +188,12 @@ export class ZetaEventContainer<T = Element, M = Zeta.ZetaDOMEventMap<T>> implem
     getEventPath(target: T, eventData: Zeta.ZetaEventData<any>): Iterable<T>;
 
     /**
+     * Returns whether handlers are registered to the event target.
+     * @param target An event target.
+     */
+    has(target: T): boolean;
+
+    /**
      * Registers event handlers to a DOM element or a custom event target.
      * @param target An event target.
      * @param handlers An object which each entry represent the handler to be registered on the event.

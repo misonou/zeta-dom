@@ -349,6 +349,10 @@ definePrototype(ZetaEventContainer, {
             });
         });
     },
+    has: function (target) {
+        var state = _(this).components.get(target);
+        return !!state && state.refs.size > 0;
+    },
     add: function (target, event, handler) {
         var self = this;
         var state = _(self);
