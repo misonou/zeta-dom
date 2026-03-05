@@ -723,6 +723,7 @@ function getObservableState(obj, sync) {
         oldValues: {},
         newValues: {},
         alias: Object.create(null),
+        aliasTargets: null,
         handlers: [],
         handleChanges: function (callback) {
             var self = watchStore(obj);
@@ -761,6 +762,30 @@ function getObservableState(obj, sync) {
     });
 }
 
+function notifyPropertyChange(state, prop, oldValue, newValue) {
+    if (!hasOwnProperty(state.oldValues, prop)) {
+        state.oldValues[prop] = oldValue;
+    }
+    state.newValues[prop] = newValue;
+    if (!state.sync) {
+        setImmediateOnce(state.handleChanges);
+    } else if (!state.lock) {
+        state.handleChanges();
+    }
+}
+
+function ensureAliasTargetObserved(state, target, self) {
+    mapGet(state.aliasTargets, target, function () {
+        return self ? noop : watch(target, function (e) {
+            each(e.newValues, function (i, v) {
+                if (state.alias[i] && state.alias[i][0] === target) {
+                    notifyPropertyChange(state, i, e.oldValues[i], v);
+                }
+            });
+        });
+    });
+}
+
 function ensurePropertyObserved(obj, prop) {
     for (var proto = obj; proto && proto !== objectProto; proto = getPrototypeOf(proto)) {
         if (hasOwnProperty(proto, prop)) {
@@ -793,7 +818,12 @@ function defineAliasProperty(obj, prop, target, targetProp) {
         target[targetProp] = value;
     });
     var state = getObservableState(obj);
-    state.alias[prop] = getObservableState(target).alias[targetProp] || [target, targetProp];
+    var alias = getObservableState(target).alias[targetProp] || [target, targetProp];
+    state.alias[prop] = alias;
+    state.aliasTargets = state.aliasTargets || new Map();
+    if (state.handlers[0]) {
+        ensureAliasTargetObserved(state, alias[0], alias[0] === target);
+    }
 }
 
 function defineObservableProperty(obj, prop, initialValue, callback) {
@@ -813,15 +843,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
             if (!sameValueZero(value, oldValue)) {
                 state.values[prop] = value;
                 if (state.handlers[0]) {
-                    if (!hasOwnProperty(state.oldValues, prop)) {
-                        state.oldValues[prop] = oldValue;
-                    }
-                    state.newValues[prop] = value;
-                    if (!state.sync) {
-                        setImmediateOnce(state.handleChanges);
-                    } else if (!state.lock) {
-                        state.handleChanges();
-                    }
+                    notifyPropertyChange(state, prop, oldValue, value);
                 }
             }
         };
@@ -843,14 +865,20 @@ function watch(obj, prop, handler, fireInit) {
         return state.handleChanges;
     }
     var wrapper, handlers;
+    var state = getObservableState(obj);
     if (isFunction(prop)) {
         wrapper = prop;
-        handlers = getObservableState(obj).handlers;
+        handlers = state.handlers;
         handlers.push(prop);
+        if (state.aliasTargets) {
+            each(state.alias, function (i, v) {
+                ensureAliasTargetObserved(state, v[0], v[0] === obj);
+            });
+        }
     } else {
         ensurePropertyObserved(obj, prop);
         if (isFunction(handler)) {
-            var alias = getObservableState(obj).alias[prop] || [obj, prop];
+            var alias = state.alias[prop] || [obj, prop];
             handlers = getObservableState(alias[0]).handlers;
             wrapper = function (e) {
                 if (hasOwnProperty(e.newValues, alias[1])) {
@@ -866,6 +894,11 @@ function watch(obj, prop, handler, fireInit) {
     if (wrapper) {
         return executeOnce(function () {
             arrRemove(handlers, wrapper);
+            if (!state.handlers[0]) {
+                each(state.aliasTargets, function (target) {
+                    mapRemove(this, target)();
+                });
+            }
         });
     }
     return noop;

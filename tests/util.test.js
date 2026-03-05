@@ -1067,6 +1067,48 @@ describe('watch', () => {
         expect(cb).not.toBeCalled();
     });
 
+    it('should fire callback one after any alias property is updated if property is not specified', async () => {
+        const source = {
+            prop: 1
+        };
+        const alias = {
+            anotherProp: 2
+        };
+        const cb = mockFn();
+        defineAliasProperty(alias, 'prop', source);
+        defineObservableProperty(alias, 'prop');
+        defineObservableProperty(alias, 'anotherProp');
+
+        watch(alias, 'anotherProp', () => { });
+        watch(alias, cb);
+        await after(() => {
+            source.prop = 42;
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb).toBeCalledWith({
+            oldValues: { prop: 1 },
+            newValues: { prop: 42 }
+        });
+        cb.mockClear();
+
+        await after(() => {
+            source.prop = 43;
+            alias.anotherProp = 42;
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb).toBeCalledWith({
+            oldValues: { prop: 42, anotherProp: 2 },
+            newValues: { prop: 43, anotherProp: 42 }
+        });
+
+        defineObservableProperty(source, 'anotherProp');
+        cb.mockReset();
+        await after(() => {
+            source.anotherProp = 43;
+        });
+        expect(cb).not.toBeCalled();
+    });
+
     it('should not fire callback if all properties are set to original value', async () => {
         const obj = {
             prop1: 1,
