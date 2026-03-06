@@ -1,7 +1,6 @@
-import Promise from "./include/promise-polyfill.js";
 import $ from "./include/jquery.js";
 import * as ErrorCode from "./errorCode.js";
-import { window, document, getComputedStyle, root } from "./env.js";
+import { window, document, getComputedStyle, root, Promise } from "./env.js";
 import { getClass, setClass, iterateNode, createNodeIterator, isVisible, bind } from "./domUtil.js";
 import { reject, noop, resolve, each, matchWord, keys, resolveAll, grep, errorWithCode } from "./util.js";
 

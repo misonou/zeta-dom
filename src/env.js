@@ -1,8 +1,8 @@
 // @ts-nocheck
-import Promise from "./include/promise-polyfill.js";
 import $ from "./include/jquery.js";
 
 export const window = self;
+export const Promise = window.Promise;
 export const document = window.document;
 export const root = document.documentElement;
 export const getSelection = window.getSelection;

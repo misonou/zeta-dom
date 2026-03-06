@@ -1,6 +1,5 @@
-import Promise from "./include/promise-polyfill.js";
 import * as ErrorCode from "./errorCode.js";
-import { window, root } from "./env.js";
+import { window, root, Promise } from "./env.js";
 import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, is, isFunction, makeArray, makeAsync, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd } from "./util.js";
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent, listenDOMEvent, ZetaEventSource } from "./events.js";

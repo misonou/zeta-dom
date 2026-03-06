@@ -1,5 +1,4 @@
-import Promise from "./include/promise-polyfill.js";
-import { window } from "./env.js";
+import { window, Promise } from "./env.js";
 
 const objectProto = Object.prototype;
 const keys = Object.keys;
