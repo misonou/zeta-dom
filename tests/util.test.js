@@ -1006,6 +1006,32 @@ describe('watch', () => {
         ]);
     });
 
+    it('should fire callback once after specified alias property is updated', async () => {
+        const source = {
+            foo: 1
+        };
+        const obj = {
+            baz: 1
+        };
+        defineAliasProperty(obj, 'foo', source);
+        defineAliasProperty(obj, 'bar', source, 'foo');
+        defineAliasProperty(obj, 'baz_copy', obj, 'baz');
+
+        const cb = mockFn();
+        watch(obj, 'foo', cb);
+        watch(obj, 'bar', cb);
+        watch(obj, 'baz_copy', cb);
+        await after(() => {
+            source.foo = 42;
+            obj.baz = 42;
+        });
+        verifyCalls(cb, [
+            [42, 1, 'foo', expect.sameObject(obj)],
+            [42, 1, 'bar', expect.sameObject(obj)],
+            [42, 1, 'baz_copy', expect.sameObject(obj)],
+        ]);
+    });
+
     it('should not fire callback if property is set to original value before callback is fired', async () => {
         const obj = {
             prop1: 1,
@@ -1076,6 +1102,7 @@ describe('watch', () => {
         };
         const cb = mockFn();
         defineAliasProperty(alias, 'prop', source);
+        defineAliasProperty(alias, 'copy', alias, 'anotherProp');
         defineObservableProperty(alias, 'prop');
         defineObservableProperty(alias, 'anotherProp');
 
@@ -1097,8 +1124,8 @@ describe('watch', () => {
         });
         expect(cb).toBeCalledTimes(1);
         expect(cb).toBeCalledWith({
-            oldValues: { prop: 42, anotherProp: 2 },
-            newValues: { prop: 43, anotherProp: 42 }
+            oldValues: { prop: 42, anotherProp: 2, copy: 2 },
+            newValues: { prop: 43, anotherProp: 42, copy: 42 }
         });
 
         defineObservableProperty(source, 'anotherProp');

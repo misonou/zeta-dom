@@ -744,6 +744,14 @@ function getObservableState(obj, sync) {
                         }
                     }
                     if (getOwnPropertyNames(oldValues)[0]) {
+                        if (self.aliasTargets && self.aliasTargets.has(obj)) {
+                            each(self.alias, function (i, v) {
+                                if (v[0] === obj && hasOwnProperty(oldValues, v[1])) {
+                                    oldValues[i] = oldValues[v[1]];
+                                    newValues[i] = newValues[v[1]];
+                                }
+                            });
+                        }
                         self.oldValues = {};
                         self.newValues = {};
                         self.handlers.slice(0).forEach(function (v) {
