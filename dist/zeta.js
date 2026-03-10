@@ -1,4 +1,4 @@
-/*! zeta-dom v0.6.3 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.6.4 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -240,9 +240,6 @@ __webpack_require__.d(cssUtil_namespaceObject, {
   runCSSTransition: function() { return runCSSTransition; }
 });
 
-;// CONCATENATED MODULE: ./src/include/promise-polyfill.js
-var promise_polyfill_Promise = window.Promise;
-/* harmony default export */ var promise_polyfill = (promise_polyfill_Promise);
 // EXTERNAL MODULE: external {"commonjs":"jquery","commonjs2":"jquery","amd":"jquery","root":"jQuery"}
 var external_commonjs_jquery_commonjs2_jquery_amd_jquery_root_jQuery_ = __webpack_require__(914);
 ;// CONCATENATED MODULE: ./src/include/jquery.js
@@ -251,8 +248,8 @@ var external_commonjs_jquery_commonjs2_jquery_amd_jquery_root_jQuery_ = __webpac
 ;// CONCATENATED MODULE: ./src/env.js
 // @ts-nocheck
 
-
 var env_window = self;
+var env_Promise = env_window.Promise;
 var env_document = env_window.document;
 var root = env_document.documentElement;
 var getSelection = env_window.getSelection;
@@ -260,7 +257,7 @@ var getComputedStyle = env_window.getComputedStyle;
 var reportError = env_window.reportError || function (error) {
   console.error(error);
 };
-var domReady = new promise_polyfill(jquery);
+var domReady = new env_Promise(jquery);
 var IS_MAC = navigator.userAgent.indexOf('Macintosh') >= 0;
 var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !env_window.MSStream || IS_MAC && navigator.maxTouchPoints > 2;
 var IS_IE10 = !!env_window.ActiveXObject;
@@ -272,7 +269,6 @@ var cancelled = 'zeta/cancelled';
 var invalidOperation = 'zeta/invalid-operation';
 ;// CONCATENATED MODULE: ./src/util.js
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
-
 
 var objectProto = Object.prototype;
 var keys = Object.keys;
@@ -756,10 +752,10 @@ function htmlDecode(input) {
  * -------------------------------------- */
 
 function util_resolve(value) {
-  return promise_polyfill.resolve(value);
+  return env_Promise.resolve(value);
 }
 function reject(reason) {
-  return promise_polyfill.reject(reason);
+  return env_Promise.reject(reason);
 }
 function always(promise, callback) {
   promise = isThenable(promise) || util_resolve(promise);
@@ -774,7 +770,7 @@ function resolveAll(obj, callback) {
     return util_resolve(obj).then(callback);
   }
   if (isArray(obj)) {
-    return promise_polyfill.all(obj).then(callback);
+    return env_Promise.all(obj).then(callback);
   }
   var result = {};
   var arr = map(obj, function (v, i) {
@@ -813,7 +809,7 @@ function catchAsync(promise) {
   return promise.catch(noop);
 }
 function setPromiseTimeout(promise, ms, resolveWhenTimeout) {
-  return new promise_polyfill(function (resolve, reject) {
+  return new env_Promise(function (resolve, reject) {
     promise.then(resolve, reject);
     util_setTimeout(function () {
       (resolveWhenTimeout ? resolve : reject)('timeout');
@@ -821,7 +817,7 @@ function setPromiseTimeout(promise, ms, resolveWhenTimeout) {
   });
 }
 function delay(ms, callback) {
-  return new promise_polyfill(function (resolve) {
+  return new env_Promise(function (resolve) {
     util_setTimeout(callback ? function () {
       resolve(makeAsync(callback)());
     } : resolve, ms);
@@ -919,6 +915,7 @@ function getObservableState(obj, sync) {
     oldValues: {},
     newValues: {},
     alias: Object.create(null),
+    aliasTargets: null,
     handlers: [],
     handleChanges: function handleChanges(callback) {
       var self = watchStore(obj);
@@ -939,6 +936,14 @@ function getObservableState(obj, sync) {
             }
           }
           if (getOwnPropertyNames(oldValues)[0]) {
+            if (self.aliasTargets && self.aliasTargets.has(obj)) {
+              each(self.alias, function (i, v) {
+                if (v[0] === obj && util_hasOwnProperty(oldValues, v[1])) {
+                  oldValues[i] = oldValues[v[1]];
+                  newValues[i] = newValues[v[1]];
+                }
+              });
+            }
             self.oldValues = {};
             self.newValues = {};
             self.handlers.slice(0).forEach(function (v) {
@@ -954,6 +959,28 @@ function getObservableState(obj, sync) {
       }
       return result;
     }
+  });
+}
+function notifyPropertyChange(state, prop, oldValue, newValue) {
+  if (!util_hasOwnProperty(state.oldValues, prop)) {
+    state.oldValues[prop] = oldValue;
+  }
+  state.newValues[prop] = newValue;
+  if (!state.sync) {
+    setImmediateOnce(state.handleChanges);
+  } else if (!state.lock) {
+    state.handleChanges();
+  }
+}
+function ensureAliasTargetObserved(state, target, self) {
+  mapGet(state.aliasTargets, target, function () {
+    return self ? noop : _watch(target, function (e) {
+      each(e.newValues, function (i, v) {
+        if (state.alias[i] && state.alias[i][0] === target) {
+          notifyPropertyChange(state, i, e.oldValues[i], v);
+        }
+      });
+    });
   });
 }
 function ensurePropertyObserved(obj, prop) {
@@ -986,7 +1013,12 @@ function defineAliasProperty(obj, prop, target, targetProp) {
     target[targetProp] = value;
   });
   var state = getObservableState(obj);
-  state.alias[prop] = getObservableState(target).alias[targetProp] || [target, targetProp];
+  var alias = getObservableState(target).alias[targetProp] || [target, targetProp];
+  state.alias[prop] = alias;
+  state.aliasTargets = state.aliasTargets || new Map();
+  if (state.handlers[0]) {
+    ensureAliasTargetObserved(state, alias[0], alias[0] === target);
+  }
 }
 function defineObservableProperty(obj, prop, initialValue, callback) {
   var state = getObservableState(obj);
@@ -1005,15 +1037,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
       if (!sameValueZero(value, oldValue)) {
         state.values[prop] = value;
         if (state.handlers[0]) {
-          if (!util_hasOwnProperty(state.oldValues, prop)) {
-            state.oldValues[prop] = oldValue;
-          }
-          state.newValues[prop] = value;
-          if (!state.sync) {
-            setImmediateOnce(state.handleChanges);
-          } else if (!state.lock) {
-            state.handleChanges();
-          }
+          notifyPropertyChange(state, prop, oldValue, value);
         }
       }
     };
@@ -1034,14 +1058,20 @@ function _watch(obj, prop, handler, fireInit) {
     return state.handleChanges;
   }
   var wrapper, handlers;
+  var state = getObservableState(obj);
   if (isFunction(prop)) {
     wrapper = prop;
-    handlers = getObservableState(obj).handlers;
+    handlers = state.handlers;
     handlers.push(prop);
+    if (state.aliasTargets) {
+      each(state.alias, function (i, v) {
+        ensureAliasTargetObserved(state, v[0], v[0] === obj);
+      });
+    }
   } else {
     ensurePropertyObserved(obj, prop);
     if (isFunction(handler)) {
-      var alias = getObservableState(obj).alias[prop] || [obj, prop];
+      var alias = state.alias[prop] || [obj, prop];
       handlers = getObservableState(alias[0]).handlers;
       wrapper = function wrapper(e) {
         if (util_hasOwnProperty(e.newValues, alias[1])) {
@@ -1057,13 +1087,18 @@ function _watch(obj, prop, handler, fireInit) {
   if (wrapper) {
     return executeOnce(function () {
       arrRemove(handlers, wrapper);
+      if (!state.handlers[0]) {
+        each(state.aliasTargets, function (target) {
+          mapRemove(this, target)();
+        });
+      }
     });
   }
   return noop;
 }
 function _watchOnce(obj, prop, handler) {
   ensurePropertyObserved(obj, prop);
-  return new promise_polyfill(function (resolve) {
+  return new env_Promise(function (resolve) {
     var alias = getObservableState(obj).alias[prop] || [obj, prop];
     var handlers = getObservableState(alias[0]).handlers;
     handlers.push(function fn(e) {
@@ -1093,7 +1128,6 @@ function watchable(obj) {
 }
 
 ;// CONCATENATED MODULE: ./src/observe.js
-
 
 
 
@@ -1173,7 +1207,7 @@ function afterDetached(element, from, callback) {
   }
   var promise;
   if (!isFunction(callback)) {
-    promise = new promise_polyfill(function (resolve) {
+    promise = new env_Promise(function (resolve) {
       callback = resolve;
     });
   }
@@ -1532,7 +1566,6 @@ function domLock_typeof(o) { "@babel/helpers - typeof"; return domLock_typeof = 
 
 
 
-
 var handledErrors = new WeakSet();
 var subscribers = new WeakMap();
 var locks = createAutoCleanupMap(clearLock);
@@ -1572,7 +1605,7 @@ function clearLock(element, map) {
 }
 function handlePromise(source, element, oncancel, sendAsync) {
   var cancel;
-  var promise = new promise_polyfill(function (resolve, reject) {
+  var promise = new env_Promise(function (resolve, reject) {
     cancel = executeOnce(function () {
       var error = muteAndReturn(errorWithCode(cancelled));
       reject(error);
@@ -1627,7 +1660,7 @@ function lock(element, promise, oncancel) {
     return subscribeAsync(element);
   }
   if (isFunction(promise)) {
-    promise = lock(element, new promise_polyfill(noop), promise);
+    promise = lock(element, new env_Promise(noop), promise);
     return promise.cancel;
   }
   var promises = ensureLock(element);
@@ -1670,7 +1703,7 @@ function runAsync(element, callback) {
       return controller.signal || (controller = new AbortController()).signal;
     },
     get promise() {
-      return delegated || promise || (delegated = new promise_polyfill(function (res) {
+      return delegated || promise || (delegated = new env_Promise(function (res) {
         resolve = res;
       }));
     }
@@ -3161,6 +3194,10 @@ definePrototype(ZetaEventContainer, {
       });
     });
   },
+  has: function has(target) {
+    var state = _(this).components.get(target);
+    return !!state && state.refs.size > 0;
+  },
   add: function add(target, event, handler) {
     var self = this;
     var state = _(self);
@@ -3857,7 +3894,6 @@ function elementFromPoint(x, y, container) {
 
 
 
-
 var getAnimationsImpl = root.getAnimations;
 function parseCSS(value) {
   var styles = {};
@@ -4002,7 +4038,7 @@ function runCSSTransition(element, className, callback) {
   if (!map.size) {
     return complete();
   }
-  return new promise_polyfill(function (resolve, reject) {
+  return new env_Promise(function (resolve, reject) {
     var unbind = bind(element, 'animationend transitionend', function (e) {
       var dict = map.get(e.target) || {};
       delete dict[(e.propertyName ? removeVendorPrefix(e.propertyName) : '@' + e.animationName) + (e.pseudoElement || '')];
