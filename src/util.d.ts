@@ -438,7 +438,7 @@ export function throws(error: string | Error): never;
 
 export function throwNotFunction<T>(obj: T): Zeta.IsAnyOrUnknown<T> extends true ? MaybeFunctionOrConstructor : Extract<T, Zeta.AnyFunction | Zeta.AnyConstructorOrClass>;
 
-export function errorWithCode(code: string, message?: string, props?: Zeta.Dictionary<any>): Error;
+export function errorWithCode(code: string, message?: string | Error, props?: Zeta.Dictionary<any>): Error;
 
 export function isErrorWithCode(error: any, code: string): boolean;
 

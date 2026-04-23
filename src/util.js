@@ -458,6 +458,12 @@ function throwNotFunction(obj, name) {
 }
 
 function errorWithCode(code, message, props) {
+    if (isError(message)) {
+        props = extend({
+            cause: message
+        }, props);
+        message = message.message;
+    }
     return extend(new Error(message || code), props, {
         code: code
     });
