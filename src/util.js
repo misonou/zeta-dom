@@ -457,6 +457,16 @@ function throwNotFunction(obj, name) {
     return obj;
 }
 
+function throwIfAborted(signal) {
+    if (signal) {
+        if (signal.throwIfAborted) {
+            signal.throwIfAborted();
+        } else if (signal.aborted) {
+            throw 'reason' in signal ? signal.reason : new DOMException('', 'AbortError');
+        }
+    }
+}
+
 function errorWithCode(code, message, props) {
     if (isError(message)) {
         props = extend({
@@ -996,6 +1006,7 @@ export {
     // throw
     throws,
     throwNotFunction,
+    throwIfAborted,
     errorWithCode,
     isErrorWithCode,
 
