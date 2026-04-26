@@ -818,3 +818,10 @@ export function defineObservableProperty<T extends object, P extends keyof T>(ob
  * @returns A setter function to update the value.
  */
 export function defineObservableProperty<T extends object, V>(obj: T, prop: string, initialValue: V, readonly: true): (value: V) => void;
+
+/**
+ * Determines whether a property is observable using {@link watch} or {@link watchOnce}.
+ * @param obj An object to check.
+ * @param prop Property name.
+ */
+export function isObservableProperty(obj: object, prop: string): boolean;

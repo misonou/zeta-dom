@@ -809,20 +809,20 @@ function ensureAliasTargetObserved(state, target, self) {
     });
 }
 
-function ensurePropertyObserved(obj, prop) {
+function ensurePropertyObserved(obj, prop, flag) {
     for (var proto = obj; proto && proto !== objectProto; proto = getPrototypeOf(proto)) {
         if (hasOwnProperty(proto, prop)) {
             var state = getObservableState(proto);
             var alias = state.alias[prop];
             if (alias) {
-                return ensurePropertyObserved(alias[0], alias[1]);
+                return ensurePropertyObserved(alias[0], alias[1], flag);
             }
             if (hasOwnProperty(state.values, prop)) {
-                return;
+                return true;
             }
         }
     }
-    defineObservableProperty(obj, prop);
+    return flag !== false && defineObservableProperty(obj, prop);
 }
 
 function throwNotOwnDataProperty(obj, prop) {
@@ -877,6 +877,10 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
         }, callback === true ? undefined : setter);
         return setter.bind(obj);
     }
+}
+
+function isObservableProperty(obj, prop) {
+    return ensurePropertyObserved(obj, prop, false);
 }
 
 function watch(obj, prop, handler, fireInit) {
@@ -1022,6 +1026,7 @@ export {
     defineHiddenProperty,
     defineAliasProperty,
     defineObservableProperty,
+    isObservableProperty,
     watch,
     watchOnce,
     watchable,

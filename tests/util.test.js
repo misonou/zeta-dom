@@ -1,4 +1,4 @@
-import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, map, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, single, splice, watch, watchable, watchOnce, delay as util_delay } from "../src/util";
+import { any, arrRemove, deferrable, defineAliasProperty, defineObservableProperty, definePrototype, each, equal, exclude, fill, grep, inherit, isArrayLike, isPlainObject, isThenable, makeArray, map, mapGet, mapObject, pick, resolveAll, retryable, setPromiseTimeout, single, splice, watch, watchable, watchOnce, delay as util_delay, isObservableProperty } from "../src/util";
 import { _, after, delay, mockFn, verifyCalls } from "./testUtil";
 import $ from "jquery";
 
@@ -979,6 +979,37 @@ describe('defineObservableProperty', () => {
             obj.propZero = -0;
         });
         expect(cb).not.toBeCalled();
+    });
+});
+
+describe('isObservableProperty', () => {
+    it('should return true for observable property', () => {
+        const obj = { foo: 1 };
+        defineObservableProperty(obj, 'bar', 1);
+        defineObservableProperty(obj, 'baz', 1, true);
+
+        expect(isObservableProperty(obj, 'foo')).toBe(false);
+        expect(isObservableProperty(obj, 'bar')).toBe(true);
+        expect(isObservableProperty(obj, 'baz')).toBe(true);
+    });
+
+    it('should return true for observable alias property', () => {
+        const source = { foo: 1 };
+        const alias = {};
+        defineAliasProperty(alias, 'foo', source);
+        defineAliasProperty(alias, 'bar', source, 'foo');
+        defineAliasProperty(alias, 'baz', source);
+        defineObservableProperty(alias, 'foo');
+
+        expect(isObservableProperty(alias, 'foo')).toBe(true);
+        expect(isObservableProperty(alias, 'bar')).toBe(true);
+        expect(isObservableProperty(alias, 'baz')).toBe(false);
+    });
+
+    it('should return true for observable property defined on prototype', () => {
+        function A() { }
+        defineObservableProperty(A.prototype, 'foo');
+        expect(isObservableProperty(new A(), 'foo')).toBe(true);
     });
 });
 
