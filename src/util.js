@@ -10,6 +10,7 @@ const getPrototypeOf = Object.getPrototypeOf;
 const hasOwnPropertyImpl = objectProto.hasOwnProperty;
 const propertyIsEnumerableImpl = objectProto.propertyIsEnumerable;
 const toStringImpl = objectProto.toString;
+const isArrayImpl = Array.isArray;
 const values = Object.values || function (obj) {
     var vals = [];
     for (var key in obj) {
@@ -63,7 +64,7 @@ function isUndefinedOrNull(value) {
 }
 
 function isArray(obj) {
-    return Array.isArray(obj) && obj;
+    return isArrayImpl(obj) && obj;
 }
 
 function isFunction(obj) {
@@ -83,15 +84,16 @@ function isPlainObject(obj) {
     return (proto === objectProto || proto === null) && obj;
 }
 
+function isArrayLikeImpl(obj) {
+    var length = obj.length;
+    return typeof length === 'number' && length >= 0 && obj !== window && (isFunction(obj.slice) !== false || toStringImpl.call(obj) !== '[object Object]');
+}
+
 function isArrayLike(obj) {
-    if (!obj || typeof obj !== 'object' || obj === window) {
+    if (!obj || typeof obj !== 'object') {
         return false;
     }
-    if (isArray(obj)) {
-        return true;
-    }
-    var length = obj.length;
-    return typeof length === 'number' && length >= 0 && (isFunction(obj.slice) !== false || toStringImpl.call(obj) !== '[object Object]');
+    return isArrayImpl(obj) || isArrayLikeImpl(obj);
 }
 
 function makeArray(obj) {
@@ -154,7 +156,7 @@ function extend() {
 
 function each(obj, callback) {
     if (obj) {
-        var cur, i = 0;
+        var cur, arrayish, i = 0;
         callback = callback.bind(obj);
         if (typeof obj === 'string') {
             if (obj.indexOf(' ') < 0) {
@@ -162,11 +164,14 @@ function each(obj, callback) {
                 return;
             }
             obj = obj.split(' ');
+            arrayish = true;
+        } else if (isArrayImpl(obj) || isArrayLikeImpl(obj)) {
+            arrayish = true;
         } else if (obj instanceof Set) {
             // would be less useful if key and value refers to the same object
             obj = obj.values();
         }
-        if (isArrayLike(obj)) {
+        if (arrayish) {
             var len = obj.length;
             while (i < len && callback(i, obj[i++]) !== false);
         } else if (isFunction(obj.entries)) {

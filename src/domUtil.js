@@ -251,7 +251,7 @@ function addOrRemoveEventListener(method, element, event, listener, useCapture) 
             element[method](i, v, listener);
         });
     } else if (typeof event === 'string') {
-        each(event.split(' '), function (i, v) {
+        each(event, function (i, v) {
             element[method](v, listener, useCapture);
         });
     }
