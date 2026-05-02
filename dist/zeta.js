@@ -1,4 +1,4 @@
-/*! zeta-dom v0.6.4 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.6.5 | (c) misonou | https://misonou.github.io */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -140,6 +140,7 @@ __webpack_require__.d(util_namespaceObject, {
   isError: function() { return isError; },
   isErrorWithCode: function() { return isErrorWithCode; },
   isFunction: function() { return isFunction; },
+  isObservableProperty: function() { return isObservableProperty; },
   isPlainObject: function() { return isPlainObject; },
   isThenable: function() { return isThenable; },
   isUndefinedOrNull: function() { return isUndefinedOrNull; },
@@ -175,6 +176,7 @@ __webpack_require__.d(util_namespaceObject, {
   setTimeoutOnce: function() { return setTimeoutOnce; },
   single: function() { return single; },
   splice: function() { return splice; },
+  throwIfAborted: function() { return throwIfAborted; },
   throwNotFunction: function() { return throwNotFunction; },
   throws: function() { return util_throws; },
   trim: function() { return trim; },
@@ -280,6 +282,7 @@ var getPrototypeOf = Object.getPrototypeOf;
 var hasOwnPropertyImpl = objectProto.hasOwnProperty;
 var propertyIsEnumerableImpl = objectProto.propertyIsEnumerable;
 var toStringImpl = objectProto.toString;
+var isArrayImpl = Array.isArray;
 var values = Object.values || function (obj) {
   var vals = [];
   for (var key in obj) {
@@ -327,7 +330,7 @@ function isUndefinedOrNull(value) {
   return value === undefined || value === null;
 }
 function isArray(obj) {
-  return Array.isArray(obj) && obj;
+  return isArrayImpl(obj) && obj;
 }
 function isFunction(obj) {
   return typeof obj === 'function' && obj;
@@ -342,15 +345,15 @@ function isPlainObject(obj) {
   var proto = _typeof(obj) === 'object' && obj !== null && getPrototypeOf(obj);
   return (proto === objectProto || proto === null) && obj;
 }
+function isArrayLikeImpl(obj) {
+  var length = obj.length;
+  return typeof length === 'number' && length >= 0 && obj !== env_window && (isFunction(obj.slice) !== false || toStringImpl.call(obj) !== '[object Object]');
+}
 function isArrayLike(obj) {
-  if (!obj || _typeof(obj) !== 'object' || obj === env_window) {
+  if (!obj || _typeof(obj) !== 'object') {
     return false;
   }
-  if (isArray(obj)) {
-    return true;
-  }
-  var length = obj.length;
-  return typeof length === 'number' && length >= 0 && (isFunction(obj.slice) !== false || toStringImpl.call(obj) !== '[object Object]');
+  return isArrayImpl(obj) || isArrayLikeImpl(obj);
 }
 function makeArray(obj) {
   if (isArray(obj)) {
@@ -410,6 +413,7 @@ function extend() {
 function each(obj, callback) {
   if (obj) {
     var cur,
+      arrayish,
       i = 0;
     callback = callback.bind(obj);
     if (typeof obj === 'string') {
@@ -418,11 +422,14 @@ function each(obj, callback) {
         return;
       }
       obj = obj.split(' ');
+      arrayish = true;
+    } else if (isArrayImpl(obj) || isArrayLikeImpl(obj)) {
+      arrayish = true;
     } else if (obj instanceof Set) {
       // would be less useful if key and value refers to the same object
       obj = obj.values();
     }
-    if (isArrayLike(obj)) {
+    if (arrayish) {
       var len = obj.length;
       while (i < len && callback(i, obj[i++]) !== false);
     } else if (isFunction(obj.entries)) {
@@ -684,7 +691,22 @@ function throwNotFunction(obj, name) {
   }
   return obj;
 }
+function throwIfAborted(signal) {
+  if (signal) {
+    if (signal.throwIfAborted) {
+      signal.throwIfAborted();
+    } else if (signal.aborted) {
+      throw 'reason' in signal ? signal.reason : new DOMException('', 'AbortError');
+    }
+  }
+}
 function errorWithCode(code, message, props) {
+  if (isError(message)) {
+    props = extend({
+      cause: message
+    }, props);
+    message = message.message;
+  }
   return extend(new Error(message || code), props, {
     code: code
   });
@@ -983,20 +1005,20 @@ function ensureAliasTargetObserved(state, target, self) {
     });
   });
 }
-function ensurePropertyObserved(obj, prop) {
+function ensurePropertyObserved(obj, prop, flag) {
   for (var proto = obj; proto && proto !== objectProto; proto = getPrototypeOf(proto)) {
     if (util_hasOwnProperty(proto, prop)) {
       var state = getObservableState(proto);
       var alias = state.alias[prop];
       if (alias) {
-        return ensurePropertyObserved(alias[0], alias[1]);
+        return ensurePropertyObserved(alias[0], alias[1], flag);
       }
       if (util_hasOwnProperty(state.values, prop)) {
-        return;
+        return true;
       }
     }
   }
-  defineObservableProperty(obj, prop);
+  return flag !== false && defineObservableProperty(obj, prop);
 }
 function throwNotOwnDataProperty(obj, prop) {
   var desc = getOwnPropertyDescriptor(obj, prop);
@@ -1048,6 +1070,9 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
     }, callback === true ? undefined : setter);
     return setter.bind(obj);
   }
+}
+function isObservableProperty(obj, prop) {
+  return ensurePropertyObserved(obj, prop, false);
 }
 function _watch(obj, prop, handler, fireInit) {
   if (typeof prop === 'boolean') {
@@ -3522,7 +3547,7 @@ function addOrRemoveEventListener(method, element, event, listener, useCapture) 
       element[method](i, v, listener);
     });
   } else if (typeof event === 'string') {
-    each(event.split(' '), function (i, v) {
+    each(event, function (i, v) {
       element[method](v, listener, useCapture);
     });
   }
