@@ -15,10 +15,10 @@
   },
   "author": "misonou",
   "license": "ISC",
-  "homepage": "https://misonou.github.io",
+  "homepage": "https://misonou.pages.dev",
   "repository": "github:misonou/zeta-dom",
   "dependencies": {
-    "jquery": "^3.0.0"
+    "jquery": "^3.0.0 || ^4.0.0"
   },
   "optionalDependencies": {
     "promise-polyfill": "^8.2.0"
