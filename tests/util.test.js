@@ -955,6 +955,29 @@ describe('defineObservableProperty', () => {
         expect(cb).toBeCalledTimes(1);
     });
 
+    it('should define observable property with initial primitive value on prototype', async () => {
+        function A() { }
+        defineObservableProperty(A.prototype, 'foo', 1);
+        defineObservableProperty(A.prototype, 'bar', {});
+        A.prototype.foo = 2;
+
+        expect(new A()).toHaveProperty('foo', 1);
+        expect(new A()).toHaveProperty('bar', null);
+
+        const cb = mockFn();
+        const a = new A();
+        watch(a, cb);
+        await after(() => {
+            a.foo = 2;
+            a.bar = {};
+        });
+        expect(cb).toBeCalledTimes(1);
+        expect(cb).toBeCalledWith({
+            oldValues: { foo: 1, bar: null },
+            newValues: { foo: 2, bar: expect.sameObject(a.bar) },
+        });
+    });
+
     it('should throw if the property is not a data property', () => {
         const obj = {
             get prop() {

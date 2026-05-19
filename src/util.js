@@ -864,7 +864,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
         throwNotOwnDataProperty(obj, prop);
         var setter = function (value) {
             var state = getObservableState(this);
-            var oldValue = state.values[prop];
+            var oldValue = hasOwnProperty(state.values, prop) ? state.values[prop] : initialValue;
             if (isFunction(callback)) {
                 value = callback.call(this, value, oldValue);
             }
@@ -876,9 +876,12 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
             }
         };
         state.values[prop] = prop in obj ? obj[prop] : initialValue;
+        if (typeof initialValue === 'object') {
+            initialValue = null;
+        }
         defineGetterProperty(obj, prop, function () {
             var state = getObservableState(this);
-            return state.values[prop];
+            return hasOwnProperty(state.values, prop) ? state.values[prop] : initialValue;
         }, callback === true ? undefined : setter);
         return setter.bind(obj);
     }

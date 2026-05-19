@@ -763,7 +763,7 @@ export function defineAliasProperty<T extends object, U extends object>(obj: T, 
  * Defines an observable property.
  * @param obj An object which the new property is defined on.
  * @param prop Property name.
- * @param initialValue Initial value.
+ * @param initialValue Initial value. It is ignored if property already exists; or when accessed as an inherited property unless the value is primitive.
  * @returns A setter function to update the value.
  * @see watch
  * @see watchOnce
@@ -774,7 +774,7 @@ export function defineObservableProperty<T extends object, P extends keyof T>(ob
  * Defines an observable property.
  * @param obj An object which the new property is defined on.
  * @param prop Property name.
- * @param initialValue Initial value.
+ * @param initialValue Initial value. It is ignored if property already exists; or when accessed as an inherited property unless the value is primitive.
  * @returns A setter function to update the value.
  * @see watch
  * @see watchOnce
@@ -785,7 +785,7 @@ export function defineObservableProperty<T extends object, V>(obj: T, prop: stri
  * Defines an observable property where the value is infiltrated when being set.
  * @param obj An object which the new property is defined on.
  * @param prop Property name.
- * @param initialValue Initial value.
+ * @param initialValue Initial value. It is ignored if property already exists; or when accessed as an inherited property unless the value is primitive.
  * @param callback A callback to mangle on the new value being set. If the returned value is same as old value, no event will be triggered.
  * @returns A setter function to update the value.
  */
@@ -795,7 +795,7 @@ export function defineObservableProperty<T extends object, P extends keyof T>(ob
  * Defines an observable property where the value is infiltrated when being set.
  * @param obj An object which the new property is defined on.
  * @param prop Property name.
- * @param initialValue Initial value.
+ * @param initialValue Initial value. It is ignored if property already exists; or when accessed as an inherited property unless the value is primitive.
  * @param callback A callback to mangle on the new value being set. If the returned value is same as old value, no event will be triggered.
  * @returns A setter function to update the value.
  */
@@ -805,7 +805,7 @@ export function defineObservableProperty<T extends object, V>(obj: T, prop: stri
  * Defines a read-only observable property and retrieves the setter for private use.
  * @param obj An object which the new property is defined on.
  * @param prop Property name.
- * @param initialValue Initial value.
+ * @param initialValue Initial value. It is ignored if property already exists; or when accessed as an inherited property unless the value is primitive.
  * @returns A setter function to update the value.
  */
 export function defineObservableProperty<T extends object, P extends keyof T>(obj: T, prop: P, initialValue: T[P], readonly: true): (value: T[P]) => void;
@@ -814,7 +814,7 @@ export function defineObservableProperty<T extends object, P extends keyof T>(ob
  * Defines a read-only observable property and retrieves the setter for private use.
  * @param obj An object which the new property is defined on.
  * @param prop Property name.
- * @param initialValue Initial value.
+ * @param initialValue Initial value. It is ignored if property already exists; or when accessed as an inherited property unless the value is primitive.
  * @returns A setter function to update the value.
  */
 export function defineObservableProperty<T extends object, V>(obj: T, prop: string, initialValue: V, readonly: true): (value: V) => void;
