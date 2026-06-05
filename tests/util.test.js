@@ -894,6 +894,20 @@ describe('defineObservableProperty', () => {
         ]);
     });
 
+    it('should treat 0 and -0 as different values', async () => {
+        const obj = {};
+        const cb = mockFn();
+        defineObservableProperty(obj, 'prop', 0);
+
+        watch(obj, 'prop', cb);
+        await after(() => {
+            obj.prop = -0;
+        });
+        verifyCalls(cb, [
+            [-0, 0, 'prop', expect.sameObject(obj)]
+        ]);
+    });
+
     it('should define observable property with private setter', async () => {
         const obj = {};
         const cb = mockFn();
@@ -967,16 +981,14 @@ describe('defineObservableProperty', () => {
     it('should not trigger callback when setting same value', async () => {
         const cb = mockFn();
         const obj = {
-            propNaN: NaN,
-            propZero: 0
+            propNaN: NaN
         };
         for (var i in obj) {
             defineObservableProperty(obj, i, obj[i]);
             watch(obj, i, cb);
         }
         await after(() => {
-            obj.propNaN = NaN;
-            obj.propZero = -0;
+            obj.propNaN = NaN
         });
         expect(cb).not.toBeCalled();
     });
@@ -1077,7 +1089,7 @@ describe('watch', () => {
             obj.prop1 = 2;
             obj.prop1 = 1;
             obj.prop2 = 1;
-            obj.prop2 = -0;
+            obj.prop2 = 0;
             obj.prop3 = 1;
             obj.prop3 = NaN;
         });

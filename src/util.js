@@ -758,7 +758,7 @@ function getObservableState(obj, sync) {
                         callback = null;
                     }
                     for (var i in oldValues) {
-                        if (sameValueZero(oldValues[i], newValues[i])) {
+                        if (sameValue(oldValues[i], newValues[i])) {
                             delete oldValues[i];
                             delete newValues[i];
                         }
@@ -868,7 +868,7 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
             if (isFunction(callback)) {
                 value = callback.call(this, value, oldValue);
             }
-            if (!sameValueZero(value, oldValue)) {
+            if (!sameValue(value, oldValue)) {
                 state.values[prop] = value;
                 if (state.handlers[0]) {
                     notifyPropertyChange(state, prop, oldValue, value);
