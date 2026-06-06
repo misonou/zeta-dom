@@ -1015,6 +1015,38 @@ describe('defineObservableProperty', () => {
         });
         expect(cb).not.toBeCalled();
     });
+
+    it('should return callback that can be used to set property on receiver object', async () => {
+        function A() { }
+        const cb = mockFn();
+        const bar = Object.create(A.prototype);
+        const setProp = defineObservableProperty(A.prototype, 'prop', 1);
+        watch(bar, 'prop', cb);
+        watch(A.prototype, 'prop', cb);
+
+        await after(() => setProp(2, bar));
+        await after(() => setProp(3, bar));
+        expect(bar).toHaveProperty('prop', 3);
+        expect(A.prototype).toHaveProperty('prop', 1);
+        verifyCalls(cb, [
+            [2, 1, 'prop', expect.sameObject(bar)],
+            [3, 2, 'prop', expect.sameObject(bar)],
+        ]);
+    });
+
+    it('should throw when receiver object is not inherited from target object', () => {
+        function A() { }
+        const setProp = defineObservableProperty(A.prototype, 'prop', 1);
+        expect(() => setProp(2, {})).toThrow();
+
+        const foo = {};
+        const setProp2 = defineObservableProperty(foo, 'prop', 1);
+        expect(() => setProp2(2, {})).toThrow();
+        expect(() => setProp2(2, new A)).toThrow();
+
+        const bar = Object.create(foo);
+        expect(() => setProp2(2, bar)).not.toThrow();
+    });
 });
 
 describe('isObservableProperty', () => {

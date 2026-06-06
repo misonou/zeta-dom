@@ -347,15 +347,15 @@ expectTypeOf(defineAliasProperty(<C>_, 'c', <A>_)).toBeVoid();
 expectTypeOf(defineAliasProperty(<C>_, 'c', <A>_, '__b')).toBeVoid();
 
 // defineObservableProperty - basic
-expectTypeOf(defineObservableProperty(<C>_, 'a')).toEqualTypeOf<(value: A) => void>();
-expectTypeOf(defineObservableProperty(<C>_, 'a', <A>_, true)).toEqualTypeOf<(value: A) => void>();
-expectTypeOf(defineObservableProperty(<C>_, 'a', <A>_, (_1: A, _2: A) => _1)).toEqualTypeOf<(value: A) => void>();
+expectTypeOf(defineObservableProperty(<C>_, 'a')).toEqualTypeOf<(value: A, receiver?: C) => void>();
+expectTypeOf(defineObservableProperty(<C>_, 'a', <A>_, true)).toEqualTypeOf<(value: A, receiver?: C) => void>();
+expectTypeOf(defineObservableProperty(<C>_, 'a', <A>_, (_1: A, _2: A) => _1)).toEqualTypeOf<(value: A, receiver?: C) => void>();
 
 // defineObservableProperty - unknown property
-expectTypeOf(defineObservableProperty(<C>_, 'c')).toEqualTypeOf<(value: unknown) => void>();
-expectTypeOf(defineObservableProperty(<C>_, 'c', 1)).toEqualTypeOf<(value: number) => void>();
-expectTypeOf(defineObservableProperty(<C>_, 'c', 1, true)).toEqualTypeOf<(value: number) => void>();
-expectTypeOf(defineObservableProperty(<C>_, 'c', 1, (_1: number, _2: number) => _1)).toEqualTypeOf<(value: number) => void>();
+expectTypeOf(defineObservableProperty(<C>_, 'c')).toEqualTypeOf<(value: unknown, receiver?: C) => void>();
+expectTypeOf(defineObservableProperty(<C>_, 'c', 1)).toEqualTypeOf<(value: number, receiver?: C) => void>();
+expectTypeOf(defineObservableProperty(<C>_, 'c', 1, true)).toEqualTypeOf<(value: number, receiver?: C) => void>();
+expectTypeOf(defineObservableProperty(<C>_, 'c', 1, (_1: number, _2: number) => _1)).toEqualTypeOf<(value: number, receiver?: C) => void>();
 
 // -------------------------------------
 // domUtil.d.ts

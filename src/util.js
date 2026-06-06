@@ -731,6 +731,15 @@ function deepFreeze(obj) {
     return obj;
 }
 
+function isInheritedFrom(obj, proto) {
+    var ctor = proto.constructor;
+    if (ctor === Object || !isFunction(ctor)) {
+        while ((obj = getPrototypeOf(obj)) && obj && obj !== proto);
+        return obj;
+    }
+    return obj instanceof ctor;
+}
+
 
 /* --------------------------------------
  * Observable
@@ -862,11 +871,15 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
     }
     if (!hasOwnProperty(state.values, prop)) {
         throwNotOwnDataProperty(obj, prop);
-        var setter = function (value) {
-            var state = getObservableState(this);
+        var setter = function (value, receiver) {
+            if (receiver && !isInheritedFrom(receiver, obj)) {
+                throw new TypeError('Invalid receiver');
+            }
+            var self = receiver || this;
+            var state = getObservableState(self);
             var oldValue = hasOwnProperty(state.values, prop) ? state.values[prop] : initialValue;
             if (isFunction(callback)) {
-                value = callback.call(this, value, oldValue);
+                value = callback.call(self, value, oldValue);
             }
             if (!sameValue(value, oldValue)) {
                 state.values[prop] = value;
