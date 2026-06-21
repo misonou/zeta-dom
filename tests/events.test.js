@@ -881,6 +881,28 @@ describe('ZetaEventContainer.destroy', () => {
     });
 });
 
+describe('ZetaEventContainer.Target', () => {
+    it('should add handler for instantiated object to event container', () => {
+        const container = new ZetaEventContainer();
+        const target = new container.Target();
+        const cb = mockFn();
+        target.on('foo', cb);
+        target.on('bar baz', cb);
+        target.on({ qux: cb });
+
+        container.emit('foo', target);
+        container.emit('bar', target);
+        container.emit('baz', target);
+        container.emit('qux', target);
+        verifyCalls(cb, [
+            [objectContaining({ type: 'foo', target: target }), _],
+            [objectContaining({ type: 'bar', target: target }), _],
+            [objectContaining({ type: 'baz', target: target }), _],
+            [objectContaining({ type: 'qux', target: target }), _],
+        ]);
+    });
+});
+
 describe('ZetaEvent.target', () => {
     it('should always be Element when possible when captureDOMEvents is true', () => {
         /** @type {ZetaEventContainer<{ element: HTMLElement }>} */

@@ -135,6 +135,28 @@ export class ZetaEventSource implements Zeta.ZetaEventSource {
     readonly path: readonly Element[];
 }
 
+declare class ZetaEventTarget<M, T> implements Zeta.ZetaEventDispatcher<M, T> {
+    /**
+     * Adds event handlers to multiple events.
+     * @param handlers A dictionary which the keys are event names and values are the callback for each event.
+     */
+    on(handlers: Zeta.ZetaEventHandlers<M, T>): Zeta.UnregisterCallback;
+
+    /**
+     * Adds an event handler to a specific event.
+     * @param event Name of the event.
+     * @param handler A callback function to be fired when the specified event is triggered.
+     */
+    on<E extends Zeta.StringKeyOf<M>>(event: E, handler: Zeta.ZetaEventHandler<E, M, T>): Zeta.UnregisterCallback;
+
+    /**
+     * Adds an event handler to a specific event.
+     * @param event Name of the event.
+     * @param handler A callback function to be fired when the specified event is triggered.
+     */
+    on<E extends Zeta.HintedStringKeyOf<M>>(event: E, handler: Zeta.ZetaEventHandler<Zeta.WhitespaceDelimited<E>, M, T>): Zeta.UnregisterCallback;
+}
+
 export class ZetaEventContainer<T = Element, M = Zeta.ZetaDOMEventMap<T>> implements Zeta.HasElement {
     /**
      * Createa a new event container for listening or dispatching events.
@@ -143,6 +165,11 @@ export class ZetaEventContainer<T = Element, M = Zeta.ZetaDOMEventMap<T>> implem
      * @param options A dictionary containing options specifying the behavior of the container.
      */
     constructor(root?: Element, context?: any, options?: Zeta.EventContainerOptions<T>);
+
+    /**
+     * Gets the event target class associated with this container.
+     */
+    readonly Target: typeof ZetaEventTarget<M, T>;
 
     /**
      * Gets the root element this container associates with.

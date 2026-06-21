@@ -334,6 +334,10 @@ function ZetaEventContainer(element, context, options) {
 
 definePrototype(ZetaEventContainer, {
     event: null,
+    get Target() {
+        var state = _(this);
+        return state.klass || (state.klass = containerCreateClass(this));
+    },
     tap: function (handler) {
         return domEventTrap.add(this, 'tap', handler);
     },
@@ -401,6 +405,16 @@ definePrototype(ZetaEventContainer, {
         state.components = new WeakMap();
     }
 });
+
+function containerCreateClass(container) {
+    function Target() { }
+    definePrototype(Target, {
+        on: function (event, handler) {
+            return container.add(this, event, handler);
+        }
+    });
+    return Target;
+}
 
 function containerCreateDispose(ref, ref2) {
     return executeOnce(function () {
