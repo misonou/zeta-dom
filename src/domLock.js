@@ -1,6 +1,6 @@
 import * as ErrorCode from "./errorCode.js";
 import { window, root, Promise } from "./env.js";
-import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, is, isFunction, makeArray, makeAsync, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd } from "./util.js";
+import { always, any, combineFn, each, errorWithCode, executeOnce, extend, grep, is, isFunction, makeArray, makeAsync, mapGet, mapRemove, noop, reject, resolve, retryable, setAdd, setImmediate } from "./util.js";
 import { bind, containsOrEquals, parentsAndSelf } from "./domUtil.js";
 import { emitDOMEvent, listenDOMEvent, ZetaEventSource } from "./events.js";
 import { createAutoCleanupMap } from "./observe.js";
@@ -125,14 +125,15 @@ function subscribeAsync(element, callback) {
     if (callback === true) {
         promises.handled = true;
     } else if (isFunction(callback)) {
-        return listenDOMEvent(element, {
-            asyncStart: function () {
-                callback.call(element, true);
-            },
-            asyncEnd: function () {
-                callback.call(element, false);
+        var current = false;
+        var handler = function () {
+            if (current !== (promises.started || false)) {
+                current = promises.started;
+                callback.call(element, current);
             }
-        });
+        };
+        setImmediate(handler);
+        return listenDOMEvent(element, 'asyncStart asyncEnd', handler);
     }
 }
 

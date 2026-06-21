@@ -113,6 +113,26 @@ describe('subscribeAsync', () => {
         unregister();
     });
 
+    it('should invoke callback if async operation has already started', async () => {
+        const { div } = initBody(`
+            <div id="div"></div>
+        `);
+        const cb = mockFn();
+        const promise = delay(20);
+        notifyAsync(div, promise);
+        await delay();
+
+        const unregister = subscribeAsync(div, cb);
+        await 0;
+        verifyCalls(cb, [[true]]);
+        cb.mockClear();
+
+        await promise;
+        await delay();
+        verifyCalls(cb, [[false]]);
+        unregister();
+    });
+
     it('should stop propagating notification to parent elements if called with true flag', async () => {
         const { div } = initBody(`
             <div id="div"></div>
