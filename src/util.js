@@ -23,6 +23,9 @@ const values = Object.values || function (obj) {
 const queueMicrotask = window.queueMicrotask || function (callback) {
     resolve().then(callback);
 };
+const hasOwnProperty = Object.hasOwn || function (obj, prop) {
+    return hasOwnPropertyImpl.call(obj, prop);
+};
 const sameValue = Object.is || function (a, b) {
     return sameValueZero(a, b) && (a !== 0 || 1 / a === 1 / b);
 };
@@ -349,7 +352,7 @@ function equal(a, b) {
     }
     var needles = keys(a);
     return needles.length === keys(b).length && !single(needles, function (v) {
-        return !hasOwnPropertyImpl.call(b, v) || !propertyIsEnumerableImpl.call(b, v) || !sameValueZero(a[v], b[v]);
+        return !hasOwnProperty(b, v) || !propertyIsEnumerableImpl.call(b, v) || !sameValueZero(a[v], b[v]);
     });
 }
 
@@ -655,10 +658,6 @@ function makeAsync(callback) {
 /* --------------------------------------
  * Property and prototype
  * -------------------------------------- */
-
-function hasOwnProperty(obj, prop) {
-    return hasOwnPropertyImpl.call(obj, prop);
-}
 
 function getOwnPropertyDescriptors(obj) {
     var props = {};
