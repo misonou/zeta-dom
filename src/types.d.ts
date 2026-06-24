@@ -606,6 +606,7 @@ declare namespace Zeta {
 
     interface ZetaKeystrokeEvent<T = Element> extends ZetaNativeUIEvent<T, KeyboardEvent> {
         readonly data: string;
+        readonly char: string;
     }
 
     interface ZetaGestureEvent<T = Element> extends ZetaNativeUIEvent<T, TouchEvent> {
