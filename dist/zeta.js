@@ -1,4 +1,4 @@
-/*! zeta-dom v0.6.5 | (c) misonou | https://misonou.github.io */
+/*! zeta-dom v0.6.6 | (c) misonou | https://misonou.pages.dev */
 (function webpackUniversalModuleDefinition(root, factory) {
 	if(typeof exports === 'object' && typeof module === 'object')
 		module.exports = factory(require("jquery"));
@@ -294,6 +294,9 @@ var values = Object.values || function (obj) {
 };
 var queueMicrotask = env_window.queueMicrotask || function (callback) {
   util_resolve().then(callback);
+};
+var util_hasOwnProperty = Object.hasOwn || function (obj, prop) {
+  return hasOwnPropertyImpl.call(obj, prop);
 };
 var sameValue = Object.is || function (a, b) {
   return sameValueZero(a, b) && (a !== 0 || 1 / a === 1 / b);
@@ -592,7 +595,7 @@ function equal(a, b) {
   }
   var needles = keys(a);
   return needles.length === keys(b).length && !single(needles, function (v) {
-    return !hasOwnPropertyImpl.call(b, v) || !propertyIsEnumerableImpl.call(b, v) || !sameValueZero(a[v], b[v]);
+    return !util_hasOwnProperty(b, v) || !propertyIsEnumerableImpl.call(b, v) || !sameValueZero(a[v], b[v]);
   });
 }
 function combineFn(arr) {
@@ -859,9 +862,6 @@ function makeAsync(callback) {
  * Property and prototype
  * -------------------------------------- */
 
-function util_hasOwnProperty(obj, prop) {
-  return hasOwnPropertyImpl.call(obj, prop);
-}
 function getOwnPropertyDescriptors(obj) {
   var props = {};
   each(getOwnPropertyNames(obj || {}), function (i, v) {
@@ -925,6 +925,14 @@ function deepFreeze(obj) {
   });
   return obj;
 }
+function isInheritedFrom(obj, proto) {
+  var ctor = proto.constructor;
+  if (ctor === Object || !isFunction(ctor)) {
+    while ((obj = getPrototypeOf(obj)) && obj && obj !== proto);
+    return obj;
+  }
+  return obj instanceof ctor;
+}
 
 /* --------------------------------------
  * Observable
@@ -952,7 +960,7 @@ function getObservableState(obj, sync) {
             callback = null;
           }
           for (var i in oldValues) {
-            if (sameValueZero(oldValues[i], newValues[i])) {
+            if (sameValue(oldValues[i], newValues[i])) {
               delete oldValues[i];
               delete newValues[i];
             }
@@ -1050,13 +1058,17 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
   }
   if (!util_hasOwnProperty(state.values, prop)) {
     throwNotOwnDataProperty(obj, prop);
-    var setter = function setter(value) {
-      var state = getObservableState(this);
-      var oldValue = state.values[prop];
-      if (isFunction(callback)) {
-        value = callback.call(this, value, oldValue);
+    var setter = function setter(value, receiver) {
+      if (receiver && !isInheritedFrom(receiver, obj)) {
+        throw new TypeError('Invalid receiver');
       }
-      if (!sameValueZero(value, oldValue)) {
+      var self = receiver || this;
+      var state = getObservableState(self);
+      var oldValue = util_hasOwnProperty(state.values, prop) ? state.values[prop] : initialValue;
+      if (isFunction(callback)) {
+        value = callback.call(self, value, oldValue);
+      }
+      if (!sameValue(value, oldValue)) {
         state.values[prop] = value;
         if (state.handlers[0]) {
           notifyPropertyChange(state, prop, oldValue, value);
@@ -1064,9 +1076,12 @@ function defineObservableProperty(obj, prop, initialValue, callback) {
       }
     };
     state.values[prop] = prop in obj ? obj[prop] : initialValue;
+    if (_typeof(initialValue) === 'object') {
+      initialValue = null;
+    }
     defineGetterProperty(obj, prop, function () {
       var state = getObservableState(this);
-      return state.values[prop];
+      return util_hasOwnProperty(state.values, prop) ? state.values[prop] : initialValue;
     }, callback === true ? undefined : setter);
     return setter.bind(obj);
   }
@@ -1704,14 +1719,15 @@ function subscribeAsync(element, callback) {
   if (callback === true) {
     promises.handled = true;
   } else if (isFunction(callback)) {
-    return listenDOMEvent(element, {
-      asyncStart: function asyncStart() {
-        callback.call(element, true);
-      },
-      asyncEnd: function asyncEnd() {
-        callback.call(element, false);
+    var current = false;
+    var handler = function handler() {
+      if (current !== (promises.started || false)) {
+        current = promises.started;
+        callback.call(element, current);
       }
-    });
+    };
+    setImmediate(handler);
+    return listenDOMEvent(element, 'asyncStart asyncEnd', handler);
   }
 }
 function notifyAsync(element, promise, oncancel) {
@@ -3204,6 +3220,10 @@ function ZetaEventContainer(element, context, options) {
 }
 definePrototype(ZetaEventContainer, {
   event: null,
+  get Target() {
+    var state = _(this);
+    return state.klass || (state.klass = containerCreateClass(this));
+  },
   tap: function tap(handler) {
     return domEventTrap.add(this, 'tap', handler);
   },
@@ -3269,6 +3289,15 @@ definePrototype(ZetaEventContainer, {
     state.components = new WeakMap();
   }
 });
+function containerCreateClass(container) {
+  function Target() {}
+  definePrototype(Target, {
+    on: function on(event, handler) {
+      return container.add(this, event, handler);
+    }
+  });
+  return Target;
+}
 function containerCreateDispose(ref, ref2) {
   return executeOnce(function () {
     ref.dispose();
